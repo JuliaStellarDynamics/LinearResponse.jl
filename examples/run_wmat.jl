@@ -2,13 +2,16 @@ import OrbitalElements
 import AstroBasis
 import PerturbPlasma
 using HDF5
-include("/Users/mpetersen/CodeHold/JuliaCallAResponse/src/WMat.jl")
 
-basedir="/Users/mpetersen/CodeHold/JuliaCallAResponse/examples/"
+# we will assume you are running from the 'examples' directory
+include("../src/WMat.jl")
+basedir="."
 
 # set up the AstroBasis call
 rb,G = 5.,1.
-Ulnp,DF = AstroBasis.read_and_fill_prefactors(2,10,rb,G)
+lmax,nmax = 2,10
+basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
+AstroBasis.fill_prefactors!(basis)
 
 # bring in Legendre integration prefactors
 K_u = 200
@@ -25,17 +28,17 @@ Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
 
 K_v = 50
 nradial=5
-n1 = -2
-n2 = -2
 NstepsWMat = 50
 
-for n1 in [-2,-1,0,1,2]
-    for n2 in [-2,0,2]
+#for n1 in [-2,-1,0,1,2]
+#    for n2 in [-2,0,2]
+for n1 in [0]
+    for n2 in [2]
         if (n1==0) & (n2==0)
             continue
         end
         println(n1," ",n2)
-        tabWMat,tabaMat,tabeMat = make_wmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,nradial,lharmonic,Ulnp,Omega0,rb,NstepsWMat)
+        @time tabWMat,tabaMat,tabeMat = make_wmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
         # now save
         h5open(basedir*"wmat/wmat_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*".h5", "w") do file
             write(file, "wmat",tabWMat)

@@ -3,13 +3,16 @@ import AstroBasis
 import PerturbPlasma
 
 
-"""make_wmat(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,nradial,lharmonic,Ulnp[,Omega0,rb,NstepsWMat])
+"""make_wmat(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,NstepsWMat])
 
+@IMPROVE: give basis a type?
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
 @IMPROVE: parallelise by launching from both -1 and 1?
 @IMPROVE: adaptively check for NaN values?
+
+@WARNING: when parallelising, basis will need to be copies so it can overwrite tabUl
 """
-function make_wmat(potential::Function,dpotential::Function,ddpotential::Function,n1::Int64,n2::Int64,Kuvals::Matrix{Float64},K_v::Int64,nradial::Int64,lharmonic::Int64,Ulnp::Matrix{Float64},Omega0::Float64=1.,rb::Float64=1.,NstepsWMat::Int64=20)
+function make_wmat(potential::Function,dpotential::Function,ddpotential::Function,n1::Int64,n2::Int64,Kuvals::Matrix{Float64},K_v::Int64,lharmonic::Int64,basis,Omega0::Float64=1.,NstepsWMat::Int64=20)
     #=
     add rmax as a parameter?
     =#
@@ -22,15 +25,12 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
     beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
 
     # allocate the results matrix
-    tabWMat = zeros(nradial,K_u,K_v)
+    tabWMat = zeros(basis.nmax,K_u,K_v)
     tabaMat = zeros(K_u,K_v)
     tabeMat = zeros(K_u,K_v)
 
     # set the matrix step size
     duWMat = (2.0)/(NstepsWMat)
-
-    # allocate the basis array
-    tabUlnp = zeros(nradial)
 
     # start the loop
     for kuval in 1:K_u
@@ -105,7 +105,7 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
             dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
 
             # collect the basis elements (in place!)
-            AstroBasis.tabUlnpCB73!(lharmonic,rval,tabUlnp,nradial,Ulnp,rb)
+            AstroBasis.tabUl!(basis,lharmonic,rval)
 
             # start the integration loop now that we are initialised
             # at each step, we are performing an RK4-like calculation
@@ -115,8 +115,8 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
                 pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
 
                 # Loop over the radial indices to sum basis contributions
-                for np=1:nradial
-                    tabWMat[np,kuval,kvval] += pref1*tabUlnp[np]
+                for np=1:basis.nmax
+                    tabWMat[np,kuval,kvval] += pref1*basis.tabUl[np]
                 end
 
                 # update velocities at end of step 1
@@ -124,18 +124,18 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
                 k2_1 = duWMat*dt2du
 
                 # Step 2
-                u += 0.5*duWMat # Update the time by half a timestep
-                rval = Sigma + Delta*OrbitalElements.henon_f(u) # Current location of the radius, r=r(u)
+                u += 0.5*duWMat                                                  # Update the time by half a timestep
+                rval = Sigma + Delta*OrbitalElements.henon_f(u)                  # Current location of the radius, r=r(u)
                 gval = OrbitalElements.Theta(potential,dpotential,ddpotential,u,rp,ra,0.01)
                 dt1du, dt2du = omega1*gval, (omega2 - lharmonic/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
 
                 # recompute the basis functions for the changed radius value
-                AstroBasis.tabUlnpCB73!(lharmonic,rval,tabUlnp,nradial,Ulnp,rb)
+                AstroBasis.tabUl!(basis,lharmonic,rval)
                 pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1)) # Common prefactor for all the increments@ATTENTION Depends on the updated (theta1+0.5*k1_1,theta2+0.5*k2_1) !! ATTENTION, to the factor (1.0/3.0) coming from RK4
 
                 # Loop over the radial indices to sum basis contributions
-                for np=1:nradial
-                    tabWMat[np,kuval,kvval] += pref2*tabUlnp[np]
+                for np=1:basis.nmax
+                    tabWMat[np,kuval,kvval] += pref2*basis.tabUl[np]
                 end
 
                 # update velocities at end of step 2
@@ -149,8 +149,8 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
                 # Common prefactor for all the increments@ATTENTION Depends on the updated (theta1+0.5*k1_2,theta2+0.5*k2_2) !! ATTENTION to the factor (1.0/3.0) coming from RK4
 
                 # Loop over the radial indices to sum basis contributions
-                for np=1:nradial
-                    tabWMat[np,kuval,kvval] += pref3*tabUlnp[np]
+                for np=1:basis.nmax
+                    tabWMat[np,kuval,kvval] += pref3*basis.tabUl[np]
                 end
 
                 k1_3 = k1_2 # Does not need to be updated
@@ -163,13 +163,13 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
 
                 # updated basis elements for new rval
-                AstroBasis.tabUlnpCB73!(lharmonic,rval,tabUlnp,nradial,Ulnp,rb)
+                AstroBasis.tabUl!(basis,lharmonic,rval)
 
                 pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k1_3) + n2*(theta2+k2_3)) # Common prefactor for all the increments@ATTENTION Depends on the updated (theta1+k1_3,theta2+k2_3) !! ATTENTION to the factor (1.0/6.0) coming from RK4
 
                 # Loop over the radial indices to sum basis contributions
-                for np=1:nradial
-                    tabWMat[np,kuval,kvval] += pref4*tabUlnp[np]
+                for np=1:basis.nmax
+                    tabWMat[np,kuval,kvval] += pref4*basis.tabUl[np]
                 end
 
                 k1_4 = duWMat*dt1du # Current velocity for theta1
@@ -190,10 +190,10 @@ end
 
 
 
-"""make_uv_to_ae(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,nradial,lharmonic,Ulnp[,Omega0,rb,NstepsWMat])
+"""make_uv_to_ae(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic[,Omega0,rb,NstepsWMat])
 
 """
-function make_uv_to_ae(potential::Function,dpotential::Function,ddpotential::Function,n1::Int64,n2::Int64,Kuvals::Matrix{Float64},K_v::Int64,nradial::Int64,lharmonic::Int64,Ulnp::Matrix{Float64},Omega0::Float64=1.,rb::Float64=1.,NstepsWMat::Int64=20)
+function make_uv_to_ae(potential::Function,dpotential::Function,ddpotential::Function,n1::Int64,n2::Int64,Kuvals::Matrix{Float64},K_v::Int64,lharmonic::Int64,basis,Omega0::Float64=1.,NstepsWMat::Int64=20)
     #=
     add rmax as a parameter?
     =#
@@ -211,9 +211,6 @@ function make_uv_to_ae(potential::Function,dpotential::Function,ddpotential::Fun
 
     # set the matrix step size
     duWMat = (2.0)/(NstepsWMat)
-
-    # allocate the basis array
-    tabUlnp = zeros(nradial)
 
     # start the loop
     for kuval in 1:K_u
