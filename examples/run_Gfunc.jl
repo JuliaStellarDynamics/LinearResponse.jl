@@ -2,10 +2,10 @@ import OrbitalElements
 import PerturbPlasma
 using HDF5
 
-include("/Users/mpetersen/CodeHold/JuliaCallAResponse/src/CMatrix.jl")
-include("/Users/mpetersen/CodeHold/JuliaCallAResponse/src/GFunc.jl")
+include("../src/CMatrix.jl")
+include("../src/GFunc.jl")
 
-basedir="/Users/mpetersen/CodeHold/JuliaCallAResponse/examples/"
+basedir=""
 
 
 # bring in Legendre integration prefactors

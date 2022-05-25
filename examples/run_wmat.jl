@@ -5,7 +5,7 @@ using HDF5
 
 # we will assume you are running from the 'examples' directory
 include("../src/WMat.jl")
-basedir="."
+basedir=""
 
 # set up the AstroBasis call
 rb,G = 5.,1.
