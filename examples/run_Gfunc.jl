@@ -108,7 +108,7 @@ for n1 in [-2,-1,0,1,2]
         nradial,K_u,K_v = size(Wtab)
 
         # Overall prefactor of the integrand. ATTENTION, to the minus sign.
-        pref = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2.0*2+1.0)
+        pref = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2.0*lharmonic+1.0)
 
         # need to loop through all combos of np and nq to make the full matrix.
         h5open(basedir*"gfunc/Gfunc_n1_"*string(n1)*"_n2_"*string(n2)*"."*string(K_u)*".h5", "w") do file
