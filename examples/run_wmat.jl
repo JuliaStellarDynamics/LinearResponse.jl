@@ -3,6 +3,11 @@ import AstroBasis
 import PerturbPlasma
 using HDF5
 
+# options to run:
+# julia --compile=min run_wmat.jl
+# julia --optimize=0 run_wmat.jl
+# julia --compile=min --inline=no run_wmat.jl
+
 # we will assume you are running from the 'examples' directory
 include("../src/WMat.jl")
 basedir=""
