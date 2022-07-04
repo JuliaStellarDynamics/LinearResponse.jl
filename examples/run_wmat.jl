@@ -1,12 +1,34 @@
+"""
+options to run:
+
+julia run_wmat.jl
+# 212.325749 seconds (2.34 G allocations: 50.334 GiB, 3.81% gc time, 2.25% compilation time)
+
+julia --compile=min run_wmat.jl
+# This one is essentially impossible: multiple hours!
+
+julia --optimize=3 run_wmat.jl
+# identical to default
+
+julia --optimize=0 run_wmat.jl
+# 312.212810 seconds (2.55 G allocations: 53.461 GiB, 2.80% gc time, 1.19% compilation time)
+
+julia --optimize=3 --inline=no run_wmat.jl
+1136.466458 seconds (6.94 G allocations: 141.343 GiB, 1.44% gc time, 0.73% compilation time)
+
+julia --compile=all run_wmat.jl
+# 423.578417 seconds (2.34 G allocations: 50.334 GiB, 3.91% gc time, 2.05% compilation time)
+
+@IMPROVE, where should we parallelize this?
+
+"""
+
+
 import OrbitalElements
 import AstroBasis
 import PerturbPlasma
 using HDF5
 
-# options to run:
-# julia --compile=min run_wmat.jl
-# julia --optimize=0 run_wmat.jl
-# julia --compile=min --inline=no run_wmat.jl
 
 # we will assume you are running from the 'examples' directory
 include("../src/WMat.jl")
@@ -17,6 +39,9 @@ rb,G = 5.,1.
 lmax,nmax = 2,10
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 AstroBasis.fill_prefactors!(basis)
+
+# construct the table of needed resonance vectors
+
 
 # bring in Legendre integration prefactors
 K_u = 200

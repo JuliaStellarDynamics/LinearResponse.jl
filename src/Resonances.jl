@@ -6,7 +6,7 @@ lmax=2
 n1max=2
 nbResVec = get_nbResVec(lmax,n1max) # Number of resonance vectors. ATTENTION, it is for the harmonics lmax
 tabResVec = maketabResVec(lmax,n1max) # Filling in the array of resonance vectors (n1,n2)
-
+println(tabResVec)
 
 """
 
@@ -44,13 +44,18 @@ end
 
 
 """
- # Container of the (n1,n2) resonance vectors to consider
-# Function that fills in the array of resonance vectors (n1,n2)
-# ATTENTION, the (n1,n2) are determined for l=lmax
-# @IMPROVE -- it would be best to use the same code
-# as in get_nbResVec()
+Container of the (n1,n2) resonance vectors to consider
+
+Function that fills in the array of resonance vectors (n1,n2)
+
+ATTENTION, the (n1,n2) are determined for l=lmax
+@IMPROVE it would be best to use the same code as in get_nbResVec()
 """
 function maketabResVec(lmax::Int64,n1max::Int64)
+
+    # calculate the number
+    nbResVec = get_nbResVec(lmax,n1max)
+    
     tabResVec = zeros(Int64,2,nbResVec)
     count = 1 # Initialisation of the counter
     #####

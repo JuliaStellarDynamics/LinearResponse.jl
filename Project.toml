@@ -10,6 +10,7 @@ HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+#LinearAlebra?
 
 [compat]
 julia = "1.5"
