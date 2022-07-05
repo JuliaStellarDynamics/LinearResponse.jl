@@ -14,7 +14,14 @@ import PerturbPlasma
 
 @NOTE: AstroBasis provides the Basis_type data type.
 """
-function make_wmat(potential::Function,dpotential::Function,ddpotential::Function,n1::Int64,n2::Int64,Kuvals::Matrix{Float64},K_v::Int64,lharmonic::Int64,basis::AstroBasis.Basis_type,Omega0::Float64=1.,NstepsWMat::Int64=20)
+function make_wmat(potential::Function,dpotential::Function,ddpotential::Function,
+                   n1::Int64,n2::Int64,
+                   Kuvals::Matrix{Float64},
+                   K_v::Int64,
+                   lharmonic::Int64,
+                   basis::AstroBasis.Basis_type,
+                   Omega0::Float64=1.,
+                   NstepsWMat::Int64=20)
     #=
     add rmax as a parameter?
     =#

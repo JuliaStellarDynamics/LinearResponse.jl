@@ -31,8 +31,9 @@ plt.contourf(f['wmat'][:,:,3],cmap=cm.coolwarm)
 
 plt.colorbar()
 
-
+"""
 plt.figure()
 f = h5py.File("gfunc/Gfunc_n1_-1_n2_2.200.h5", 'r')
 for key in f.keys():
     plt.plot(f[key],color="black")
+"""

@@ -1,4 +1,9 @@
-"""The same as WMat.jl, but Isochrone potential specific for testing"""
+"""The same as WMat.jl, but Isochrone potential specific for testing
+
+What's different:
+-Use analytic inversion (isochrone_ae_from_omega1omega2)
+
+"""
 
 import OrbitalElements
 import AstroBasis
@@ -19,7 +24,7 @@ function make_wmat_isochrone(potential::Function,dpotential::Function,ddpotentia
                              Kuvals::Matrix{Float64},
                              K_v::Int64,
                              lharmonic::Int64,
-                             basis,
+                             basis::AstroBasis.Basis_type,
                              Omega0::Float64=1.,
                              NstepsWMat::Int64=20;
                              bc::Float64=1.0,M::Float64=1.0,G::Float64=1.0)
