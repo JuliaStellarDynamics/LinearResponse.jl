@@ -1,3 +1,9 @@
+"""
+
+@IMPROVE: what is the best way to pass the format for reading in Gfunctions? (might want to consider a new Gfunc format)
+
+"""
+
 
 
 function makeXiCoefficients!(tabaXi::Vector{Matrix{Vector{Float64}}},
@@ -9,8 +15,8 @@ function makeXiCoefficients!(tabaXi::Vector{Matrix{Vector{Float64}}},
                              basedir::String="")
 
     # get relevant sizes
-    K_u = size(tabaXi[1][1,1])[1]
-    nb_npnq = size(tabnpnq)[2]
+    K_u      = size(tabaXi[1][1,1])[1]
+    nb_npnq  = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
     for nresvec in 1:nbResVec
@@ -23,27 +29,23 @@ function makeXiCoefficients!(tabaXi::Vector{Matrix{Vector{Float64}}},
         for i_npnq=1:nb_npnq # Loop over the basis indices to consider
             np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
 
-            if (n1==0) & (n2==0)
-                continue
-            end
-            if (n1==1) & (n2==-2)
-                continue
-            end
-
             # open the correct resonance vector
             # read in the correct G(u) function
             tabGXi = read(file,"GXinp"*string(np)*"nq"*string(nq))
 
             for k=0:(K_u-1) # Loop over the Legendre functions
+
                 res = 0.0 # Initialisation of the result
+
                 for i=1:K_u # Loop over the G-L nodes
                     w = tabwGLquad[i] # Current weight
                     G = tabGXi[i] # Current value of G[u_i]
                     P = tabPGLquad[k+1,i] # Current value of P_k. ATTENTION, to the shift of the array. ATTENTION, to the order of the arguments.
                     res += w*G*P # Update of the sum
                 end
+
                 res *= tabINVcGLquad[k+1] # Multiplying by the prefactor. ATTENTION, to the shift of the array
-                #####
+
                 # Adding the contribution to the result
                 if (np == nq) # Case where we are on the diagonal
                     tabaXi[nresvec][np,nq][k+1] = res # Element (np,nq=np)
@@ -51,6 +53,7 @@ function makeXiCoefficients!(tabaXi::Vector{Matrix{Vector{Float64}}},
                     tabaXi[nresvec][np,nq][k+1] = res # Element (np,nq)
                     tabaXi[nresvec][nq,np][k+1] = res # Element (nq,np)
                 end
+
             end
         end
     end
@@ -91,7 +94,7 @@ function tabXi!(omg::Complex{Float64},
 
     # also needs
     # Omega0?
-
+    nb_npnq  = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
     tabXi_init!(tabXi) # Initialising the array to 0.

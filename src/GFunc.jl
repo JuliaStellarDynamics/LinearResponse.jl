@@ -1,5 +1,5 @@
 
-# we need to align the G to be a simple function of u
+
 
 """
 function to compute G(u)
@@ -7,7 +7,7 @@ function to compute G(u)
 @ATTENTION, the dimensionality (e.g. 2d vs 3d) is now encoded in 'pref'.
 
 """
-function make_Gu(potential::Function,dpotential::Function,ddpotential::Function,
+function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
                  ndFdJ::Function,
                  n1::Int64,n2::Int64,
                  np::Int64,nq::Int64,
@@ -18,7 +18,7 @@ function make_Gu(potential::Function,dpotential::Function,ddpotential::Function,
                  K_v::Int64,nradial::Int64,
                  lharmonic::Int64,
                  pref::Float64;
-                 Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.)
+                 Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
 
     # get basic parameters
     K_u     = length(Kuvals)
@@ -36,15 +36,6 @@ function make_Gu(potential::Function,dpotential::Function,ddpotential::Function,
 
         uval = Kuvals[kuval]
 
-        # get the corresponding v values
-        #omega1_func(x) = Omega1_circular(dpotential,ddpotential,x)
-        # m is the extremum location of omegafunc: get from find_wmin_wmax?
-        # OmegaC is the central Omega value, which is Omega0 (I think?)
-        #vbound = omega1_func(m)/Omega0
-        #extreme(x) = n1*OrbitalElements.Omega1_circular(dpotential,ddpotential,x) + #n2*OrbitalElements.Omega2_circular(dpotential,x)
-        #m = OrbitalElements.extremise_function(extreme,24,0.,1000.,false)
-        #vbound = OrbitalElements.Omega1_circular(dpotential,ddpotential,m)/Omega0
-        #vbound =
         vbound = OrbitalElements.find_vbound(n1,n2,dpotential,ddpotential,1000.,Omega0)
         vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,beta_c)
 
@@ -90,7 +81,7 @@ function make_Gu(potential::Function,dpotential::Function,ddpotential::Function,
             Wq = tabWMat[nq,kuval,kvval]
 
             # do a nan check?
-            nancheck = true
+            nancheck = false
             if (nancheck)
                 tmp = pref*lharmonic*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq
 

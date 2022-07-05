@@ -3,5 +3,8 @@
 # very annoying OSX hidden files
 *.DS_Store
 
-examples/wmat/*
+examples/wmat
+examples/gfunc
+examples/gfunc/Gfunc*
+
 src/Transform.jl
