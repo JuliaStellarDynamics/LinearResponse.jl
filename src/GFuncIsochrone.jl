@@ -27,7 +27,7 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
     tabGXi  = zeros(K_u)
 
     # compute the frequency scaling factors for this resonance
-    ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
+    w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
 
     # define beta_c
     beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
@@ -37,7 +37,7 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
         uval = Kuvals[kuval]
 
         vbound = OrbitalElements.find_vbound(n1,n2,dpotential,ddpotential,1000.,Omega0)
-        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,ωmin,ωmax,n1,n2,vbound,beta_c)
+        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,beta_c)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -49,13 +49,13 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            #alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dpotential,ddpotential,1000.,Omega0)
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,ωmin,ωmax)
+            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dpotential,ddpotential,1000.,Omega0)
 
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
-            # convert from omega1,omega2 to (a,e): using a tabled value
-            sma,ecc  = tabaMat[kuval,kvval],tabeMat[kuval,kvval]
+            # convert from omega1,omega2 to (a,e)
+            #sma,ecc  = tabaMat[kuval,kvval],tabeMat[kuval,kvval]
+            sma,ecc = OrbitalElements.isochrone_ae_from_omega1omega2(omega1,omega2,bc,M,G)
 
             # get (rp,ra)
             rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
@@ -65,7 +65,7 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
             Eval = OrbitalElements.E_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
 
             # compute Jacobians
-            Jacalphabeta = OrbitalElements.Jacalphabeta_to_uv(n1,n2,ωmin,ωmax,vval) #(alpha,beta) -> (u,v)
+            Jacalphabeta = OrbitalElements.Jacalphabeta_to_uv(n1,n2,w_min,w_max,vval) #(alpha,beta) -> (u,v)
             JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)          #(E,L) -> (alpha,beta)
             JacJ         = (1/omega1)                                #(J) -> (E,L)
             dimensionl   = (1/Omega0)                                # remove dimensionality

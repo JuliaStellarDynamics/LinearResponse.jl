@@ -4,7 +4,9 @@
 *.DS_Store
 
 examples/wmat
-examples/gfunc
+examples/gfunc/*
 examples/gfunc/Gfunc*
+examples/xifunc/*
+examples/xifunc/tab*
 
 src/Transform.jl

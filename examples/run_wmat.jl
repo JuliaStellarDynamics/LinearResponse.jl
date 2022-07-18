@@ -40,13 +40,13 @@ using HDF5
 
 # we will assume you are running from the 'examples' directory
 include("../src/WMat.jl")          # fully adaptive WMat calculations (production)
-include("../src/WMatIsochrone.jl") # for isochrone-specific WMat calculations (testing purposes)
+#include("../src/WMatIsochrone.jl") # for isochrone-specific WMat calculations (testing purposes)
 include("../src/Resonances.jl")    # for resonances helpers
 basedir=""
 
 # set up the AstroBasis call
 const G  = 1.
-const rb = 5.
+const rb = 10.
 lmax,nmax = 2,10
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 AstroBasis.fill_prefactors!(basis)
@@ -55,27 +55,37 @@ AstroBasis.fill_prefactors!(basis)
 
 
 # bring in Legendre integration prefactors and sample points
-const K_u = 200
+const K_u = 150
 tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
 tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
 const lharmonic = 2
 
+#=
 #const modelname = "isochrone"
-const modelname = "isochroneA"
+const modelname = "isochroneE"
 
 const bc, M = 1.,1.
 potential(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
 dpotential(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
 ddpotential(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
 Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
+=#
 
-const K_v        = 50  # number of allocations is directly proportional to this
-const NstepsWMat = 50   # number of allocations is insensitive to this (also time, largely?)
+const modelname = "PlummerE"
+
+const bc, M = 1.,1.
+potential(r::Float64)::Float64   = OrbitalElements.plummer_psi(r,bc,M,G)
+dpotential(r::Float64)::Float64  = OrbitalElements.plummer_dpsi_dr(r,bc,M,G)
+ddpotential(r::Float64)::Float64 = OrbitalElements.plummer_ddpsi_ddr(r,bc,M,G)
+Omega0 = OrbitalElements.plummer_Omega0(bc,M,G)
+
+const K_v        = 100  # number of allocations is directly proportional to this
+const NstepsWMat = 100   # number of allocations is insensitive to this (also time, largely?)
 # const nradial?
 
 lmax  = 2  # maximum harmonic
-n1max = 10  # maximum number of radial resonances to consider
+n1max = 4  # maximum number of radial resonances to consider
 
 nbResVec = get_nbResVec(lmax,n1max) # Number of resonance vectors. ATTENTION, it is for the harmonics lmax
 tabResVec = maketabResVec(lmax,n1max) # Filling in the array of resonance vectors (n1,n2)
@@ -85,8 +95,9 @@ println(nbResVec)
 Threads.@threads for i = 1:nbResVec
     n1,n2 = tabResVec[1,i],tabResVec[2,i]
     println(n1," ",n2)
-    @time tabWMat,tabaMat,tabeMat = #make_wmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
-    make_wmat_isochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
+    @time tabWMat,tabaMat,tabeMat = make_wmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
+    #make_wmat_isochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
+    #println(sum(tabWMat))
     # now save
     h5open(basedir*"wmat/wmat_"*string(modelname)*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*".h5", "w") do file
         write(file, "wmat",tabWMat)

@@ -14,7 +14,7 @@ import PerturbPlasma
 
 @NOTE: AstroBasis provides the Basis_type data type.
 """
-function make_wmat(potential::Function,dpotential::Function,ddpotential::Function,
+function make_wmat(potential::Function,dψdr::Function,d²ψdr²::Function,
                    n1::Int64,n2::Int64,
                    Kuvals::Matrix{Float64},
                    K_v::Int64,
@@ -28,10 +28,10 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
     K_u = length(Kuvals)
 
     # compute the frequency scaling factors for this resonance
-    w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
+    wmin,wmax = OrbitalElements.find_wmin_wmax(n1,n2,dψdr,d²ψdr²,1000.,Omega0)
 
     # define beta_c
-    beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
+    beta_c = OrbitalElements.make_betac(dψdr,d²ψdr²,2000,Omega0)
 
     # allocate the results matrix
     tabWMat = zeros(basis.nmax,K_u,K_v)
@@ -48,16 +48,16 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
         uval = Kuvals[kuval]
 
         # get the corresponding v values
-        #omega1_func(x) = Omega1_circular(dpotential,ddpotential,x)
+        #omega1_func(x) = Omega1_circular(dψdr,d²ψdr²,x)
         # m is the extremum location of omegafunc: get from find_wmin_wmax?
         # OmegaC is the central Omega value, which is Omega0 (I think?)
         #vbound = omega1_func(m)/Omega0
-        #extreme(x) = n1*OrbitalElements.Omega1_circular(dpotential,ddpotential,x) + #n2*OrbitalElements.Omega2_circular(dpotential,x)
+        #extreme(x) = n1*OrbitalElements.Omega1_circular(dψdr,d²ψdr²,x) + #n2*OrbitalElements.Omega2_circular(dψdr,x)
         #m = OrbitalElements.extremise_function(extreme,24,0.,1000.,false)
-        #vbound = OrbitalElements.Omega1_circular(dpotential,ddpotential,m)/Omega0
+        #vbound = OrbitalElements.Omega1_circular(dψdr,d²ψdr²,m)/Omega0
         #vbound =
-        vbound = OrbitalElements.find_vbound(n1,n2,dpotential,ddpotential,1000.,Omega0)
-        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,beta_c)
+        vbound = OrbitalElements.find_vbound(n1,n2,dψdr,d²ψdr²,1000.,Omega0)
+        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,wmin,wmax,n1,n2,vbound,beta_c)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -69,19 +69,19 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dpotential,ddpotential)
+            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,wmin,wmax)
 
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
             # convert from omega1,omega2 to (a,e)
             # need to crank the tolerance here, and also check that ecc < 0.
             # put a guard in place for frequency calculations!!
-            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dpotential,ddpotential,omega1,omega2)
+            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2)
 
             # new, iterative brute force procedure
-            a1,e1 = OrbitalElements.compute_ae_from_frequencies(potential,dpotential,ddpotential,omega1,omega2,1*10^(-12),1)
+            a1,e1 = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2,1*10^(-12),1)
             maxestep = 0.005
-            sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dpotential,ddpotential,omega1,omega2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
+            sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
 
             # save (a,e) values for later
             tabaMat[kuval,kvval] = sma
@@ -90,19 +90,20 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
             # get (rp,ra)
             rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
 
-            if (rp>ra)
-                println("Invalid (rp,ra)=(",rp,",",ra,"). Reversing...check a=",sma," e=",ecc)
-                ra,rp = OrbitalElements.rpra_from_ae(sma,ecc)
-            end
+            # DEEP DEBUG: comment out for speed
+            #if (rp>ra)
+            #    println("Invalid (rp,ra)=(",rp,",",ra,"). Reversing...check a=",sma," e=",ecc)
+            #    ra,rp = OrbitalElements.rpra_from_ae(sma,ecc)
+            #end
 
             # need angular momentum
-            Lval = OrbitalElements.L_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
+            Lval = OrbitalElements.L_from_rpra_pot(potential,dψdr,d²ψdr²,rp,ra)
 
             # Initialise the state vectors: u, theta1, (theta2-psi)
             u, theta1, theta2 = -1.0, 0.0, 0.0
 
             # launch the integration from the left boundary by finding Theta(u=-1.)
-            gval = OrbitalElements.Theta(potential,dpotential,ddpotential,u,rp,ra,0.02)
+            gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,0.02)
 
             # Uses the Rozier 2019 notation for the mapping to u
             Sigma, Delta = (ra+rp)*0.5, (ra-rp)*0.5
@@ -135,8 +136,8 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
                 # Step 2
                 u += 0.5*duWMat                                                  # Update the time by half a timestep
                 rval = Sigma + Delta*OrbitalElements.henon_f(u)                  # Current location of the radius, r=r(u)
-                gval = OrbitalElements.Theta(potential,dpotential,ddpotential,u,rp,ra,0.01)
-                dt1du, dt2du = omega1*gval, (omega2 - lharmonic/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
+                gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,0.01)
+                dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
 
                 # recompute the basis functions for the changed radius value
                 AstroBasis.tabUl!(basis,lharmonic,rval)
@@ -168,7 +169,7 @@ function make_wmat(potential::Function,dpotential::Function,ddpotential::Functio
                 # Step 4
                 u += 0.5*duWMat # Updating the time by half a timestep: we are now at the next u value
                 rval = Sigma + Delta*OrbitalElements.henon_f(u) # Current location of the radius, r=r(u)
-                gval = OrbitalElements.Theta(potential,dpotential,ddpotential,u,rp,ra,0.01)
+                gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,0.01)
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
 
                 # updated basis elements for new rval
@@ -202,17 +203,17 @@ end
 """make_uv_to_ae(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic[,Omega0,rb,NstepsWMat])
 
 """
-function make_uv_to_ae(potential::Function,dpotential::Function,ddpotential::Function,n1::Int64,n2::Int64,Kuvals::Matrix{Float64},K_v::Int64,lharmonic::Int64,basis,Omega0::Float64=1.,NstepsWMat::Int64=20)
+function make_uv_to_ae(potential::Function,dψdr::Function,d²ψdr²::Function,n1::Int64,n2::Int64,Kuvals::Matrix{Float64},K_v::Int64,lharmonic::Int64,basis,Omega0::Float64=1.,NstepsWMat::Int64=20)
     #=
     add rmax as a parameter?
     =#
     K_u = length(Kuvals)
 
     # compute the frequency scaling factors for this resonance
-    w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
+    wmin,wmax = OrbitalElements.find_wmin_wmax(n1,n2,dψdr,d²ψdr²,1000.,Omega0)
 
     # define beta_c
-    beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
+    beta_c = OrbitalElements.make_betac(dψdr,d²ψdr²,2000,Omega0)
 
     # allocate the results matrix
     tabaMat = zeros(K_u,K_v)
@@ -228,8 +229,8 @@ function make_uv_to_ae(potential::Function,dpotential::Function,ddpotential::Fun
         uval = Kuvals[kuval]
 
         # get the corresponding v values
-        vbound = OrbitalElements.find_vbound(n1,n2,dpotential,ddpotential,1000.,Omega0)
-        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,beta_c)
+        vbound = OrbitalElements.find_vbound(n1,n2,dψdr,d²ψdr²,1000.,Omega0)
+        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,wmin,wmax,n1,n2,vbound,beta_c)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -241,17 +242,18 @@ function make_uv_to_ae(potential::Function,dpotential::Function,ddpotential::Fun
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dpotential,ddpotential)
+            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dψdr,d²ψdr²)
+            # maybe convert this to the pre-tabulated wmin,wmax call. but also maybe not needed
 
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
             # convert from omega1,omega2 to (a,e)
             # need to crank the tolerance here, and also check that ecc < 0.
             # put a guard in place for frequency calculations!!
-            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dpotential,ddpotential,omega1,omega2)
-            a1,e1 = OrbitalElements.compute_ae_from_frequencies(potential,dpotential,ddpotential,omega1,omega2,1*10^(-12),1)
+            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2)
+            a1,e1 = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2,1*10^(-12),1)
             maxestep = 0.005
-            sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dpotential,ddpotential,omega1,omega2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
+            sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
 
 
             tabaMat[kuval,kvval] = sma

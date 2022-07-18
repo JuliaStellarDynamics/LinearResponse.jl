@@ -9,6 +9,9 @@ import OrbitalElements
 import AstroBasis
 import PerturbPlasma
 
+function analytic_beta_c(x::Float64)::Float64
+    return 1/(1 + x^(2/3))
+end
 
 """make_wmat_isochrone(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,NstepsWMat])
 
@@ -38,7 +41,7 @@ function make_wmat_isochrone(potential::Function,dpotential::Function,ddpotentia
     w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
 
     # define beta_c: write in for the isochrone
-    beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
+    beta_c = analytic_beta_c#OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
 
     # allocate the results matrix
     tabWMat = zeros(basis.nmax,K_u,K_v)
@@ -130,7 +133,7 @@ function make_wmat_isochrone(potential::Function,dpotential::Function,ddpotentia
                 u += 0.5*duWMat                                                  # Update the time by half a timestep
                 rval = Sigma + Delta*OrbitalElements.henon_f(u)                  # Current location of the radius, r=r(u)
                 gval = OrbitalElements.Theta(potential,dpotential,ddpotential,u,rp,ra,0.01)
-                dt1du, dt2du = omega1*gval, (omega2 - lharmonic/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
+                dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
 
                 # recompute the basis functions for the changed radius value
                 AstroBasis.tabUl!(basis,lharmonic,rval)
