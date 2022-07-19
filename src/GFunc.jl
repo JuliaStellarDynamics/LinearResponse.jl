@@ -4,7 +4,7 @@
 """
 function to compute G(u)
 
-@ATTENTION, the dimensionality (e.g. 2d vs 3d) is now encoded in 'pref'.
+@ATTENTION, the dimensionality (e.g. 2d vs 3d) is now encoded in 'ndim'.
 
 """
 function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
@@ -17,13 +17,15 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
                  Kuvals::Matrix{Float64},
                  K_v::Int64,nradial::Int64,
                  lharmonic::Int64;
-                 ndim::Int64
+                 ndim::Int64,
                  Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
+        # 2d prefactor, see Fouvry et al. 2015
         pref = (2*pi)^2
     else
+        # 3d prefactor, see Hamilton et al. 2018
         CMatrix = getCMatrix(lharmonic)
         pref    = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2.0*lharmonic+1.0)
     end

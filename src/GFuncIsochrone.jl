@@ -16,9 +16,17 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
                  tabeMat::Array{Float64},
                  Kuvals::Matrix{Float64},
                  K_v::Int64,nradial::Int64,
-                 lharmonic::Int64,
-                 pref::Float64;
+                 lharmonic::Int64;
+                 ndim::Int64,
                  Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
+
+    # calculate the prefactor based on the dimensionality (defaults to 3d)
+    if ndim==2
+        pref = (2*pi)^2
+    else
+        CMatrix = getCMatrix(lharmonic)
+        pref    = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2.0*lharmonic+1.0)
+    end
 
     # get basic parameters
     K_u     = length(Kuvals)
@@ -81,17 +89,26 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
             Wp = tabWMat[np,kuval,kvval]
             Wq = tabWMat[nq,kuval,kvval]
 
+            # todo: make this block @static
+            #=
             # do a nan check?
             nancheck = false
             if (nancheck)
-                tmp = pref*lharmonic*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq
+                tmp = pref*Lval*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq
 
                 if isnan(tmp)
                     println(Jacalphabeta," ",JacEL," ",pref," ",(Lval/omega1)," ",valndFdJ," ",Wp," ",Wq)
                 end
             end
+            =#
+            
+            if ndim==2
+                res += pref*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
 
-            res += pref*Lval*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+            else
+                # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
+                res += pref*Lval*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+            end
 
         end
 
