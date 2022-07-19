@@ -129,14 +129,14 @@ for i = 1:nbResVec
     println("nradial=$nradial,K_u=$K_u,K_v=$K_v")
 
     # Overall prefactor of the integrand. ATTENTION, to the minus sign.
-    pref = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2.0*lharmonic+1.0)
+    #pref = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2.0*lharmonic+1.0)
 
     # need to loop through all combos of np and nq to make the full matrix.
     h5open(basedir*"gfunc/Gfunc_n1_"*string(n1)*"_n2_"*string(n2)*"."*string(K_u)*".h5", "w") do file
         for np = 1:nradial
             for nq = 1:nradial
                 #@time tabGXi = makeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,pref,Omega0=Omega0,bc=bc,M=M,G=G)
-                tabGXi = makeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,pref,Omega0=Omega0,bc=bc,M=M,G=G)
+                tabGXi = makeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=3,Omega0=Omega0,bc=bc,M=M,G=G)
                 sumG = sum(tabGXi)
                 if (np>-100) & (nq>-100)
                     if isnan(sumG)
