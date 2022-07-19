@@ -79,3 +79,71 @@ function maketabResVec(lmax::Int64,n1max::Int64)
     end
     return tabResVec
 end
+
+
+"""
+# Function that returns the total number
+# of resonances bn=(n1,n2) to consider
+# for the harmonics lmax for discs
+# There a few constraints to satisfy:
+# + n2 = lmax
+# + |n1| <= n1max
+# + (n1,n2) = (0,0) does not contribute
+# ATTENTION, the (n1,n2) are determined for l=lmax
+"""
+function get_nbResVec_2d(lmax::Int64,n1max::Int64)
+    count = 0 # Initialisation of the counter
+    #####
+    n2=lmax # 2d constraint
+    #####
+    if n2 != 0
+        for n1=-n1max:n1max # Loop over the index n2
+            count += 1 # Updating the counter
+        end
+    else
+        for n1=1:n1max # Loop over the index n2
+            count += 2 # Updating the counter (n1,n2) and (-n1,n2)
+        end
+    end
+    #####
+    return count # Returning the number of resonance vectors
+end
+
+
+"""
+Container of the (n1,n2) resonance vectors to consider
+
+Function that fills in the array of resonance vectors (n1,n2)
+
+ATTENTION, the (n1,n2) are determined for l=lmax
+@IMPROVE it would be best to use the same code as in get_nbResVec()
+"""
+function maketabResVec_2d(lmax::Int64,n1max::Int64)
+    # calculate the number
+    nbResVec = get_nbResVec_2d(lmax,n1max)
+    
+    tabResVec = zeros(Int64,2,nbResVec)
+    count = 1 # Initialisation of the counter
+    #####
+    n2=lmax # 2d constraint
+    #####
+    if n2 != 0
+        for n1=-n1max:n1max # Loop over the index n2
+            tabResVec[1,count], tabResVec[2,count] = n1, n2 # Adding the resonance (n1,n2)
+            #
+            count += 1 # Updating the counter
+        end
+    else
+        for n1=1:n1max # Loop over the index n2
+            tabResVec[1,count], tabResVec[2,count] = n1, n2 # Adding the resonance (n1,n2)
+            #
+            count += 1 # Updating the counter
+            #
+            tabResVec[1,count], tabResVec[2,count] = -n1, n2 # Adding the resonance (n1,n2)
+            #
+            count += 1 # Updating the counter
+        end
+    end
+    
+    return tabResVec
+end
