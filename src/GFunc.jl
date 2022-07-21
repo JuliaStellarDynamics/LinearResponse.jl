@@ -76,7 +76,8 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
 
             # compute Jacobians
             Jacalphabeta = OrbitalElements.Jacalphabeta_to_uv(n1,n2,ωmin,ωmax,vval) #(alpha,beta) -> (u,v). owing to the remapping of omega, this has an extra 2/(ωmax-ωmin)
-            JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)          #(E,L) -> (alpha,beta)
+            #JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)          #(E,L) -> (alpha,beta)
+            JacEL        = OrbitalElements.JacELToAlphaBetaAE(sma,ecc,potential,dpotential,ddpotential,Omega0)
             JacJ         = (1/omega1)                                #(J) -> (E,L)
             dimensionl   = (1/Omega0)                                # remove dimensionality from omega mapping
 
