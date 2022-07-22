@@ -208,21 +208,10 @@ function run_wmat(inputfile::String)
     include(inputfile)
 
     #####
-    # Check for the variables, functions, structs definitions
+    # Check directory 
     #####
-    if !( (@isdefined G) && (@isdefined rb) && (@isdefined basis) && (@isdefined ndim) 
-        && (@isdefined modelname) 
-        && (@isdefined potential) && (@isdefined dpotential) && (@isdefined ddpotential) 
-        && (@isdefined K_u) && (@isdefined K_v) && (@isdefined NstepsWMat) 
-        && (@isdefined lharmonic) && (@isdefined n1max) 
-        && (@isdefined wmatdir) )
-        
-        error("Definitions missing among G, rb, basis, 
-                modelname, potential, dpotential, ddpotential, 
-                K_u, K_v, NstepsWMat, lharmonic, n1max, wmatdir")
-    end
-    if last(wmatdir) != '/'
-        error(" '/' should be included at the end of wmatdir")
+    if !(isdir(wmatdir))
+        error("wmatdir not found")
     end
 
     #####
@@ -253,7 +242,7 @@ function run_wmat(inputfile::String)
         #make_wmat_isochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
         #println(sum(tabWMat))
         # now save
-        h5open(wmatdir*"wmat_"*string(modelname)*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*".h5", "w") do file
+        h5open(wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb), "w") do file
             write(file, "wmat",tabWMat)
             write(file, "amat",tabaMat)
             write(file, "emat",tabeMat)

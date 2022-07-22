@@ -4,21 +4,25 @@
 
 """
 
+using LinearAlgebra
 
-"""makeXiCoefficients!(tabaXi,tabResVec,tabnpnq,tabwGLquad,tabPGLquad,tabINVcGLquad,basedir)
 
-function to make the coefficients in Xi
+"""makeaMCoefficients!(tabaMcoef,tabResVec,tabnpnq,tabwGLquad,tabPGLquad,tabINVcGLquad,basedir)
+
+function to make the decomposition coefficients "a" of the response matrix M
 """
-function makeXiCoefficients!(tabaXi::Vector{Matrix{Vector{Float64}}},
+function makeaMCoefficients!(tabaMcoef::Array{Float64,4},
                              tabResVec::Matrix{Int64},
                              tabnpnq::Matrix{Int64},
                              tabwGLquad::Vector{Float64},
                              tabPGLquad::Matrix{Float64},
                              tabINVcGLquad::Vector{Float64},
-                             basedir::String="")
+                             gfuncdir::String,
+                             modelname::String,
+                             lharmonic::Int64)
 
     # get relevant sizes
-    K_u      = size(tabaXi[1][1,1])[1]
+    K_u      = size(tabaMcoef)[4]
     nb_npnq  = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
@@ -27,7 +31,7 @@ function makeXiCoefficients!(tabaXi::Vector{Matrix{Vector{Float64}}},
         n1,n2 = tabResVec[1,nresvec],tabResVec[2,nresvec]
 
         # open the resonance file
-        filename = basedir*"gfunc/Gfunc_n1_"*string(n1)*"_n2_"*string(n2)*"."*string(K_u)*".h5"
+        filename = gfunc_filename(gfuncdir,modelname,lharmonic,n1,n2,K_u)
         file = h5open(filename,"r")
 
         # Loop over the basis indices to consider
@@ -57,12 +61,8 @@ function makeXiCoefficients!(tabaXi::Vector{Matrix{Vector{Float64}}},
                 res *= tabINVcGLquad[k] # Multiplying by the Legendre prefactor.
 
                 # populate the symmetric matrix
-                if (np == nq) # Case where we are on the diagonal
-                    tabaXi[nresvec][np,nq][k] = res # Element (np,nq=np)
-                else
-                    tabaXi[nresvec][np,nq][k] = res # Element (np,nq)
-                    tabaXi[nresvec][nq,np][k] = res # Element (nq,np)
-                end
+                tabaMcoef[nresvec,np,nq,k] = res # Element (np,nq)
+                tabaMcoef[nresvec,nq,np,k] = res # Element (nq,np). If np=nq overwrite.
 
             end
 
@@ -72,44 +72,31 @@ function makeXiCoefficients!(tabaXi::Vector{Matrix{Vector{Float64}}},
 end
 
 
-
-
-"""tabXiInit!(tabXi)
-Function that resets a container tabXi to 0.0 + 0.0*im
-"""
-function tabXiInit!(tabXi::Array{Complex{Float64},2})
-    for np=1:nradial # Loop over the index np
-        for nq=1:nradial # Loop over the index nq
-            tabXi[np,nq] = 0.0 + 0.0*im # Re-Initialising the array to 0.
-        end
-    end
-end
-
-
-"""tabXi!(omg,tabXi,tabaXi,tabResVec,tabnpnq,struct_tabLeg,dpotential,ddpotential,LINEAR,Omega0)
-Function that computes Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Omega0.
+"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dpotential,ddpotential,LINEAR,Omega0)
+Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Omega0.
 
 @IMPROVE: The shape of the array could maybe be improved
 
 See LinearTheory.jl for a similar version
 """
-function tabXi!(omg::Complex{Float64},
-                tabXi::Array{Complex{Float64},2},
-                tabaXi::Vector{Matrix{Vector{Float64}}},
+function tabM!(omg::Complex{Float64},
+                tabM::Array{Complex{Float64},2},
+                tabaMcoef::Array{Float64,4},
                 tabResVec::Matrix{Int64},
-                tabnpnq::Matrix{Int64},
+                tab_npnq::Matrix{Int64},
                 struct_tabLeg::PerturbPlasma.struct_tabLeg_type,
                 dpotential::Function,
                 ddpotential::Function,
+                nradial::Int64,
                 LINEAR::String="unstable",
                 Omega0::Float64=1.0)
 
     # get dimensions from the relevant tables
-    nb_npnq  = size(tabnpnq)[2]
+    nb_npnq  = size(tab_npnq)[2]
     nbResVec = size(tabResVec)[2]
-    K_u      = size(tabaXi[1][1,1])[1]
+    K_u      = size(tabaMcoef)[4]
 
-    tabXiInit!(tabXi) # Initialising the array to 0.
+    fill!(tabM,0.0 + 0.0*im) # Initialising the array to 0.
     #####
     for nResVec=1:nbResVec # Loop over the resonances
         n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec] # Current resonance (n1,n2)
@@ -129,25 +116,23 @@ function tabXi!(omg::Complex{Float64},
             # Loop over the Legendre functions to add all contributions
             res = 0.0 + 0.0*im
             for k=1:K_u
-                res += tabaXi[nResVec][np,nq][k]*tabDLeg[k]
+                res += tabaMcoef[nResVec,np,nq,k]*tabDLeg[k]
             end
 
             # fill the full matrix
-            if (np == nq) # We are computing an element on the diagonal
-                tabXi[np,nq] += res # Filling in the element (np,nq=np)
-            else # We are computing a non-diagonal element
-                tabXi[np,nq] += res # Filling in the element (np,nq)
-                tabXi[nq,np] += res # Filling in the element (nq,np)
-            end
+            tabM[np,nq] += res # Filling in the element (np,nq)
+            tabM[nq,np] += res # Filling in the element (nq,np). @WARNING: added twice for diagonal elements np=nq.
 
         end # basis index loop
         #h5write("xifunc/tabXI_n1_"*string(n1)*"_n2_"*string(n2)*"."*string(K_u)*".h5","tabXi",tabXi)
 
     end # resonance loop
 
+    for np=1:nradial
+        tabM[np,np] *= 0.5 # Contributions added twice for diagonal elements
+    end
+
 end
-
-
 
 
 # make an identity matrix
@@ -160,23 +145,106 @@ function makeIMat(nradial::Int64)
     return IMat
 end
 
+"""
+    detXi(IMat,tabM)
 
+determinant of the susceptibility matrix I - M for known M.
+"""
+function detXi(IMat::Array{Complex{Float64},2},
+        tabM::Array{Complex{Float64},2})
+
+    val = det(Symmetric(IMat-tabM)) # Computing the determinant of (I-M). ATTENTION, we tell julia that the matrix is symmetric
+    # only save the real portion
+    return real(val) # Output
+end
+"""
+    mevXi(IMat,tabM)
+
+minimal eigenvalue of the susceptibility matrix I - M for known M.
+"""
+function mevXi(IMat::Array{Complex{Float64},2},
+        tabM::Array{Complex{Float64},2})
+
+    # Computing the minimum eigenvalue of (I-M). ATTENTION, we tell julia that the matrix is symmetric
+    val = try minimum(abs.(eigvals(Symmetric(IMat-tabM)))) catch; -1.0 end 
+
+    return val # Output
+end
+"""
+    detXi(.......)
+
+determinant of the susceptibility matrix I - M for unknown M.
+"""
 function detXi(omg::Complex{Float64},
-               tabXi::Array{Complex{Float64},2},
-               tabaXi::Vector{Matrix{Vector{Float64}}},
+               tabM::Array{Complex{Float64},2},
+               tabaMcoef::Array{Float64,4},
                tabResVec::Matrix{Int64},
-               tabnpnq::Matrix{Int64},
+               tab_npnq::Matrix{Int64},
                struct_tabLeg::PerturbPlasma.struct_tabLeg_type,
                dpotential::Function,
                ddpotential::Function,
+               nradial::Int64,
                LINEAR::String="Unstable",
                Omega0::Float64=1.0)
     ####
     IMat = makeIMat(nradial)
-    tabXi!(omg,tabXi,tabaXi,tabResVec,tab_npnq,struct_tabLeg,dpotential,ddpotential,LINEAR,Omega0)
+    tabM!(omg,tabM,tabaMcoef,tabResVec,tab_npnq,struct_tabLeg,dpotential,ddpotential,nradial,LINEAR,Omega0)
     ####
-    val = det(Symmetric(IMat-tabXi)) # Computing the determinant of (I-Xi). ATTENTION, we tell julia that the matrix is symmetric
+    detXi(IMat,tabM)
+end
 
-    # only save the real portion
-    return real(val) # Output
+
+function run_M(inputfile,
+                omglist::Array{Complex{Float64}})
+    
+    include(inputfile)
+
+    #####
+    # Check directories names
+    #####
+    if !(isdir(wmatdir) && isdir(gfuncdir))
+        error(" wmatdir or gfuncdir not found ")
+    end
+
+    #####
+    # Construct the table of needed resonance vectors
+    #####
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
+    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+
+    # get all weights
+    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = PerturbPlasma.tabGLquad(K_u)
+
+    # make the (np,nq) vectors that we need to evaluate
+    tab_npnq = makeTabnpnq(nradial)
+
+    # make the decomposition coefficients a_k
+    tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,K_u)
+    makeaMCoefficients!(tabaMcoef,tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,lharmonic)
+
+    # Structs for D_k(omega) computation
+    struct_tabLeglist = [PerturbPlasma.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
+    # memory for the response matrices M and identity matrices
+    tabMlist = [zeros(Complex{Float64},nradial,nradial) for k=1:Threads.nthreads()]
+    IMat = makeIMat(nradial)
+    IMatlist = [deepcopy(IMat) for k=1:Threads.nthreads()]
+
+    # Containers for determinant and min eigenvalue
+    nomg = length(omglist)
+    tabdetXi = zeros(Float64,nomg) # Real part of the determinant at each frequency
+    tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
+
+    
+    Threads.@threads for i = 1:nomg
+
+        k = Threads.threadid()
+
+        tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dpotential,ddpotential,nradial,LINEAR,Omega0)
+        
+        tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
+        tabmevXi[i] = mevXi(IMatlist[k],tabMlist[k])
+
+    end
+
+    return tabdetXi, tabmevXi
 end

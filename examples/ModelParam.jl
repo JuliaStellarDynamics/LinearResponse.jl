@@ -12,6 +12,7 @@ rb = 1.
 lmax,nmax = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB72Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
+nradial = basis.nmax
 
 #####
 # Model Potential
@@ -74,6 +75,9 @@ NstepsWMat = 100    # number of allocations is insensitive to this (also time, l
 
 lharmonic = 2 
 n1max = 4  # maximum number of radial resonances to consider
+
+# Mode of response matrix computation
+LINEAR = "damped"
 
 
 #####

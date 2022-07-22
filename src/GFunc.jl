@@ -131,21 +131,10 @@ function run_gfunc(inputfile::String)
     include(inputfile)
 
     #####
-    # Check for the variables, functions, structs definitions
+    # Check directories names
     #####
-    if !( (@isdefined G) && (@isdefined rb) && (@isdefined ndim) 
-        && (@isdefined modelname) 
-        && (@isdefined potential) && (@isdefined dpotential) && (@isdefined ddpotential) && (@isdefined ndFdJ) 
-        && (@isdefined K_u) && (@isdefined K_v)
-        && (@isdefined lharmonic) && (@isdefined n1max) 
-        && (@isdefined wmatdir) && (@isdefined gfuncdir) )
-        
-        error("Definitions missing among G, rb, basis, 
-                modelname, potential, dpotential, ddpotential, 
-                K_u, K_v, NstepsWMat, lharmonic, n1max, wmatdir")
-    end
-    if (last(wmatdir) != '/') || (last(gfuncdir) != '/')
-        error(" '/' should be included at the end of wmatdir")
+    if !(isdir(wmatdir) && isdir(gfuncdir))
+        error(" wmatdir or gfuncdir not found ")
     end
 
     #####
@@ -168,7 +157,7 @@ function run_gfunc(inputfile::String)
 
         # load a value of tabWmat, plus (a,e) values
         #filename = basedir*"wmat/wmat_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*".h5"
-        filename = wmatdir*"wmat_"*string(modelname)*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*".h5"
+        filename = wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb)
         file = h5open(filename,"r")
         Wtab = read(file,"wmat")
         atab = read(file,"amat")
@@ -177,7 +166,7 @@ function run_gfunc(inputfile::String)
         println("nradial=$nradial,K_u=$K_u,K_v=$K_v")
 
         # need to loop through all combos of np and nq to make the full matrix.
-        h5open(gfuncdir*"Gfunc_n1_"*string(n1)*"_n2_"*string(n2)*"."*string(K_u)*".h5", "w") do file
+        h5open(gfunc_filename(gfuncdir,modelname,lharmonic,n1,n2,K_u), "w") do file
             for np = 1:nradial
                 for nq = 1:nradial
                     #@time tabGXi = makeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,pref,Omega0=Omega0)
