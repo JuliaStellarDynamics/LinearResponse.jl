@@ -31,85 +31,9 @@ JULIA_NUM_THREADS=4 julia run_wmat.jl
 
 """
 
-import OrbitalElements
-import AstroBasis
-import PerturbPlasma
-using HDF5
-using ArgParse # To parse command-line arguments
 
-#####
-# Input file parsing and check
-#####
-tabargs = ArgParseSettings()
-@add_arg_table! tabargs begin
-    "--inputfile"
-    help = "File with test case specifications."
-    arg_type = String
-    default = "./test.jl"
-end
-parsed_args = parse_args(tabargs)
+import CallAResponse
 
-input = parsed_args["inputfile"] 
-include(input)
+inputfile = "ModelParam.jl"
 
-if !( (@isdefined G) && (@isdefined rb) && (@isdefined basis) 
-    && (@isdefined modelname) 
-    && (@isdefined potential) && (@isdefined dpotential) && (@isdefined ddpotential) 
-    && (@isdefined K_u) && (@isdefined K_v) && (@isdefined NstepsWMat) 
-    && (@isdefined lharmonic) && (@isdefined n1max) 
-    && (@isdefined wmatdir) )
-    
-    error("Definitions missing among G, rb, basis, 
-            modelname, potential, dpotential, ddpotential, 
-            K_u, K_v, NstepsWMat, lharmonic, n1max, wmatdir")
-end
-if last(wmatdir) != '/'
-    error(" '/' should be included at the end of wmatdir")
-end
-
-#####
-# Computation
-#####
-
-# we will assume you are running from the 'examples' directory
-include("../src/WMat.jl")          # fully adaptive WMat calculations (production)
-#include("../src/WMatIsochrone.jl") # for isochrone-specific WMat calculations (testing purposes)
-include("../src/Resonances.jl")    # for resonances helpers
-
-
-#####
-# Bases prep.
-#####
-AstroBasis.fill_prefactors!(basis)
-bases=[deepcopy(basis) for k=1:Threads.nthreads()]
-
-
-
-#####
-# Legendre integration prep.
-#####
-tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
-tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
-
-#####
-# Construct the table of needed resonance vectors
-#####
-nbResVec = get_nbResVec_2d(lmax,n1max) # Number of resonance vectors. ATTENTION, it is for the harmonics lmax
-tabResVec = maketabResVec_2d(lmax,n1max) # Filling in the array of resonance vectors (n1,n2)
-
-println(nbResVec)
-
-Threads.@threads for i = 1:nbResVec
-    k = Threads.threadid()
-    n1,n2 = tabResVec[1,i],tabResVec[2,i]
-    println(n1," ",n2)
-    @time tabWMat,tabaMat,tabeMat = make_wmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0)
-    #make_wmat_isochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
-    #println(sum(tabWMat))
-    # now save
-    h5open(wmatdir*"wmat_"*string(modelname)*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*".h5", "w") do file
-        write(file, "wmat",tabWMat)
-        write(file, "amat",tabaMat)
-        write(file, "emat",tabeMat)
-    end
-end
+CallAResponse.run_wmat(inputfile)

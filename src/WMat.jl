@@ -1,6 +1,7 @@
 import OrbitalElements
 import AstroBasis
 import PerturbPlasma
+using HDF5
 
 
 """make_wmat(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,NstepsWMat])
@@ -198,67 +199,65 @@ function make_wmat(potential::Function,dψdr::Function,d²ψdr²::Function,
 end
 
 
-
-
-"""make_uv_to_ae(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic[,Omega0,rb,NstepsWMat])
+"""
+    run_wmat(inputfile)
 
 """
-function make_uv_to_ae(potential::Function,dψdr::Function,d²ψdr²::Function,n1::Int64,n2::Int64,Kuvals::Matrix{Float64},K_v::Int64,lharmonic::Int64,basis,Omega0::Float64=1.,NstepsWMat::Int64=20)
-    #=
-    add rmax as a parameter?
-    =#
-    K_u = length(Kuvals)
+function run_wmat(inputfile::String)
 
-    # compute the frequency scaling factors for this resonance
-    wmin,wmax = OrbitalElements.find_wmin_wmax(n1,n2,dψdr,d²ψdr²,1000.,Omega0)
+    include(inputfile)
 
-    # define beta_c
-    beta_c = OrbitalElements.make_betac(dψdr,d²ψdr²,2000,Omega0)
+    #####
+    # Check for the variables, functions, structs definitions
+    #####
+    if !( (@isdefined G) && (@isdefined rb) && (@isdefined basis) && (@isdefined ndim) 
+        && (@isdefined modelname) 
+        && (@isdefined potential) && (@isdefined dpotential) && (@isdefined ddpotential) 
+        && (@isdefined K_u) && (@isdefined K_v) && (@isdefined NstepsWMat) 
+        && (@isdefined lharmonic) && (@isdefined n1max) 
+        && (@isdefined wmatdir) )
+        
+        error("Definitions missing among G, rb, basis, 
+                modelname, potential, dpotential, ddpotential, 
+                K_u, K_v, NstepsWMat, lharmonic, n1max, wmatdir")
+    end
+    if last(wmatdir) != '/'
+        error(" '/' should be included at the end of wmatdir")
+    end
 
-    # allocate the results matrix
-    tabaMat = zeros(K_u,K_v)
-    tabeMat = zeros(K_u,K_v)
+    #####
+    # Bases prep.
+    #####
+    AstroBasis.fill_prefactors!(basis)
+    bases=[deepcopy(basis) for k=1:Threads.nthreads()]
 
-    # set the matrix step size
-    duWMat = (2.0)/(NstepsWMat)
+    #####
+    # Legendre integration prep.
+    #####
+    tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
+    tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
-    # start the loop
-    for kuval in 1:K_u
+    #####
+    # Construct the table of needed resonance vectors
+    #####
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
+    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
 
-        # get the current u value
-        uval = Kuvals[kuval]
+    println(nbResVec)
 
-        # get the corresponding v values
-        vbound = OrbitalElements.find_vbound(n1,n2,dψdr,d²ψdr²,1000.,Omega0)
-        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,wmin,wmax,n1,n2,vbound,beta_c)
-
-        # determine the step size in v
-        deltav = (vmax - vmin)/(K_v)
-
-        for kvval in 1:K_v
-
-            # get the current v value
-            vval = vmin + deltav*(kvval-0.5)
-
-            # big step: convert input (u,v) to (rp,ra)
-            # now we need (rp,ra) that corresponds to (u,v)
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dψdr,d²ψdr²)
-            # maybe convert this to the pre-tabulated wmin,wmax call. but also maybe not needed
-
-            omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
-
-            # convert from omega1,omega2 to (a,e)
-            # need to crank the tolerance here, and also check that ecc < 0.
-            # put a guard in place for frequency calculations!!
-            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2)
-            a1,e1 = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2,1*10^(-12),1)
-            maxestep = 0.005
-            sma,ecc = OrbitalElements.compute_ae_from_frequencies(potential,dψdr,d²ψdr²,omega1,omega2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
-
-
-            tabaMat[kuval,kvval] = sma
-            tabeMat[kuval,kvval] = ecc
+    Threads.@threads for i = 1:nbResVec
+        k = Threads.threadid()
+        n1,n2 = tabResVec[1,i],tabResVec[2,i]
+        println(n1," ",n2)
+        @time tabWMat,tabaMat,tabeMat = make_wmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0)
+        #make_wmat_isochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
+        #println(sum(tabWMat))
+        # now save
+        h5open(wmatdir*"wmat_"*string(modelname)*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*".h5", "w") do file
+            write(file, "wmat",tabWMat)
+            write(file, "amat",tabaMat)
+            write(file, "emat",tabeMat)
         end
     end
-    return tabaMat,tabeMat
+
 end

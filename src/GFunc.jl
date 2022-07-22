@@ -1,6 +1,3 @@
-
-
-
 """
 function to compute G(u)
 
@@ -18,7 +15,7 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
                  K_v::Int64,nradial::Int64,
                  lharmonic::Int64;
                  ndim::Int64,
-                 Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
+                 Omega0::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
@@ -121,5 +118,82 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
 
     end
     return tabGXi
+
+end
+
+
+"""
+    run_gfunc(inputfile)
+
+"""
+function run_gfunc(inputfile::String)
+
+    include(inputfile)
+
+    #####
+    # Check for the variables, functions, structs definitions
+    #####
+    if !( (@isdefined G) && (@isdefined rb) && (@isdefined ndim) 
+        && (@isdefined modelname) 
+        && (@isdefined potential) && (@isdefined dpotential) && (@isdefined ddpotential) && (@isdefined ndFdJ) 
+        && (@isdefined K_u) && (@isdefined K_v)
+        && (@isdefined lharmonic) && (@isdefined n1max) 
+        && (@isdefined wmatdir) && (@isdefined gfuncdir) )
+        
+        error("Definitions missing among G, rb, basis, 
+                modelname, potential, dpotential, ddpotential, 
+                K_u, K_v, NstepsWMat, lharmonic, n1max, wmatdir")
+    end
+    if (last(wmatdir) != '/') || (last(gfuncdir) != '/')
+        error(" '/' should be included at the end of wmatdir")
+    end
+
+    #####
+    # Legendre integration prep.
+    #####
+    tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
+    tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
+
+    #####
+    # Construct the table of needed resonance vectors
+    #####
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
+    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+
+    println(nbResVec)
+
+    Threads.@threads for i = 1:nbResVec
+        n1,n2 = tabResVec[1,i],tabResVec[2,i]
+        println(n1," ",n2)
+
+        # load a value of tabWmat, plus (a,e) values
+        #filename = basedir*"wmat/wmat_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*".h5"
+        filename = wmatdir*"wmat_"*string(modelname)*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*".h5"
+        file = h5open(filename,"r")
+        Wtab = read(file,"wmat")
+        atab = read(file,"amat")
+        etab = read(file,"emat")
+        nradial,K_u,K_v = size(Wtab)
+        println("nradial=$nradial,K_u=$K_u,K_v=$K_v")
+
+        # need to loop through all combos of np and nq to make the full matrix.
+        h5open(gfuncdir*"Gfunc_n1_"*string(n1)*"_n2_"*string(n2)*"."*string(K_u)*".h5", "w") do file
+            for np = 1:nradial
+                for nq = 1:nradial
+                    #@time tabGXi = makeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,pref,Omega0=Omega0)
+                    tabGXi = makeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                    sumG = sum(tabGXi)
+                    if (np>-100) & (nq>-100)
+                        if isnan(sumG)
+                            println("NaN for n1=$n1, n2=$n2.")
+                        else
+                            #println("np=$np, nq=$nq, sumG=$sumG.")
+                        end
+                    end
+                    write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
+                end
+            end
+        end
+    end
 
 end
