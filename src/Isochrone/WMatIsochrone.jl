@@ -2,6 +2,7 @@
 
 What's different:
 -Use analytic inversion (isochrone_ae_from_omega1omega2)
+-Use analytic relationship between alpha and beta for circular orbits
 
 """
 
@@ -13,7 +14,7 @@ function analytic_beta_c(x::Float64)::Float64
     return 1/(1 + x^(2/3))
 end
 
-"""make_wmat_isochrone(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,NstepsWMat])
+"""MakeWmatIsochrone(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,NstepsWMat])
 
 @IMPROVE: give basis a type?
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
@@ -22,7 +23,7 @@ end
 
 @WARNING: when parallelising, basis will need to be copies so it can overwrite tabUl
 """
-function make_wmat_isochrone(potential::Function,dpotential::Function,ddpotential::Function,
+function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential::Function,
                              n1::Int64,n2::Int64,
                              Kuvals::Matrix{Float64},
                              K_v::Int64,

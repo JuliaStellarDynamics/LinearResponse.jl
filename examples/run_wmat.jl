@@ -36,4 +36,4 @@ import CallAResponse
 
 inputfile = "ModelParam.jl"
 
-CallAResponse.run_wmat(inputfile)
+CallAResponse.runWmat(inputfile)

@@ -126,7 +126,7 @@ end
     run_gfunc(inputfile)
 
 """
-function run_gfunc(inputfile::String)
+function runGfunc(inputfile::String)
 
     include(inputfile)
 

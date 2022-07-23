@@ -8,5 +8,6 @@ examples/gfunc/*
 examples/gfunc/Gfunc*
 examples/xifunc/*
 examples/xifunc/tab*
+examples/run_dfs.jl
 
 src/Transform.jl

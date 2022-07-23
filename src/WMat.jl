@@ -153,11 +153,13 @@ function make_wmat(potential::Function,dψdr::Function,d²ψdr²::Function,
                 k1_2 = duWMat*dt1du
                 k2_2 = duWMat*dt2du
 
-                # Step 3
+                # Begin step 3 of RK4
                 # The time, u, is not updated for this step
                 # For this step, no need to re-compute the basis elements, as r has not been updated
+                # Common prefactor for all the increments
+                # Depends on the updated (theta1+0.5*k1_2,theta2+0.5*k2_2)
+                # the factor (1.0/3.0) comes from RK4
                 pref3 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_2) + n2*(theta2+0.5*k2_2))
-                # Common prefactor for all the increments@ATTENTION Depends on the updated (theta1+0.5*k1_2,theta2+0.5*k2_2) !! ATTENTION to the factor (1.0/3.0) coming from RK4
 
                 # Loop over the radial indices to sum basis contributions
                 for np=1:basis.nmax
@@ -167,16 +169,21 @@ function make_wmat(potential::Function,dψdr::Function,d²ψdr²::Function,
                 k1_3 = k1_2 # Does not need to be updated
                 k2_3 = k2_2 # Does not need to be updated
 
-                # Step 4
+                # Begin step 4 of RK4
                 u += 0.5*duWMat # Updating the time by half a timestep: we are now at the next u value
                 rval = Sigma + Delta*OrbitalElements.henon_f(u) # Current location of the radius, r=r(u)
+
+                # current value of dtheta1/du and dtheta2/du
                 gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,0.01)
-                dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
+                dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
 
                 # updated basis elements for new rval
                 AstroBasis.tabUl!(basis,lharmonic,rval)
 
-                pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k1_3) + n2*(theta2+k2_3)) # Common prefactor for all the increments@ATTENTION Depends on the updated (theta1+k1_3,theta2+k2_3) !! ATTENTION to the factor (1.0/6.0) coming from RK4
+                # Common prefactor for all the increments
+                # Depends on the updated (theta1+k1_3,theta2+k2_3)
+                # The factor (1.0/6.0) comes from RK4
+                pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k1_3) + n2*(theta2+k2_3))
 
                 # Loop over the radial indices to sum basis contributions
                 for np=1:basis.nmax
@@ -190,7 +197,7 @@ function make_wmat(potential::Function,dψdr::Function,d²ψdr²::Function,
                 theta1 += (k1_1 + 2.0*k1_2 + 2.0*k1_3 + k1_4)/(6.0)
                 theta2 += (k2_1 + 2.0*k2_2 + 2.0*k2_3 + k2_4)/(6.0)
 
-                # clean nans?
+                # clean or check nans?
 
             end # RK4 integration
         end
@@ -203,50 +210,54 @@ end
     run_wmat(inputfile)
 
 """
-function run_wmat(inputfile::String)
+function runWmat(inputfile::String)
 
+    # load model parameters
     include(inputfile)
 
-    #####
-    # Check directory 
-    #####
+    # check directory before proceeding (save time if not.)
     if !(isdir(wmatdir))
-        error("wmatdir not found")
+        error("WMat.jl:: wmatdir not found")
     end
 
-    #####
-    # Bases prep.
-    #####
+    # bases prep.
     AstroBasis.fill_prefactors!(basis)
     bases=[deepcopy(basis) for k=1:Threads.nthreads()]
 
-    #####
     # Legendre integration prep.
-    #####
     tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
     tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
-    #####
-    # Construct the table of needed resonance vectors
-    #####
-    nbResVec = get_nbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
-    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+    # number of resonance vectors
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
 
-    println(nbResVec)
+    # fill in the array of resonance vectors (n1,n2)
+    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+
+    # print the length of the list of resonance vectors
+    println("WMat.jl: Number of resonances to compute: $nbResVec")
 
     Threads.@threads for i = 1:nbResVec
         k = Threads.threadid()
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
-        println(n1," ",n2)
+
+        println("WMat.jl: Computing W for the ($n1,$n2) resonance.")
+
+        # currently defaulting to timed version:
+        # could make this a flag (timing optional)
         @time tabWMat,tabaMat,tabeMat = make_wmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0)
+
         #make_wmat_isochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
         #println(sum(tabWMat))
-        # now save
+
+        # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
+        # could consider saving other quantities as well to check mappings.
         h5open(wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb), "w") do file
             write(file, "wmat",tabWMat)
             write(file, "amat",tabaMat)
             write(file, "emat",tabeMat)
         end
+
     end
 
 end

@@ -166,7 +166,7 @@ function mevXi(IMat::Array{Complex{Float64},2},
         tabM::Array{Complex{Float64},2})
 
     # Computing the minimum eigenvalue of (I-M). ATTENTION, we tell julia that the matrix is symmetric
-    val = try minimum(abs.(eigvals(Symmetric(IMat-tabM)))) catch; -1.0 end 
+    val = try minimum(abs.(eigvals(Symmetric(IMat-tabM)))) catch; -1.0 end
 
     return val # Output
 end
@@ -194,9 +194,9 @@ function detXi(omg::Complex{Float64},
 end
 
 
-function run_M(inputfile,
-                omglist::Array{Complex{Float64}})
-    
+function runM(inputfile,
+              omglist::Array{Complex{Float64}})
+
     include(inputfile)
 
     #####
@@ -234,13 +234,13 @@ function run_M(inputfile,
     tabdetXi = zeros(Float64,nomg) # Real part of the determinant at each frequency
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    
+
     Threads.@threads for i = 1:nomg
 
         k = Threads.threadid()
 
         tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dpotential,ddpotential,nradial,LINEAR,Omega0)
-        
+
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
         tabmevXi[i] = mevXi(IMatlist[k],tabMlist[k])
 
