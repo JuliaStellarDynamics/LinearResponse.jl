@@ -15,6 +15,9 @@ include("GFunc.jl")
 # code to compute the Hilbert transformation, including coefficient calculation
 include("Xi.jl")
 
+# code to compute the shape of the mode
+include("Mode.jl")
+
 # include code to compute isochrone-specific quantities:
 # the isochrone mode is a specific case that we have pre-defined
 include("Isochrone/WMatIsochrone.jl")

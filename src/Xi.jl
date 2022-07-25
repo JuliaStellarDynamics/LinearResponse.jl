@@ -163,19 +163,16 @@ end
 
 
 """
-    mevXi(IMat,tabM)
+    mevXi(tabM)
 
-minimal eigenvalue of the susceptibility matrix Xi = I - M for known M.
+minimal eigenvalue of M
 """
-function mevXi(IMat::Array{Complex{Float64},2},
-               tabM::Array{Complex{Float64},2})
+function mevXi(tabM::Array{Complex{Float64},2})
 
     # these should be equal, and =nradial!
     nEig1,nEig2 = size(tabM)
 
     # Computing the eigenvalue that is closest to 1
-    # ATTENTION, we tell julia that the matrix is symmetric
-    Xi = Symmetric(IMat-tabM)
     tabeigvals = eigvals(tabM)
     tabeigvecs = eigvecs(tabM)
 
@@ -279,59 +276,4 @@ function RunM(inputfile,
     end
 
     return tabdetXi#, tabmevXi
-end
-
-
-
-"""
-for a single omega, compute the shape of the mode
-
-"""
-function RunShape(inputfile,
-                  omgval::Complex{Float64})
-
-    include(inputfile)
-
-    #####
-    # Check directories names
-    #####
-    if !(isdir(wmatdir) && isdir(gfuncdir))
-        error(" wmatdir or gfuncdir not found ")
-    end
-
-    #####
-    # Construct the table of needed resonance vectors
-    #####
-    nbResVec = get_nbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
-    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
-
-    # get all weights
-    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = PerturbPlasma.tabGLquad(K_u)
-
-    # make the (np,nq) vectors that we need to evaluate
-    tab_npnq = makeTabnpnq(nradial)
-
-    # make the decomposition coefficients a_k
-    tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,K_u)
-    makeaMCoefficients!(tabaMcoef,tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,lharmonic)
-
-    # Structs for D_k(omega) computation
-    struct_tabLeglist = PerturbPlasma.struct_tabLeg_create(K_u)
-
-    # memory for the response matrices M and identity matrices
-    MMat = zeros(Complex{Float64},nradial,nradial)
-    IMat = makeIMat(nradial)
-
-
-    # Containers for determinant and min eigenvalue
-    nomg = 1#length(omglist)
-    tabdetXi = zeros(Float64,nomg) # Real part of the determinant at each frequency
-    tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
-
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dpotential,ddpotential,nradial,LINEAR,Omega0)
-
-    # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
-    EV,EF,EM = mevXi(IMat,MMat)
-
-    return EV,EF,EM
 end

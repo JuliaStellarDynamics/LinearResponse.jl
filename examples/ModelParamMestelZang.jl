@@ -81,5 +81,7 @@ LINEAR = "damped"
 #####
 wmatdir="wmat/"
 gfuncdir="gfunc/"
+modedir = "xifunc/"
+
 
 # WARNING : / at the end to check !

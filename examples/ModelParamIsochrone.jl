@@ -35,7 +35,7 @@ nradial = basis.nmax
 #####
 
 
-modelname = "isochroneE"
+modelname = "isochroneA"
 
 bc, M, G = 1.,1.,1.
 potential(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
@@ -44,46 +44,55 @@ ddpotential(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
 Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
 
 
-"""
-wrap the ndFdJ function you want
 
-a generic ndFdJ should take
-n1,n2,E,L,ndotOmega
-
-any other parameters should be wrapped into the function as external constants
-
-"""
 function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
+    #=
+    """
+    wrap the ndFdJ function you want
+
+    a generic ndFdJ should take
+    n1,n2,E,L,ndotOmega
+
+    any other parameters should be wrapped into the function as external constants
+
+    """
+    =#
     return ROIndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
     #return ISOndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG)
 end
 
 
-"""
-# FROM MEAN.JL
-# Function that returns the value of n.dF/dJ
-# where the DF follows the normalisation convention int dxdv F = Mtot
-# Arguments are:
-# + (n1,n2)
-# + (E,L)
-# + ndotOmega = n1*Omega1 + n2*Omega2
-# ATTENTION, specific to an isotropic DF
-"""
+
 function ISOndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.)
+    #=
+    """
+    # FROM MEAN.JL
+    # Function that returns the value of n.dF/dJ
+    # where the DF follows the normalisation convention int dxdv F = Mtot
+    # Arguments are:
+    # + (n1,n2)
+    # + (E,L)
+    # + ndotOmega = n1*Omega1 + n2*Omega2
+    # ATTENTION, specific to an isotropic DF
+    """
+    =#
     dFdE = OrbitalElements.isochrone_isotropic_dDFdE(E,bc,M,astronomicalG) # Current value of dF/E. ATTENTION, the DF is assumed to be isotropic
     res = ndotOmega*dFdE # Current value of n.dF/dJ. ATTENTION, the DF is assumed to be isotropic
     #####
     return res
 end
 
-"""
-# FROM ROI.JL
-# Function that computes n.dF/dJ for the ROI DF
-# ATTENTION, we put n.dF/dJ != 0 only for 0 < Q < 1
-# @IMPROVE -- ideally we should have rather reduced
-# the (alpha,beta) domain of integration
-"""
+
 function ROIndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
+    #=
+    """
+    # FROM ROI.JL
+    # Function that computes n.dF/dJ for the ROI DF
+    # ATTENTION, we put n.dF/dJ != 0 only for 0 < Q < 1
+    # @IMPROVE -- ideally we should have rather reduced
+    # the (alpha,beta) domain of integration
+    """
+    =#
 
     Q = OrbitalElements.isochrone_Q_ROI(E,L,Ra,bc,M,astronomicalG)
 
@@ -109,7 +118,7 @@ K_v        = 100    # number of allocations is directly proportional to this
 NstepsWMat = 100    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 2
-n1max = 4  # maximum number of radial resonances to consider
+n1max = 2  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 LINEAR = "unstable"
@@ -120,5 +129,6 @@ LINEAR = "unstable"
 #####
 wmatdir="wmat/IsochroneA/"
 gfuncdir="gfunc/IsochroneA/"
+modedir = "xifunc/IsochroneA/"
 
 # WARNING : / at the end to check !

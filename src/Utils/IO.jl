@@ -23,3 +23,15 @@ function gfunc_filename(gfuncdir::String,
 
     return gfuncdir*"Gfunc_"*modelname*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"."*string(K_u)*".h5"
 end
+
+"""
+    mode_filename()
+
+"""
+function mode_filename(modedir::String,
+                       modelname::String,
+                       lharmonic::Int64,
+                       n1max::Int64,K_u::Int64)
+
+    return modedir*"ModeShape_"*modelname*"_l_"*string(lharmonic)*"_n1_"*string(n1max)*"."*string(K_u)*".h5"
+end
