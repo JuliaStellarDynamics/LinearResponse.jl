@@ -7,18 +7,18 @@ function to compute G(u)
 @ATTENTION, the dimensionality (e.g. 2d vs 3d) is now encoded in 'pref'.
 
 """
-function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
-                 ndFdJ::Function,
-                 n1::Int64,n2::Int64,
-                 np::Int64,nq::Int64,
-                 tabWMat::Array{Float64},
-                 tabaMat::Array{Float64},
-                 tabeMat::Array{Float64},
-                 Kuvals::Matrix{Float64},
-                 K_v::Int64,nradial::Int64,
-                 lharmonic::Int64;
-                 ndim::Int64,
-                 Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
+function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::Function,
+                         ndFdJ::Function,
+                         n1::Int64,n2::Int64,
+                         np::Int64,nq::Int64,
+                         tabWMat::Array{Float64},
+                         tabaMat::Array{Float64},
+                         tabeMat::Array{Float64},
+                         Kuvals::Matrix{Float64},
+                         K_v::Int64,nradial::Int64,
+                         lharmonic::Int64;
+                         ndim::Int64,
+                         Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
@@ -101,7 +101,7 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
                 end
             end
             =#
-            
+
             if ndim==2
                 res += pref*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
 
@@ -118,5 +118,79 @@ function makeGu(potential::Function,dpotential::Function,ddpotential::Function,
 
     end
     return tabGXi
+
+end
+
+
+
+"""
+    RunGfuncIsochrone(inputfile)
+
+"""
+function RunGfuncIsochrone(inputfile::String)
+
+    include(inputfile)
+
+    #####
+    # Check directories names
+    #####
+    if !(isdir(wmatdir) && isdir(gfuncdir))
+        error("GFunc.jl: wmatdir or gfuncdir not found ")
+    end
+
+    #####
+    # Legendre integration prep.
+    #####
+    tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
+    tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
+
+    #####
+    # Construct the table of needed resonance vectors
+    #####
+
+    # Number of resonance vectors
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
+    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+
+    println("GFunc.jl: Considering $nbResVec resonances.")
+
+    Threads.@threads for i = 1:nbResVec
+        n1,n2 = tabResVec[1,i],tabResVec[2,i]
+        println("Gfunc.jl: Starting on ($n1,$n2).")
+
+        # load a value of tabWmat, plus (a,e) values
+        filename = wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb)
+        file = h5open(filename,"r")
+        Wtab = read(file,"wmat")
+        atab = read(file,"amat")
+        etab = read(file,"emat")
+        nradial,K_u,K_v = size(Wtab)
+
+        # print the size of the found files if the first processor
+        if i==0
+            println("GFunc.jl: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
+        end
+
+        # need to loop through all combos of np and nq to make the full matrix.
+        h5open(gfunc_filename(gfuncdir,modelname,lharmonic,n1,n2,K_u), "w") do file
+
+            # loop through all basis function combinations
+            for np = 1:nradial
+                for nq = 1:nradial
+
+                    tabGXi = MakeGuIsochrone(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                    sumG = sum(tabGXi)
+                    if (np>-100) & (nq>-100)
+                        if isnan(sumG)
+                            println("NaN for n1=$n1, n2=$n2.")
+                        else
+                            #println("np=$np, nq=$nq, sumG=$sumG.")
+                        end
+                    end
+                    write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
+                end
+            end
+        end
+    end
 
 end

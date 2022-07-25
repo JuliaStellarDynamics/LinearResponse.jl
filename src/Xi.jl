@@ -151,25 +151,57 @@ end
 determinant of the susceptibility matrix I - M for known M.
 """
 function detXi(IMat::Array{Complex{Float64},2},
-        tabM::Array{Complex{Float64},2})
+               tabM::Array{Complex{Float64},2})
 
-    val = det(Symmetric(IMat-tabM)) # Computing the determinant of (I-M). ATTENTION, we tell julia that the matrix is symmetric
+    # Computing the determinant of (I-M).
+    # ATTENTION, we tell julia that the matrix is symmetric
+    val = det(Symmetric(IMat-tabM))
+
     # only save the real portion
     return real(val) # Output
 end
+
+
 """
     mevXi(IMat,tabM)
 
-minimal eigenvalue of the susceptibility matrix I - M for known M.
+minimal eigenvalue of the susceptibility matrix Xi = I - M for known M.
 """
 function mevXi(IMat::Array{Complex{Float64},2},
-        tabM::Array{Complex{Float64},2})
+               tabM::Array{Complex{Float64},2})
 
-    # Computing the minimum eigenvalue of (I-M). ATTENTION, we tell julia that the matrix is symmetric
-    val = try minimum(abs.(eigvals(Symmetric(IMat-tabM)))) catch; -1.0 end
+    # these should be equal, and =nradial!
+    nEig1,nEig2 = size(tabM)
 
-    return val # Output
+    # Computing the eigenvalue that is closest to 1
+    # ATTENTION, we tell julia that the matrix is symmetric
+    Xi = Symmetric(IMat-tabM)
+    tabeigvals = eigvals(tabM)
+    tabeigvecs = eigvecs(tabM)
+
+    indEig = 1
+    for indrad = 1:nEig1
+
+        # did we find an eigenvalue that is even closer to 1.0?
+        if (abs(1.0-tabeigvals[indrad]) < abs(1.0-tabeigvals[indEig]))
+            # if yes, update the index of the eigenvalue
+            indEig = indrad
+        end
+    end
+
+    # construct the mode table
+    tabEigenMode = zeros(Float64,nEig1)
+
+    # now fill in the eigenmode
+    for np=1:nEig1 # Loop over the number of basis elements
+        tabEigenMode[np] = real(tabeigvecs[np,indEig]) # Extracting the eigenvector !! ATTENTION, tabeigvecs is the matrix whose columns are eigenvectors !! ATTENTION, we put a real part
+    end
+
+    return tabeigvals[indEig],tabeigvecs[indEig],tabEigenMode # Output
+
 end
+
+
 """
     detXi(.......)
 
@@ -194,7 +226,7 @@ function detXi(omg::Complex{Float64},
 end
 
 
-function runM(inputfile,
+function RunM(inputfile,
               omglist::Array{Complex{Float64}})
 
     include(inputfile)
@@ -242,9 +274,64 @@ function runM(inputfile,
         tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dpotential,ddpotential,nradial,LINEAR,Omega0)
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
-        tabmevXi[i] = mevXi(IMatlist[k],tabMlist[k])
+        #tabmevXi[i] = mevXi(IMatlist[k],tabMlist[k])
 
     end
 
-    return tabdetXi, tabmevXi
+    return tabdetXi#, tabmevXi
+end
+
+
+
+"""
+for a single omega, compute the shape of the mode
+
+"""
+function RunShape(inputfile,
+                  omgval::Complex{Float64})
+
+    include(inputfile)
+
+    #####
+    # Check directories names
+    #####
+    if !(isdir(wmatdir) && isdir(gfuncdir))
+        error(" wmatdir or gfuncdir not found ")
+    end
+
+    #####
+    # Construct the table of needed resonance vectors
+    #####
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
+    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+
+    # get all weights
+    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = PerturbPlasma.tabGLquad(K_u)
+
+    # make the (np,nq) vectors that we need to evaluate
+    tab_npnq = makeTabnpnq(nradial)
+
+    # make the decomposition coefficients a_k
+    tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,K_u)
+    makeaMCoefficients!(tabaMcoef,tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,lharmonic)
+
+    # Structs for D_k(omega) computation
+    struct_tabLeglist = PerturbPlasma.struct_tabLeg_create(K_u)
+
+    # memory for the response matrices M and identity matrices
+    MMat = zeros(Complex{Float64},nradial,nradial)
+    IMat = makeIMat(nradial)
+
+
+    # Containers for determinant and min eigenvalue
+    nomg = 1#length(omglist)
+    tabdetXi = zeros(Float64,nomg) # Real part of the determinant at each frequency
+    tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
+
+    tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dpotential,ddpotential,nradial,LINEAR,Omega0)
+
+    # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
+    EV,EF,EM = mevXi(IMat,MMat)
+
+    return EV,EF,EM
 end

@@ -4,9 +4,8 @@ import PerturbPlasma
 using HDF5
 
 
-"""make_wmat(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,NstepsWMat])
+"""MakeWmat(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
 
-@IMPROVE: give basis a type?
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
 @IMPROVE: parallelise by launching from both -1 and 1?
 @IMPROVE: adaptively check for NaN values?
@@ -15,32 +14,36 @@ using HDF5
 
 @NOTE: AstroBasis provides the Basis_type data type.
 """
-function make_wmat(potential::Function,dψdr::Function,d²ψdr²::Function,
+function MakeWmat(potential::Function,dψdr::Function,d²ψdr²::Function,
                    n1::Int64,n2::Int64,
                    Kuvals::Matrix{Float64},
                    K_v::Int64,
                    lharmonic::Int64,
                    basis::AstroBasis.Basis_type,
                    Omega0::Float64=1.,
-                   NstepsWMat::Int64=20)
+                   K_w::Int64=20)
     #=
     add rmax as a parameter?
     =#
+
+    # get the number of u samples from the input vector of u vals
     K_u = length(Kuvals)
 
     # compute the frequency scaling factors for this resonance
+    # @IMPROVE: need a maximum radius for the root finding; here set to be 1000., but if the cluster was extremely extended, this could break
     wmin,wmax = OrbitalElements.find_wmin_wmax(n1,n2,dψdr,d²ψdr²,1000.,Omega0)
 
-    # define beta_c
+    # define beta_c, empirically.
+    # @IMPROVE: 2000 is the number of sample points; this also is hard-coded to sample between log R [-5,5], which would be adaptive
     beta_c = OrbitalElements.make_betac(dψdr,d²ψdr²,2000,Omega0)
 
-    # allocate the results matrix
+    # allocate the results matrices
     tabWMat = zeros(basis.nmax,K_u,K_v)
     tabaMat = zeros(K_u,K_v)
     tabeMat = zeros(K_u,K_v)
 
     # set the matrix step size
-    duWMat = (2.0)/(NstepsWMat)
+    duWMat = (2.0)/(K_w)
 
     # start the loop
     for kuval in 1:K_u
@@ -48,15 +51,7 @@ function make_wmat(potential::Function,dψdr::Function,d²ψdr²::Function,
         # get the current u value
         uval = Kuvals[kuval]
 
-        # get the corresponding v values
-        #omega1_func(x) = Omega1_circular(dψdr,d²ψdr²,x)
-        # m is the extremum location of omegafunc: get from find_wmin_wmax?
-        # OmegaC is the central Omega value, which is Omega0 (I think?)
-        #vbound = omega1_func(m)/Omega0
-        #extreme(x) = n1*OrbitalElements.Omega1_circular(dψdr,d²ψdr²,x) + #n2*OrbitalElements.Omega2_circular(dψdr,x)
-        #m = OrbitalElements.extremise_function(extreme,24,0.,1000.,false)
-        #vbound = OrbitalElements.Omega1_circular(dψdr,d²ψdr²,m)/Omega0
-        #vbound =
+        # get the corresponding v boundary values
         vbound = OrbitalElements.find_vbound(n1,n2,dψdr,d²ψdr²,1000.,Omega0)
         vmin,vmax = OrbitalElements.find_vmin_vmax(uval,wmin,wmax,n1,n2,vbound,beta_c)
 
@@ -120,7 +115,7 @@ function make_wmat(potential::Function,dψdr::Function,d²ψdr²::Function,
 
             # start the integration loop now that we are initialised
             # at each step, we are performing an RK4-like calculation
-            for istep=1:NstepsWMat
+            for istep=1:K_w
 
                 # compute the first prefactor
                 pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
@@ -207,10 +202,10 @@ end
 
 
 """
-    run_wmat(inputfile)
+    RunWmat(inputfile)
 
 """
-function runWmat(inputfile::String)
+function RunWmat(inputfile::String)
 
     # load model parameters
     include(inputfile)
@@ -245,10 +240,7 @@ function runWmat(inputfile::String)
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat = make_wmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0)
-
-        #make_wmat_isochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,basis,Omega0)
-        #println(sum(tabWMat))
+        @time tabWMat,tabaMat,tabeMat = MakeWmat(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0)
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

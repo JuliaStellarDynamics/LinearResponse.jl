@@ -14,7 +14,7 @@ function analytic_beta_c(x::Float64)::Float64
     return 1/(1 + x^(2/3))
 end
 
-"""MakeWmatIsochrone(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,NstepsWMat])
+"""MakeWmatIsochrone(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
 
 @IMPROVE: give basis a type?
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
@@ -30,7 +30,7 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
                              lharmonic::Int64,
                              basis::AstroBasis.Basis_type,
                              Omega0::Float64=1.,
-                             NstepsWMat::Int64=20;
+                             K_w::Int64=20;
                              bc::Float64=1.0,M::Float64=1.0,G::Float64=1.0)
     #=
     add rmax as a parameter?
@@ -50,7 +50,7 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
     tabeMat = zeros(K_u,K_v)
 
     # set the matrix step size
-    duWMat = (2.0)/(NstepsWMat)
+    duWMat = (2.0)/(K_w)
 
     # start the loop
     for kuval in 1:K_u
@@ -116,7 +116,7 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
 
             # start the integration loop now that we are initialised
             # at each step, we are performing an RK4-like calculation
-            for istep=1:NstepsWMat
+            for istep=1:K_w
 
                 # compute the first prefactor
                 pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
@@ -192,4 +192,58 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
         end
     end
     return tabWMat,tabaMat,tabeMat
+end
+
+
+"""
+    RunWmatIsochrone(inputfile)
+
+"""
+function RunWmatIsochrone(inputfile::String)
+
+    # load model parameters
+    include(inputfile)
+
+    # check directory before proceeding (save time if not.)
+    if !(isdir(wmatdir))
+        error("WMat.jl:: wmatdir not found")
+    end
+
+    # bases prep.
+    AstroBasis.fill_prefactors!(basis)
+    bases=[deepcopy(basis) for k=1:Threads.nthreads()]
+
+    # Legendre integration prep.
+    tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
+    tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
+
+    # number of resonance vectors
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
+
+    # fill in the array of resonance vectors (n1,n2)
+    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+
+    # print the length of the list of resonance vectors
+    println("WMat.jl: Number of resonances to compute: $nbResVec")
+
+    Threads.@threads for i = 1:nbResVec
+        k = Threads.threadid()
+        n1,n2 = tabResVec[1,i],tabResVec[2,i]
+
+        println("WMat.jl: Computing W for the ($n1,$n2) resonance.")
+
+        # currently defaulting to timed version:
+        # could make this a flag (timing optional)
+        @time tabWMat,tabaMat,tabeMat = MakeWmatIsochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,bc=bc,M=M,G=G)
+
+        # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
+        # could consider saving other quantities as well to check mappings.
+        h5open(wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb), "w") do file
+            write(file, "wmat",tabWMat)
+            write(file, "amat",tabaMat)
+            write(file, "emat",tabeMat)
+        end
+
+    end
+
 end

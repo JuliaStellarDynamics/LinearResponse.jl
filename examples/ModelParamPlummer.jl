@@ -1,7 +1,47 @@
+"""
+an example input file for running all steps in estimating the Linear Response for a given model
 
-import AstroBasis
+Must include:
+-potential
+-dpotential
+-ddpotential
+-basis
+-ndim
+-nradial
+-ndFdJ
+
+
+"""
+
+
 import OrbitalElements
-using Printf
+import AstroBasis
+import PerturbPlasma
+using HDF5
+
+
+#####
+# Basis
+#####
+G  = 1.
+rb = 10.0
+lmax,nmax = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
+basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
+ndim = basis.dimension
+nradial = basis.nmax
+
+#####
+# Model Potential
+#####
+
+
+const modelname = "PlummerE"
+
+const bc, M, G = 1.,1.,1.
+potential(r::Float64)::Float64   = OrbitalElements.plummer_psi(r,bc,M,G)
+dpotential(r::Float64)::Float64  = OrbitalElements.plummer_dpsi_dr(r,bc,M,G)
+ddpotential(r::Float64)::Float64 = OrbitalElements.plummer_ddpsi_ddr(r,bc,M,G)
+Omega0 = OrbitalElements.plummer_Omega0(bc,M,G)
 
 
 """
@@ -61,36 +101,24 @@ function ROIndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,b
     return res
 end
 
+#####
+# Parameters
+#####
+K_u        = 150    # number of Legendre integration sample points
+K_v        = 100    # number of allocations is directly proportional to this
+NstepsWMat = 100    # number of allocations is insensitive to this (also time, largely?
+
+lharmonic = 2
+n1max = 4  # maximum number of radial resonances to consider
+
+# Mode of response matrix computation
+LINEAR = "unstable"
 
 
-# define easy potentials to pass to frequency calculators
-const bc, M, G = 1.,1. ,1.
-ψ(r::Float64)::Float64       = OrbitalElements.isochrone_psi(r,bc,M,G)
-dψdr(r::Float64)::Float64    = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
-d²ψdr²(r::Float64)::Float64  = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
-Ω₀      =    OrbitalElements.isochrone_Omega0(bc,M,G)
+#####
+# Outputs directories
+#####
+wmatdir="wmat/PlummerE/"
+gfuncdir="gfunc/PlummerE/"
 
-a,e = 0.1, 0.1
-
-# compute rperi and rapo
-rp,ra = OrbitalElements.rpra_from_ae(a,e)
-#println("rp=$rp ra=$ra")
-
-# stuff in a hardwired version
-rp=0.20317486071993035
-ra=2.048615592190439
-
-# put in some dummy values for testing: picking a resonance
-n1 = -1
-n2 = 2
-
-Lval = OrbitalElements.L_from_rpra_pot(ψ,dψdr,d²ψdr²,rp,ra)
-Eval = OrbitalElements.E_from_rpra_pot(ψ,dψdr,d²ψdr²,rp,ra)
-println("E=$Eval L=$Lval")
-
-Ω₁r,Ω₂r = OrbitalElements.isochrone_Omega_1_2(rp,ra,bc,M,G)
-ndotOmega = n1*Ω₁r + n2*Ω₂r
-
-# compute dF/dJ: call out for value
-valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotOmega)
-println("valndFdJ=$valndFdJ")
+# WARNING : / at the end to check !
