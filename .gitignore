@@ -3,11 +3,13 @@
 # very annoying OSX hidden files
 *.DS_Store
 
+# all example data products that we don't want to track
+examples/*/wmat
+examples/*/gfunc
+examples/*/xifunc
+
 examples/wmat
-examples/gfunc/*
-examples/gfunc/Gfunc*
-examples/xifunc/*
-examples/xifunc/tab*
-examples/run_dfs.jl
+examples/gfunc
+examples/xifunc
 
 src/Transform.jl

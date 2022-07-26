@@ -127,8 +127,8 @@ LINEAR = "unstable"
 #####
 # Outputs directories
 #####
-wmatdir="wmat/IsochroneA/"
-gfuncdir="gfunc/IsochroneA/"
-modedir = "xifunc/IsochroneA/"
+wmatdir="wmat/"
+gfuncdir="gfunc/"
+modedir = "xifunc/"
 
 # WARNING : / at the end to check !
