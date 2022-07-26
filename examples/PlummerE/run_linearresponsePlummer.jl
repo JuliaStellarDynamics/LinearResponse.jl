@@ -4,14 +4,13 @@
 import CallAResponse
 using HDF5
 
-inputfile = "ModelParamIsochrone.jl"
+inputfile = "ModelParamPlummer.jl"
 
 #CallAResponse.RunWmat(inputfile)
-CallAResponse.RunWmatIsochrone(inputfile)
 
-#CallAResponse.RunGfunc(inputfile)
-#CallAResponse.RunGfuncIsochrone(inputfile)
 
+CallAResponse.RunGfunc(inputfile)
+#=
 # need to organise the omegalist here
 #omglist = [0.1-0.2*im]
 
@@ -23,7 +22,6 @@ tabEta = collect(Etamin:deltaEta:Etamax) # Table of eta for which the response m
 tabOmg = 0 .+ tabEta .* im               # Table of eta for which the response matrix is computed
 tabdetXi = zeros(Float64,nbEta)          # Table to store the value of det[I-Xi].
 
-#=
 tabdet = CallAResponse.RunM(inputfile,tabOmg)
 
 for iEta=1:nbEta

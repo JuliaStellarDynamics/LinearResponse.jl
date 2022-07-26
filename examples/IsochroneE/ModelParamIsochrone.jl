@@ -35,7 +35,7 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneA"
+modelname = "IsochroneE"
 
 bc, M, G = 1.,1.,1.
 potential(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)

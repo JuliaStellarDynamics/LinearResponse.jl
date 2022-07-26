@@ -178,7 +178,9 @@ function RunGfunc(inputfile::String)
             for np = 1:nradial
                 for nq = 1:nradial
 
-                    @time tabGXi = MakeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                    tabGXi = MakeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+
+                    #@time tabGXi = MakeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
 
                     #=
                     sumG = sum(tabGXi)
