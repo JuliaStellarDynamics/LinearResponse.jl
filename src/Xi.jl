@@ -213,7 +213,7 @@ function detXi(omg::Complex{Float64},
                dpotential::Function,
                ddpotential::Function,
                nradial::Int64,
-               LINEAR::String="Unstable",
+               LINEAR::String="unstable",
                Omega0::Float64=1.0)
     ####
     IMat = makeIMat(nradial)
