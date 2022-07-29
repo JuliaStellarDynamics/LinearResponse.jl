@@ -66,8 +66,8 @@ ndFdJ(n1::Int64,n2::Int64,
 # Parameters
 #####
 K_u = 150           # number of Legendre integration sample points
-K_v        = 100    # number of allocations is directly proportional to this
-NstepsWMat = 100    # number of allocations is insensitive to this (also time, largely?
+K_v = 100    # number of allocations is directly proportional to this
+K_w = 50    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 2
 n1max = 4  # maximum number of radial resonances to consider
