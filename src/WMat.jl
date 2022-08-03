@@ -35,7 +35,8 @@ function MakeWmat(potential::Function,dψdr::Function,d²ψdr²::Function,
 
     # define beta_c, empirically.
     # @IMPROVE: 2000 is the number of sample points; this also is hard-coded to sample between log R [-5,5], which would be adaptive
-    beta_c = OrbitalElements.make_betac(dψdr,d²ψdr²,2000,Omega0)
+    # beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
+    beta_c(alpha_c::Float64)::Float64   = OrbitalElements.beta_circ(alpha_c,dpotential,ddpotential,Omega0,1000.)
 
     # allocate the results matrices
     tabWMat = zeros(basis.nmax,K_u,K_v)

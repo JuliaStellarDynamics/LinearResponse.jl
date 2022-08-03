@@ -103,7 +103,6 @@ function tabM!(omg::Complex{Float64},
 
         # Rescale to get the dimensionless frequency
         omg_nodim = omg/Omega0
-        #varpi = OrbitalElements.get_varpi(omg_nodim,n1,n2,dpotential,ddpotential) # Getting the rescaled frequency
         varpi = OrbitalElements.get_varpi(omg_nodim,n1,n2,dpotential,ddpotential,Ω₀=Omega0) # Getting the rescaled frequency
 
         # get the Legendre integration values
@@ -160,7 +159,7 @@ function detXi(IMat::Array{Complex{Float64},2},
     val = det(Symmetric(IMat-tabM))
 
     # only save the real portion
-    return real(val) # Output
+    return val # Output
 end
 
 
@@ -265,8 +264,8 @@ function RunM(inputfile,
 
     # Containers for determinant and min eigenvalue
     nomg = length(omglist)
-    tabdetXi = zeros(Float64,nomg) # Real part of the determinant at each frequency
-    tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
+    tabdetXi = zeros(Complex{Float64},nomg) # Real part of the determinant at each frequency
+    # tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
 
     Threads.@threads for i = 1:nomg

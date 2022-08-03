@@ -21,7 +21,7 @@ function MakeGu(potential::Function,dpotential::Function,ddpotential::Function,
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
         # 2d prefactor, see Fouvry et al. 2015
-        pref = (2*pi)^2
+        pref = (2.0*pi)^(2)
     else
         # 3d prefactor, see Hamilton et al. 2018
         CMatrix = getCMatrix(lharmonic)
@@ -38,7 +38,8 @@ function MakeGu(potential::Function,dpotential::Function,ddpotential::Function,
     ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
 
     # define beta_c
-    beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
+    # beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
+    beta_c(alpha_c::Float64)::Float64   = OrbitalElements.beta_circ(alpha_c,dpotential,ddpotential,Omega0,1000.)
 
     for kuval in 1:K_u
 
