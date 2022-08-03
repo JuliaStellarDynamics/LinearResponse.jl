@@ -103,10 +103,12 @@ function tabM!(omg::Complex{Float64},
 
         # Rescale to get the dimensionless frequency
         omg_nodim = omg/Omega0
-        varpi = OrbitalElements.get_varpi(omg_nodim,n1,n2,dpotential,ddpotential) # Getting the rescaled frequency
+        #varpi = OrbitalElements.get_varpi(omg_nodim,n1,n2,dpotential,ddpotential) # Getting the rescaled frequency
+        varpi = OrbitalElements.get_varpi(omg_nodim,n1,n2,dpotential,ddpotential,Ω₀=Omega0) # Getting the rescaled frequency
 
         # get the Legendre integration values
         PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)
+        #PerturbPlasma.tabLeg!_UNSTABLE(varpi,K_u,struct_tabLeg)
         tabDLeg = struct_tabLeg.tabDLeg # Name of the array where the D_k(w) are stored
 
         # Loop over the basis indices to consider
@@ -227,6 +229,9 @@ function RunM(inputfile,
               omglist::Array{Complex{Float64}})
 
     include(inputfile)
+
+    nomglist = length(omglist)
+    println("Xi.jl: computing $nomglist frequency values")
 
     #####
     # Check directories names

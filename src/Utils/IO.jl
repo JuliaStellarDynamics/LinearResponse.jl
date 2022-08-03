@@ -35,3 +35,16 @@ function mode_filename(modedir::String,
 
     return modedir*"ModeShape_"*modelname*"_l_"*string(lharmonic)*"_n1_"*string(n1max)*"."*string(K_u)*".h5"
 end
+
+
+"""
+    det_filename()
+
+"""
+function det_filename(modedir::String,
+                      modelname::String,
+                      lharmonic::Int64,
+                      n1max::Int64,K_u::Int64)
+
+    return modedir*"Determinant_"*modelname*"_l_"*string(lharmonic)*"_n1_"*string(n1max)*"."*string(K_u)*".h5"
+end
