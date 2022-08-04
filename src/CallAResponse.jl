@@ -1,10 +1,11 @@
 module CallAResponse
 
-# helper functions for constructing basis list, resonance list, prefactors (3d), and writing utilities
+# helper functions for constructing basis list, resonance list, prefactors (3d), writing utilities, and frequency tables
 include("Utils/Basis.jl")
 include("Utils/Resonances.jl")
 include("Utils/CMatrix.jl")
 include("Utils/IO.jl")
+include("Utils/OmegaGrid.jl")
 
 # code to compute the Fourier transform basis functions
 include("WMat.jl")

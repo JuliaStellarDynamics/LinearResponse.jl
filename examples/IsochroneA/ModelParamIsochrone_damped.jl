@@ -82,3 +82,15 @@ LINEAR     = "damped" # Mode of response matrix computation
 wmatdir    = "wmat/"
 gfuncdir   = "gfunc/"
 modedir    = "xifunc/"
+
+# Frequencies to probe
+nOmega = 52#501 # Number of omega0 for which the response matrix is computed. ATTENTION, we choose this number to have a nice step distance
+Omegamin = 0.0#*Omega0 # Minimum omega value for which the response matrix is computed. ATTENTION, we use the symmetry of the response matrix, so that we only search for positive real(omega).
+Omegamax = 0.05#1*Omega0 # Maximum omega value for which the response matrix is computed
+
+# Evaluate the dispersion function even in eta=0.0 using the `damped' evaluation,
+# but this should not really change the plot that we are making in the lower-half of the complex plane.
+nEta = 51#501 # Number of eta for which the response matrix is computed. ATTENTION, we choose this number to have a nice step distance
+Etamin = -0.005#-0.06*Omega0#-0.005*Omega0 # Minimum eta value for which the response matrix is computed. ATTENTION, it is a negative number
+Etamax = 0.0#-0.0*Omega0 # Maximum eta value for which the response matrix is computed. ATTENTION, it is a negative number
+#####

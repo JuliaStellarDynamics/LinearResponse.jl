@@ -10,10 +10,15 @@ inputfile = "ModelParamIsochrone_damped.jl"
 #CallAResponse.RunWmatIsochrone(inputfile)
 
 #CallAResponse.RunGfunc(inputfile)
-CallAResponse.RunGfuncIsochrone(inputfile)
+#CallAResponse.RunGfuncIsochrone(inputfile)
 
 # need to organise the omegalist here
 
+include(inputfile)
+
+tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
+
+println(tabomega)
 
 #=
 nOmega = 52#501 # Number of omega0 for which the response matrix is computed. ATTENTION, we choose this number to have a nice step distance
