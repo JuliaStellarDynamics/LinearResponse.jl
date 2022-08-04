@@ -10,9 +10,6 @@ import OrbitalElements
 import AstroBasis
 import PerturbPlasma
 
-function analytic_beta_c(x::Float64)::Float64
-    return 1/(1 + x^(2/3))
-end
 
 """MakeWmatIsochrone(ψ,dψ/dr,d²ψ/dr²,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
 
@@ -42,7 +39,7 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
     w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
 
     # define beta_c: write in for the isochrone
-    beta_c = analytic_beta_c#OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
+    beta_c = OrbitalElements.analytic_beta_c#OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
 
     # allocate the results matrix
     tabWMat = zeros(basis.nmax,K_u,K_v)
@@ -88,13 +85,8 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
             # get (rp,ra)
             rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
 
-            if (rp>ra)
-                println("Invalid (rp,ra)=(",rp,",",ra,"). Reversing...check a=",sma," e=",ecc)
-                ra,rp = OrbitalElements.rpra_from_ae(sma,ecc)
-            end
-
             # need angular momentum
-            Lval = OrbitalElements.L_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
+            Lval = OrbitalElements.isochrone_L_from_rpra(rp,ra,bc,M,G)
 
             # Initialise the state vectors: u, theta1, (theta2-psi)
             u, theta1, theta2 = -1.0, 0.0, 0.0

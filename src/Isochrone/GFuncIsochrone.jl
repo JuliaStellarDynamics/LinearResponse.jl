@@ -1,10 +1,8 @@
 
 
 
-"""
-function to compute G(u)
-
-@ATTENTION, the dimensionality (e.g. 2d vs 3d) is now encoded in 'pref'.
+"""MakeGuIsochrone
+function to compute G(u), isochrone specific.
 
 """
 function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::Function,
@@ -37,15 +35,13 @@ function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::F
     # compute the frequency scaling factors for this resonance
     w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
 
-    # define beta_c
-    beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
-
     for kuval in 1:K_u
 
         uval = Kuvals[kuval]
 
+        # get the v integration boundaries. these are not perfectly exact (requires a zero-finding), but all other items going into the calculation are.
         vbound = OrbitalElements.find_vbound(n1,n2,dpotential,ddpotential,1000.,Omega0)
-        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,beta_c)
+        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,OrbitalElements.analytic_beta_c)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -61,22 +57,27 @@ function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::F
 
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
-            # convert from omega1,omega2 to (a,e)
-            #sma,ecc  = tabaMat[kuval,kvval],tabeMat[kuval,kvval]
+            # convert from omega1,omega2 to (a,e) using isochrone exact version
             sma,ecc = OrbitalElements.isochrone_ae_from_omega1omega2(omega1,omega2,bc,M,G)
 
             # get (rp,ra)
             rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
 
-            # need (E,L)
-            Lval = OrbitalElements.L_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
-            Eval = OrbitalElements.E_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
+            # need (E,L), use isochrone exact version
+            Eval,Lval = OrbitalElements.isochrone_EL_from_rpra(rp,ra,bc,M,G)
 
             # compute Jacobians
-            Jacalphabeta = OrbitalElements.Jacalphabeta_to_uv(n1,n2,w_min,w_max,vval) #(alpha,beta) -> (u,v)
-            JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)          #(E,L) -> (alpha,beta)
-            JacJ         = (1/omega1)                                #(J) -> (E,L)
-            dimensionl   = (1/Omega0)                                # remove dimensionality
+            #(alpha,beta) -> (u,v)
+            Jacalphabeta = OrbitalElements.Jacalphabeta_to_uv(n1,n2,w_min,w_max,vval)
+
+            #(E,L) -> (alpha,beta): Isochrone analytic
+            JacEL        = OrbitalElements.isochrone_JacEL_to_alphabeta(alpha,beta,bc,M,G)
+
+            #(J) -> (E,L)
+            JacJ         = (1/omega1)
+
+            # remove dimensionality
+            dimensionl   = (1/Omega0)
 
 
             # get the resonance vector
@@ -89,21 +90,9 @@ function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::F
             Wp = tabWMat[np,kuval,kvval]
             Wq = tabWMat[nq,kuval,kvval]
 
-            # todo: make this block @static
-            #=
-            # do a nan check?
-            nancheck = false
-            if (nancheck)
-                tmp = pref*Lval*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq
-
-                if isnan(tmp)
-                    println(Jacalphabeta," ",JacEL," ",pref," ",(Lval/omega1)," ",valndFdJ," ",Wp," ",Wq)
-                end
-            end
-            =#
-
             if ndim==2
-                res += pref*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                # Local increment in the location (u,v)
+                res += pref*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq
 
             else
                 # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
@@ -172,7 +161,7 @@ function RunGfuncIsochrone(inputfile::String)
         end
 
         # need to loop through all combos of np and nq to make the full matrix.
-        h5open(gfunc_filename(gfuncdir,modelname,lharmonic,n1,n2,K_u), "w") do file
+        h5open(gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u), "w") do file
 
             # loop through all basis function combinations
             for np = 1:nradial

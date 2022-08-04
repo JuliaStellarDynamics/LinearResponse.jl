@@ -10,11 +10,12 @@ inputfile = "ModelParamIsochrone_damped.jl"
 #CallAResponse.RunWmatIsochrone(inputfile)
 
 #CallAResponse.RunGfunc(inputfile)
-#CallAResponse.RunGfuncIsochrone(inputfile)
+CallAResponse.RunGfuncIsochrone(inputfile)
 
 # need to organise the omegalist here
-#omglist = [0.1-0.2*im]
 
+
+#=
 nOmega = 52#501 # Number of omega0 for which the response matrix is computed. ATTENTION, we choose this number to have a nice step distance
 Omegamin = 0.0#*Omega0 # Minimum omega value for which the response matrix is computed. ATTENTION, we use the symmetry of the response matrix, so that we only search for positive real(omega).
 Omegamax = 0.05#1*Omega0 # Maximum omega value for which the response matrix is computed
@@ -97,4 +98,5 @@ println(EF)
 println(EM)
 
 ModeR,ModeShape = CallAResponse.tabShapeMode(inputfile,0.01,15.,100,EM)
+=#
 =#

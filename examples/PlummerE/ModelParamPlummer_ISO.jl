@@ -35,16 +35,16 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneA"
+const modelname = "PlummerE"
 
-bc, M, G = 1.,1.,1.
-potential(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
-dpotential(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
-ddpotential(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
-Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
+const bc, M = 1.,1.
+potential(r::Float64)::Float64   = OrbitalElements.plummer_psi(r,bc,M,G)
+dpotential(r::Float64)::Float64  = OrbitalElements.plummer_dpsi_dr(r,bc,M,G)
+ddpotential(r::Float64)::Float64 = OrbitalElements.plummer_ddpsi_ddr(r,bc,M,G)
+Omega0 = OrbitalElements.plummer_Omega0(bc,M,G)
 
 
-dfname = "roi1.0"
+dfname = "isotropic"
 
 function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
     #=
@@ -59,6 +59,28 @@ function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::
     """
     =#
     return ROIndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
+    #return ISOndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG)
+end
+
+
+
+function ISOndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.)
+    #=
+    """
+    # FROM MEAN.JL
+    # Function that returns the value of n.dF/dJ
+    # where the DF follows the normalisation convention int dxdv F = Mtot
+    # Arguments are:
+    # + (n1,n2)
+    # + (E,L)
+    # + ndotOmega = n1*Omega1 + n2*Omega2
+    # ATTENTION, specific to an isotropic DF
+    """
+    =#
+    dFdE = OrbitalElements.plummer_ISO_dFdE(E,bc,M,astronomicalG) # Current value of dF/E. ATTENTION, the DF is assumed to be isotropic
+    res = ndotOmega*dFdE # Current value of n.dF/dJ. ATTENTION, the DF is assumed to be isotropic
+    #####
+    return res
 end
 
 
@@ -73,7 +95,7 @@ function ROIndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,b
     """
     =#
 
-    Q = OrbitalElements.isochrone_Q_ROI(E,L,Ra,bc,M,astronomicalG)
+    Q = OrbitalElements.plummer_ROI_Q(E,L,Ra,bc,M,astronomicalG)
 
     # If Q is outside of the [0,1]--range, we set the function to 0.0
     # ATTENTION, this is a lazy implementation -- it would have been much better to restrict the integration domain
@@ -81,8 +103,8 @@ function ROIndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,b
         return 0.0 # Outside of the physically allowed orbital domain
     end
 
-    dFdQ = OrbitalElements.isochrone_Saha_dDFdQ(Q,Ra,bc,M,astronomicalG) # Value of dF/dQ
-    dQdE, dQdL = OrbitalElements.isochrone_dQdE_ROI(E,L,Ra,bc,M,astronomicalG), OrbitalElements.isochrone_dQdL_ROI(E,L,Ra,bc,M,astronomicalG) # Values of dQ/dE, dQ/dL
+    dFdQ = OrbitalElements.plummer_ROI_dFdQ(Q,Ra,bc,M,astronomicalG) # Value of dF/dQ
+    dQdE, dQdL = OrbitalElements.plummer_ROI_dQdE(E,L,Ra,bc,M,astronomicalG), OrbitalElements.plummer_ROI_dQdL(E,L,Ra,bc,M,astronomicalG) # Values of dQ/dE, dQ/dL
     #####
     res = dFdQ*(dQdE*ndotOmega + n2*dQdL) # Value of n.dF/dJ
 
@@ -108,6 +130,6 @@ LINEAR = "unstable"
 #####
 wmatdir="wmat/"
 gfuncdir="gfunc/"
-modedir = "xifunc/"
+xifuncdir="xifunc/"
 
 # WARNING : / at the end to check !

@@ -173,7 +173,7 @@ function RunGfunc(inputfile::String)
         end
 
         # need to loop through all combos of np and nq to make the full matrix.
-        h5open(gfunc_filename(gfuncdir,modelname,lharmonic,n1,n2,K_u), "w") do file
+        h5open(gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u), "w") do file
 
             # loop through all basis function combinations
             for np = 1:nradial
