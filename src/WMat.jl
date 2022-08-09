@@ -21,7 +21,8 @@ function MakeWmat(potential::Function,dψdr::Function,d²ψdr²::Function,
                    lharmonic::Int64,
                    basis::AstroBasis.Basis_type,
                    Omega0::Float64=1.,
-                   K_w::Int64=20)
+                   K_w::Int64=20,
+                   EDGE::Float64=0.01)
     #=
     add rmax as a parameter?
     =#
@@ -94,13 +95,13 @@ function MakeWmat(potential::Function,dψdr::Function,d²ψdr²::Function,
             #end
 
             # need angular momentum
-            Lval = OrbitalElements.L_from_rpra_pot(potential,dψdr,d²ψdr²,rp,ra)
+            Lval = OrbitalElements.LFromRpRa(potential,dψdr,d²ψdr²,rp,ra)
 
             # Initialise the state vectors: u, theta1, (theta2-psi)
             u, theta1, theta2 = -1.0, 0.0, 0.0
 
             # launch the integration from the left boundary by finding Theta(u=-1.)
-            gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,0.02)
+            gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,EDGE=EDGE)
 
             # Uses the Rozier 2019 notation for the mapping to u
             Sigma, Delta = (ra+rp)*0.5, (ra-rp)*0.5
@@ -133,7 +134,7 @@ function MakeWmat(potential::Function,dψdr::Function,d²ψdr²::Function,
                 # Step 2
                 u += 0.5*duWMat                                                  # Update the time by half a timestep
                 rval = Sigma + Delta*OrbitalElements.henon_f(u)                  # Current location of the radius, r=r(u)
-                gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,0.01)
+                gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,EDGE=EDGE)
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
 
                 # recompute the basis functions for the changed radius value
@@ -170,7 +171,7 @@ function MakeWmat(potential::Function,dψdr::Function,d²ψdr²::Function,
                 rval = Sigma + Delta*OrbitalElements.henon_f(u) # Current location of the radius, r=r(u)
 
                 # current value of dtheta1/du and dtheta2/du
-                gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,0.01)
+                gval = OrbitalElements.Theta(potential,dψdr,d²ψdr²,u,rp,ra,EDGE=EDGE)
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
 
                 # updated basis elements for new rval

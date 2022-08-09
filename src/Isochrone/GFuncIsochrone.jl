@@ -68,7 +68,7 @@ function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::F
 
             # compute Jacobians
             #(alpha,beta) -> (u,v)
-            Jacalphabeta = OrbitalElements.Jacalphabeta_to_uv(n1,n2,w_min,w_max,vval)
+            Jacalphabeta = OrbitalElements.JacalphabetaToUV(n1,n2,w_min,w_max,vval)
 
             #(E,L) -> (alpha,beta): Isochrone analytic
             JacEL        = OrbitalElements.isochrone_JacEL_to_alphabeta(alpha,beta,bc,M,G)

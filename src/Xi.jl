@@ -227,6 +227,7 @@ end
 function RunM(inputfile,
               omglist::Array{Complex{Float64}})
 
+    # need some sort of 'if' for whether this already exists
     include(inputfile)
 
     nomglist = length(omglist)

@@ -70,11 +70,12 @@ function MakeGu(potential::Function,dpotential::Function,ddpotential::Function,
             rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
 
             # need (E,L)
-            Lval = OrbitalElements.L_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
-            Eval = OrbitalElements.E_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
+            #Lval = OrbitalElements.L_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
+            #Eval = OrbitalElements.E_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
+            Eval,Lval = OrbitalElements.ELFromRpRa(potential,dpotential,ddpotential,rp,ra,TOLECC=0.001)
 
             # compute Jacobians
-            Jacalphabeta = OrbitalElements.Jacalphabeta_to_uv(n1,n2,ωmin,ωmax,vval) #(alpha,beta) -> (u,v). owing to the remapping of omega, this has an extra 2/(ωmax-ωmin)
+            Jacalphabeta = OrbitalElements.JacalphabetaToUV(n1,n2,ωmin,ωmax,vval) #(alpha,beta) -> (u,v). owing to the remapping of omega, this has an extra 2/(ωmax-ωmin)
             #JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)          #(E,L) -> (alpha,beta)
             JacEL        = OrbitalElements.JacELToAlphaBetaAE(sma,ecc,potential,dpotential,ddpotential,Omega0)
             JacJ         = (1/omega1)                                #(J) -> (E,L)
