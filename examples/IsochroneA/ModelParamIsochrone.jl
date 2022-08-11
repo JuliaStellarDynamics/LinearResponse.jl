@@ -25,7 +25,7 @@ using HDF5
 #####
 G  = 1.
 rb = 8.0
-lmax,nmax = 2,16 # Usually lmax corresponds to the considered harmonics lharmonic
+lmax,nmax = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
@@ -35,12 +35,12 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneA"
+modelname = "IsochroneA2"
 
 bc, M, G = 1.,1.,1.
-potential(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
-dpotential(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
-ddpotential(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
+ψ(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
+dψ(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
+d2ψ(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
 Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
 
 
@@ -97,7 +97,7 @@ K_v        = 100    # number of allocations is directly proportional to this
 NstepsWMat = 100    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 2
-n1max = 10  # maximum number of radial resonances to consider
+n1max = 4  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 LINEAR = "unstable"

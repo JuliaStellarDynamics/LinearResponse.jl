@@ -1,4 +1,4 @@
-"""The same as WMat.jl, but Isochrone potential specific for testing
+"""The same as WMat.jl, but Isochrone ψ specific for testing
 
 What's different:
 -Use analytic inversion (isochrone_ae_from_omega1omega2)
@@ -20,15 +20,15 @@ import PerturbPlasma
 
 @WARNING: when parallelising, basis will need to be copies so it can overwrite tabUl
 """
-function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential::Function,
-                             n1::Int64,n2::Int64,
-                             Kuvals::Matrix{Float64},
-                             K_v::Int64,
-                             lharmonic::Int64,
-                             basis::AstroBasis.Basis_type,
-                             Omega0::Float64=1.,
-                             K_w::Int64=20;
-                             bc::Float64=1.0,M::Float64=1.0,G::Float64=1.0)
+function MakeWmatIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
+                           n1::Int64,n2::Int64,
+                           Kuvals::Matrix{Float64},
+                           K_v::Int64,
+                           lharmonic::Int64,
+                           basis::AstroBasis.Basis_type,
+                           Omega0::Float64=1.,
+                           K_w::Int64=20;
+                           bc::Float64=1.0,M::Float64=1.0,G::Float64=1.0,EDGE::Float64=0.01)
     #=
     add rmax as a parameter?
     =#
@@ -36,10 +36,10 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
 
     # compute the frequency scaling factors for this resonance
     # not exact, has root finding
-    w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
+    w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
 
     # define beta_c: write in for the isochrone
-    beta_c = OrbitalElements.analytic_beta_c#OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
+    beta_c = OrbitalElements.analytic_beta_c#OrbitalElements.make_betac(dψ,d2ψ,2000,Omega0)
 
     # allocate the results matrix
     tabWMat = zeros(basis.nmax,K_u,K_v)
@@ -57,7 +57,7 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
 
         # get the corresponding v values
         # this requires a zero-finding.
-        vbound = OrbitalElements.find_vbound(n1,n2,dpotential,ddpotential,1000.,Omega0)
+        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
         vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,beta_c)
 
         # determine the step size in v
@@ -72,7 +72,7 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
             # now we need (rp,ra) that corresponds to (u,v)
 
             # these are exact
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dpotential,ddpotential)
+            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dψ,d2ψ)
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
             # convert from omega1,omega2 to (a,e)
@@ -91,8 +91,8 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
             # Initialise the state vectors: u, theta1, (theta2-psi)
             u, theta1, theta2 = -1.0, 0.0, 0.0
 
-            # launch the integration from the left boundary by finding Theta(u=-1.)
-            gval = OrbitalElements.Theta(potential,dpotential,ddpotential,u,rp,ra,0.02)
+            # launch the integration from the left boundary by finding ThetaRpRa(u=-1.)
+            gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
 
             # Uses the Rozier 2019 notation for the mapping to u
             Sigma, Delta = (ra+rp)*0.5, (ra-rp)*0.5
@@ -123,14 +123,24 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
                 k2_1 = duWMat*dt2du
 
                 # Step 2
-                u += 0.5*duWMat                                                  # Update the time by half a timestep
-                rval = Sigma + Delta*OrbitalElements.henon_f(u)                  # Current location of the radius, r=r(u)
-                gval = OrbitalElements.Theta(potential,dpotential,ddpotential,u,rp,ra,0.01)
-                dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
+                # Update the time by half a timestep
+                u += 0.5*duWMat
+
+                # Current location of the radius, r=r(u)
+                rval = Sigma + Delta*OrbitalElements.henon_f(u)
+
+                # current value of Theta
+                gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
+
+                # Current value of dtheta1/du and dtheta2/du
+                dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
 
                 # recompute the basis functions for the changed radius value
                 AstroBasis.tabUl!(basis,lharmonic,rval)
-                pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1)) # Common prefactor for all the increments@ATTENTION Depends on the updated (theta1+0.5*k1_1,theta2+0.5*k2_1) !! ATTENTION, to the factor (1.0/3.0) coming from RK4
+
+                # Common prefactor for all the increments@ATTENTION Depends on the updated (theta1+0.5*k1_1,theta2+0.5*k2_1)
+                # the factor (1.0/3.0) coming from RK4
+                pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1))
 
                 # Loop over the radial indices to sum basis contributions
                 for np=1:basis.nmax
@@ -158,7 +168,7 @@ function MakeWmatIsochrone(potential::Function,dpotential::Function,ddpotential:
                 # Step 4
                 u += 0.5*duWMat # Updating the time by half a timestep: we are now at the next u value
                 rval = Sigma + Delta*OrbitalElements.henon_f(u) # Current location of the radius, r=r(u)
-                gval = OrbitalElements.Theta(potential,dpotential,ddpotential,u,rp,ra,0.01)
+                gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval # Current value of dtheta1/du and dtheta2/du, always well-posed
 
                 # updated basis elements for new rval
@@ -226,7 +236,7 @@ function RunWmatIsochrone(inputfile::String)
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat = MakeWmatIsochrone(potential,dpotential,ddpotential,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,bc=bc,M=M,G=G)
+        @time tabWMat,tabaMat,tabeMat = MakeWmatIsochrone(ψ,dψ,d2ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,bc=bc,M=M,G=G)
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

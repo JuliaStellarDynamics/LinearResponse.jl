@@ -11,5 +11,6 @@ examples/*/xifunc
 examples/wmat
 examples/gfunc
 examples/xifunc
+examples/cleanup.sh
 
 src/Transform.jl
