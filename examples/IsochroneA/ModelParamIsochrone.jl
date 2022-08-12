@@ -35,12 +35,14 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneA2"
+modelname = "IsochroneA3"
 
 bc, M, G = 1.,1.,1.
 ψ(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
 dψ(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
+d3ψ(r::Float64)::Float64 = OrbitalElements.isochrone_dddpsi_dddr(r,bc,M,G)
+d4ψ(r::Float64)::Float64 = OrbitalElements.isochrone_ddddpsi_ddddr(r,bc,M,G)
 Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
 
 
@@ -94,10 +96,10 @@ end
 #####
 K_u        = 150    # number of Legendre integration sample points
 K_v        = 100    # number of allocations is directly proportional to this
-NstepsWMat = 100    # number of allocations is insensitive to this (also time, largely?
+K_w        = 100    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 2
-n1max = 4  # maximum number of radial resonances to consider
+n1max = 3  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 LINEAR = "unstable"

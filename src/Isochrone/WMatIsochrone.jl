@@ -236,7 +236,7 @@ function RunWmatIsochrone(inputfile::String)
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat = MakeWmatIsochrone(ψ,dψ,d2ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,bc=bc,M=M,G=G)
+        @time tabWMat,tabaMat,tabeMat = MakeWmatIsochrone(ψ,dψ,d2ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,K_w,bc=bc,M=M,G=G)
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

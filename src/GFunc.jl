@@ -5,18 +5,18 @@ function to compute G(u)
 @ATTENTION, the dimensionality (e.g. 2d vs 3d) is now encoded in 'ndim'.
 
 """
-function MakeGu(potential::Function,dpotential::Function,ddpotential::Function,
-                 ndFdJ::Function,
-                 n1::Int64,n2::Int64,
-                 np::Int64,nq::Int64,
-                 tabWMat::Array{Float64},
-                 tabaMat::Array{Float64},
-                 tabeMat::Array{Float64},
-                 Kuvals::Matrix{Float64},
-                 K_v::Int64,nradial::Int64,
-                 lharmonic::Int64;
-                 ndim::Int64,
-                 Omega0::Float64=1.)
+function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
+                ndFdJ::Function,
+                n1::Int64,n2::Int64,
+                np::Int64,nq::Int64,
+                tabWMat::Array{Float64},
+                tabaMat::Array{Float64},
+                tabeMat::Array{Float64},
+                Kuvals::Matrix{Float64},
+                K_v::Int64,nradial::Int64,
+                lharmonic::Int64;
+                ndim::Int64,
+                Omega0::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
@@ -35,17 +35,17 @@ function MakeGu(potential::Function,dpotential::Function,ddpotential::Function,
     tabGXi  = zeros(K_u)
 
     # compute the frequency scaling factors for this resonance
-    ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
+    ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
 
     # define beta_c
-    # beta_c = OrbitalElements.make_betac(dpotential,ddpotential,2000,Omega0)
-    beta_c(alpha_c::Float64)::Float64   = OrbitalElements.beta_circ(alpha_c,dpotential,ddpotential,Omega0,1000.)
+    # beta_c = OrbitalElements.make_betac(dψ,d2ψ,2000,Omega0)
+    beta_c(alpha_c::Float64)::Float64   = OrbitalElements.beta_circ(alpha_c,dψ,d2ψ,Omega0,rmax=1.0e6)
 
     for kuval in 1:K_u
 
         uval = Kuvals[kuval]
 
-        vbound = OrbitalElements.find_vbound(n1,n2,dpotential,ddpotential,1000.,Omega0)
+        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
         vmin,vmax = OrbitalElements.find_vmin_vmax(uval,ωmin,ωmax,n1,n2,vbound,beta_c)
 
         # determine the step size in v
@@ -58,7 +58,7 @@ function MakeGu(potential::Function,dpotential::Function,ddpotential::Function,
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            #alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dpotential,ddpotential,1000.,Omega0)
+            #alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dψ,d2ψ,1000.,Omega0)
             alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,ωmin,ωmax)
 
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
@@ -70,14 +70,15 @@ function MakeGu(potential::Function,dpotential::Function,ddpotential::Function,
             rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
 
             # need (E,L)
-            #Lval = OrbitalElements.L_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
-            #Eval = OrbitalElements.E_from_rpra_pot(potential,dpotential,ddpotential,rp,ra)
-            Eval,Lval = OrbitalElements.ELFromRpRa(potential,dpotential,ddpotential,rp,ra,TOLECC=0.001)
+            #Lval = OrbitalElements.L_from_rpra_pot(ψ,dψ,d2ψ,rp,ra)
+            #Eval = OrbitalElements.E_from_rpra_pot(ψ,dψ,d2ψ,rp,ra)
+            Eval,Lval = OrbitalElements.ELFromRpRa(ψ,dψ,d2ψ,rp,ra,TOLECC=0.001)
 
             # compute Jacobians
             Jacalphabeta = OrbitalElements.JacalphabetaToUV(n1,n2,ωmin,ωmax,vval) #(alpha,beta) -> (u,v). owing to the remapping of omega, this has an extra 2/(ωmax-ωmin)
             #JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)          #(E,L) -> (alpha,beta)
-            JacEL        = OrbitalElements.JacELToAlphaBetaAE(sma,ecc,potential,dpotential,ddpotential,Omega0)
+            #JacEL        = OrbitalElements.JacELToAlphaBetaAE(sma,ecc,ψ,dψ,d2ψ,Omega0)
+            JacEL        = OrbitalElements.JacELToAlphaBetaAE(ψ,dψ,d2ψ,d3ψ,d4ψ,sma,ecc,Omega0=Omega0)
             JacJ         = (1/omega1)                                #(J) -> (E,L)
             dimensionl   = (1/Omega0)                                # remove dimensionality from omega mapping
 
@@ -180,9 +181,9 @@ function RunGfunc(inputfile::String)
             for np = 1:nradial
                 for nq = 1:nradial
 
-                    tabGXi = MakeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                    tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
 
-                    #@time tabGXi = MakeGu(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                    #@time tabGXi = MakeGu(ψ,dψ,d2ψ,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
 
                     #=
                     sumG = sum(tabGXi)

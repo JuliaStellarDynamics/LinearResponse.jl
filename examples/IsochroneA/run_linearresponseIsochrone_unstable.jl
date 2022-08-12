@@ -7,9 +7,9 @@ using HDF5
 inputfile = "ModelParamIsochrone.jl"
 
 #CallAResponse.RunWmat(inputfile)
-CallAResponse.RunWmatIsochrone(inputfile)
+#CallAResponse.RunWmatIsochrone(inputfile)
 
-#CallAResponse.RunGfunc(inputfile)
+CallAResponse.RunGfunc(inputfile)
 #CallAResponse.RunGfuncIsochrone(inputfile)
 
 # need to organise the omegalist here

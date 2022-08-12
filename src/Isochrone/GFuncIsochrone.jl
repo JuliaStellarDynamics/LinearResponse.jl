@@ -5,7 +5,7 @@
 function to compute G(u), isochrone specific.
 
 """
-function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::Function,
+function MakeGuIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
                          ndFdJ::Function,
                          n1::Int64,n2::Int64,
                          np::Int64,nq::Int64,
@@ -33,14 +33,14 @@ function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::F
     tabGXi  = zeros(K_u)
 
     # compute the frequency scaling factors for this resonance
-    w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dpotential,ddpotential,1000.,Omega0)
+    w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
 
     for kuval in 1:K_u
 
         uval = Kuvals[kuval]
 
         # get the v integration boundaries. these are not perfectly exact (requires a zero-finding), but all other items going into the calculation are.
-        vbound = OrbitalElements.find_vbound(n1,n2,dpotential,ddpotential,1000.,Omega0)
+        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
         vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,OrbitalElements.analytic_beta_c)
 
         # determine the step size in v
@@ -53,7 +53,7 @@ function MakeGuIsochrone(potential::Function,dpotential::Function,ddpotential::F
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dpotential,ddpotential,1000.,Omega0)
+            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dψ,d2ψ,1000.,Omega0)
 
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
@@ -167,7 +167,7 @@ function RunGfuncIsochrone(inputfile::String)
             for np = 1:nradial
                 for nq = 1:nradial
 
-                    tabGXi = MakeGuIsochrone(potential,dpotential,ddpotential,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                    tabGXi = MakeGuIsochrone(ψ,dψ,d2ψ,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
                     sumG = sum(tabGXi)
                     if (np>-100) & (nq>-100)
                         if isnan(sumG)
