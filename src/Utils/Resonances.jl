@@ -10,9 +10,7 @@ println(tabResVec)
 
 """
 
-#####
-# Wrappers
-#####
+
 function get_nbResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
     if ndim == 2
         return get_nbResVec_2d(lharmonic,n1max)
@@ -22,6 +20,7 @@ function get_nbResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
         error("Unknow dimension in get_nbResVec")
     end
 end
+
 function maketabResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
     if ndim == 2
         return maketabResVec_2d(lharmonic,n1max)
@@ -76,7 +75,7 @@ function maketabResVec_3d(lharmonic::Int64,n1max::Int64)
 
     # calculate the number
     nbResVec = get_nbResVec(lharmonic,n1max)
-    
+
     tabResVec = zeros(Int64,2,nbResVec)
     count = 1 # Initialisation of the counter
     #####
@@ -142,7 +141,7 @@ ATTENTION, the (n1,n2) are determined for l=lharmonic
 function maketabResVec_2d(lharmonic::Int64,n1max::Int64)
     # calculate the number
     nbResVec = get_nbResVec_2d(lharmonic,n1max)
-    
+
     tabResVec = zeros(Int64,2,nbResVec)
     count = 1 # Initialisation of the counter
     #####
@@ -165,6 +164,6 @@ function maketabResVec_2d(lharmonic::Int64,n1max::Int64)
             count += 1 # Updating the counter
         end
     end
-    
+
     return tabResVec
 end

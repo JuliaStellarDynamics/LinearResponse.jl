@@ -146,7 +146,11 @@ function MakeWmat(ψ::Function,dψdr::Function,d²ψdr²::Function,
 
                 # recompute the basis functions for the changed radius value
                 AstroBasis.tabUl!(basis,lharmonic,rval)
-                pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1)) # Common prefactor for all the increments@ATTENTION Depends on the updated (theta1+0.5*k1_1,theta2+0.5*k2_1) !! ATTENTION, to the factor (1.0/3.0) coming from RK4
+
+                # common prefactor for all the increments
+                # depends on the updated (theta1+0.5*k1_1,theta2+0.5*k2_1)
+                # the factor (1.0/3.0) comes from RK4
+                pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1))
 
                 # Loop over the radial indices to sum basis contributions
                 for np=1:basis.nmax
