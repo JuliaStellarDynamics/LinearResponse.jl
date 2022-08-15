@@ -19,6 +19,7 @@ function makeaMCoefficients!(tabaMcoef::Array{Float64,4},
                              tabINVcGLquad::Vector{Float64},
                              gfuncdir::String,
                              modelname::String,
+                             dfname::String,
                              lharmonic::Int64)
 
     # get relevant sizes
@@ -31,7 +32,7 @@ function makeaMCoefficients!(tabaMcoef::Array{Float64,4},
         n1,n2 = tabResVec[1,nresvec],tabResVec[2,nresvec]
 
         # open the resonance file
-        filename = gfunc_filename(gfuncdir,modelname,lharmonic,n1,n2,K_u)
+        filename = gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u)
         file = h5open(filename,"r")
 
         # Loop over the basis indices to consider
@@ -72,7 +73,7 @@ function makeaMCoefficients!(tabaMcoef::Array{Float64,4},
 end
 
 
-"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dpotential,ddpotential,LINEAR,Omega0)
+"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dψ,d2ψ,LINEAR,Omega0)
 Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Omega0.
 
 @IMPROVE: The shape of the array could maybe be improved
@@ -80,16 +81,16 @@ Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequen
 See LinearTheory.jl for a similar version
 """
 function tabM!(omg::Complex{Float64},
-                tabM::Array{Complex{Float64},2},
-                tabaMcoef::Array{Float64,4},
-                tabResVec::Matrix{Int64},
-                tab_npnq::Matrix{Int64},
-                struct_tabLeg::PerturbPlasma.struct_tabLeg_type,
-                dpotential::Function,
-                ddpotential::Function,
-                nradial::Int64,
-                LINEAR::String="unstable",
-                Omega0::Float64=1.0)
+               tabM::Array{Complex{Float64},2},
+               tabaMcoef::Array{Float64,4},
+               tabResVec::Matrix{Int64},
+               tab_npnq::Matrix{Int64},
+               struct_tabLeg::PerturbPlasma.struct_tabLeg_type,
+               dψ::Function,
+               d2ψ::Function,
+               nradial::Int64,
+               LINEAR::String="unstable",
+               Omega0::Float64=1.0)
 
     # get dimensions from the relevant tables
     nb_npnq  = size(tab_npnq)[2]
@@ -103,7 +104,9 @@ function tabM!(omg::Complex{Float64},
 
         # Rescale to get the dimensionless frequency
         omg_nodim = omg/Omega0
-        varpi = OrbitalElements.get_varpi(omg_nodim,n1,n2,dpotential,ddpotential,Ω₀=Omega0) # Getting the rescaled frequency
+
+        # Getting the rescaled frequency
+        varpi = OrbitalElements.get_varpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Omega0)
 
         # get the Legendre integration values
         PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)
@@ -211,33 +214,33 @@ function detXi(omg::Complex{Float64},
                tabResVec::Matrix{Int64},
                tab_npnq::Matrix{Int64},
                struct_tabLeg::PerturbPlasma.struct_tabLeg_type,
-               dpotential::Function,
-               ddpotential::Function,
+               dψ::Function,
+               d2ψ::Function,
                nradial::Int64,
                LINEAR::String="unstable",
                Omega0::Float64=1.0)
     ####
     IMat = makeIMat(nradial)
-    tabM!(omg,tabM,tabaMcoef,tabResVec,tab_npnq,struct_tabLeg,dpotential,ddpotential,nradial,LINEAR,Omega0)
+    tabM!(omg,tabM,tabaMcoef,tabResVec,tab_npnq,struct_tabLeg,dψ,d2ψ,nradial,LINEAR,Omega0)
     ####
     detXi(IMat,tabM)
 end
 
 
-function RunM(inputfile,
+function RunM(inputfile::String,
               omglist::Array{Complex{Float64}})
 
     # need some sort of 'if' for whether this already exists
     include(inputfile)
 
     nomglist = length(omglist)
-    println("Xi.jl: computing $nomglist frequency values")
+    println("CallAResponse.Xi.jl: computing $nomglist frequency values")
 
     #####
     # Check directories names
     #####
-    if !(isdir(wmatdir) && isdir(gfuncdir))
-        error(" wmatdir or gfuncdir not found ")
+    if !(isdir(gfuncdir) && isdir(modedir))
+        error("CallAResponse.Xi.jl: gfuncdir or modedir not found.")
     end
 
     #####
@@ -254,7 +257,7 @@ function RunM(inputfile,
 
     # make the decomposition coefficients a_k
     tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,K_u)
-    makeaMCoefficients!(tabaMcoef,tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,lharmonic)
+    makeaMCoefficients!(tabaMcoef,tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic)
 
     # Structs for D_k(omega) computation
     struct_tabLeglist = [PerturbPlasma.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
@@ -273,7 +276,7 @@ function RunM(inputfile,
 
         k = Threads.threadid()
 
-        tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dpotential,ddpotential,nradial,LINEAR,Omega0)
+        tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Omega0)
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
         #tabmevXi[i] = mevXi(IMatlist[k],tabMlist[k])
@@ -281,4 +284,92 @@ function RunM(inputfile,
     end
 
     return tabdetXi#, tabmevXi
+end
+
+
+function LoadConfiguration(inputfile::String)
+    include(inputfile)
+end
+
+"""
+Newton-Raphson descent to find the zero crossing
+"""
+function FindZeroCrossing(inputfile::String,
+                          Omegaguess::Float64,
+                          Etaguess::Float64;
+                          NITER::Int64=32,
+                          eta::Bool=true)
+
+    # need some sort of 'if' for whether this already exists
+    #include(inputfile)
+    #println("test dpot ",Base.invokelatest(d2ψ)(0.1))
+    LoadConfiguration(inputfile)
+
+    #####
+    # Check directories names
+    #####
+    if !(isdir(gfuncdir) && isdir(modedir))
+        error("CallAResponse.Xi.jl: gfuncdir or modedir not found.")
+    end
+
+    #####
+    # Construct the table of needed resonance vectors
+    #####
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
+    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+
+    # get all weights
+    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = PerturbPlasma.tabGLquad(K_u)
+
+    # make the (np,nq) vectors that we need to evaluate
+    tab_npnq = makeTabnpnq(nradial)
+
+    # make the decomposition coefficients a_k
+    tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,K_u)
+    makeaMCoefficients!(tabaMcoef,tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic)
+
+    # Structs for D_k(omega) computation
+    struct_tabLeglist = PerturbPlasma.struct_tabLeg_create(K_u)
+    # memory for the response matrices M and identity matrices
+    tabMlist = zeros(Complex{Float64},nradial,nradial)
+    IMat = makeIMat(nradial)
+
+    omgval = Omegaguess + im*Etaguess
+    domega = 1.e-3
+
+    # set up some break condition?
+    Threads.@threads for i = 1:NITER
+
+        # calculate the new off omega value
+        omgvaloff = omgval + im*domega
+
+        #println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
+
+        tabM!(omgval,tabMlist,tabaMcoef,tabResVec,tab_npnq,
+              struct_tabLeglist,
+              dψ,d2ψ,nradial,LINEAR,Omega0)
+
+        centralvalue = detXi(IMat,tabMlist)
+
+        tabM!(omgvaloff,tabMlist,tabaMcoef,tabResVec,tab_npnq,
+              struct_tabLeglist,
+              dψ,d2ψ,nradial,LINEAR,Omega0)
+
+        offsetvalue = detXi(IMat,tabMlist)
+
+        # ignore the imaginary part
+        derivative = real(offsetvalue - centralvalue)/domega
+
+        # take a step in omega given the derivative
+        stepsize = real(centralvalue)/derivative
+        omgval  = omgval - im*stepsize
+
+        #println("Stepsize=$stepsize for det=$centralvalue")
+
+        #tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
+
+    end
+
+    return omgval
+
 end

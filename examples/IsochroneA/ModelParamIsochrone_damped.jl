@@ -25,7 +25,7 @@ using HDF5
 #####
 G         = 1.     # the gravitational constant
 rb        = 20.0   # the scale for the basis elements
-lmax,nmax = 1,100  # usually lmax corresponds to the considered harmonics lharmonic
+lmax,nmax = 2,100  # usually lmax corresponds to the considered harmonics lharmonic
 basis     = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim      = basis.dimension
 nradial   = basis.nmax
@@ -33,7 +33,7 @@ nradial   = basis.nmax
 #####
 # Model Potential
 #####
-modelname = "IsochroneA"
+modelname = "IsochroneAL2"
 
 bc, M = 1.,1.
 potential(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
@@ -71,7 +71,7 @@ K_u        = 200      # number of Legendre integration sample points
 K_v        = 200      # number of allocations is directly proportional to this
 NstepsWMat = 200      # number of allocations is insensitive to this (also time, largely?)
 
-lharmonic  = 1        # which harmonic we are considering
+lharmonic  = 2        # which harmonic we are considering
 n1max      = 10       # maximum number of radial resonances to consider
 
 LINEAR     = "damped" # Mode of response matrix computation

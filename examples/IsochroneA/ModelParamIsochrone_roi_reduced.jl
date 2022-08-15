@@ -24,8 +24,8 @@ using HDF5
 # Basis
 #####
 G  = 1.
-rb = 8.0
-lmax,nmax = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
+rb = 20.0
+lmax,nmax = 2,30 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
@@ -35,7 +35,7 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneA3"
+modelname = "IsochroneAL2red3"
 
 bc, M, G = 1.,1.,1.
 ψ(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
@@ -94,9 +94,9 @@ end
 #####
 # Parameters
 #####
-K_u        = 150    # number of Legendre integration sample points
-K_v        = 100    # number of allocations is directly proportional to this
-K_w        = 100    # number of allocations is insensitive to this (also time, largely?
+K_u        = 200    # number of Legendre integration sample points
+K_v        = 200    # number of allocations is directly proportional to this
+K_w        = 200    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 2
 n1max = 3  # maximum number of radial resonances to consider
@@ -108,8 +108,8 @@ LINEAR = "unstable"
 #####
 # Outputs directories
 #####
-wmatdir="wmat/"
-gfuncdir="gfunc/"
-modedir = "xifunc/"
+wmatdir  = "wmat/"
+gfuncdir = "gfunc/"
+modedir  = "xifunc/"
 
 # WARNING : / at the end to check !

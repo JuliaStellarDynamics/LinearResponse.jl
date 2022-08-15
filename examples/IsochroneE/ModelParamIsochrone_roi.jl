@@ -2,9 +2,9 @@
 an example input file for running all steps in estimating the Linear Response for a given model
 
 Must include:
--potential
--dpotential
--ddpotential
+-ψ
+-dψ
+-d2ψ
 -basis
 -ndim
 -nradial
@@ -25,7 +25,7 @@ using HDF5
 #####
 G  = 1.
 rb = 8.0
-lmax,nmax = 2,16 # Usually lmax corresponds to the considered harmonics lharmonic
+lmax,nmax = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
@@ -35,12 +35,12 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneE"
+modelname = "IsochroneEL2red"
 
 bc, M, G = 1.,1.,1.
-potential(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
-dpotential(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
-ddpotential(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
+ψ(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
+dψ(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
+d2ψ(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
 Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
 
 
@@ -59,29 +59,8 @@ function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::
     """
     =#
     return ROIndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
-    #return ISOndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG)
 end
 
-
-
-function ISOndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.)
-    #=
-    """
-    # FROM MEAN.JL
-    # Function that returns the value of n.dF/dJ
-    # where the DF follows the normalisation convention int dxdv F = Mtot
-    # Arguments are:
-    # + (n1,n2)
-    # + (E,L)
-    # + ndotOmega = n1*Omega1 + n2*Omega2
-    # ATTENTION, specific to an isotropic DF
-    """
-    =#
-    dFdE = OrbitalElements.isochrone_isotropic_dDFdE(E,bc,M,astronomicalG) # Current value of dF/E. ATTENTION, the DF is assumed to be isotropic
-    res = ndotOmega*dFdE # Current value of n.dF/dJ. ATTENTION, the DF is assumed to be isotropic
-    #####
-    return res
-end
 
 
 function ROIndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
@@ -114,12 +93,12 @@ end
 #####
 # Parameters
 #####
-K_u        = 150    # number of Legendre integration sample points
-K_v        = 100    # number of allocations is directly proportional to this
-NstepsWMat = 100    # number of allocations is insensitive to this (also time, largely?
+K_u = 200    # number of Legendre integration sample points
+K_v = 200    # number of allocations is directly proportional to this
+K_w = 200    # number of allocations is insensitive to this (also time, largely)?
 
 lharmonic = 2
-n1max = 10  # maximum number of radial resonances to consider
+n1max = 2  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 LINEAR = "unstable"

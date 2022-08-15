@@ -32,7 +32,7 @@ function RunShape(inputfile,
 
     # make the decomposition coefficients a_k
     tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,K_u)
-    makeaMCoefficients!(tabaMcoef,tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,lharmonic)
+    makeaMCoefficients!(tabaMcoef,tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic)
 
     # Structs for D_k(omega) computation
     struct_tabLeglist = PerturbPlasma.struct_tabLeg_create(K_u)
@@ -45,7 +45,7 @@ function RunShape(inputfile,
     tabdetXi = zeros(Float64,nomg) # Real part of the determinant at each frequency
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dpotential,ddpotential,nradial,LINEAR,Omega0)
+    tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dψ,d2ψ,nradial,LINEAR,Omega0)
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
     EV,EF,EM = mevXi(MMat)

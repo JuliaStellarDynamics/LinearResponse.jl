@@ -4,13 +4,13 @@
 import CallAResponse
 using HDF5
 
-inputfile = "ModelParamIsochrone.jl"
+inputfile = "ModelParamIsochrone_roi.jl"
 
 CallAResponse.RunWmat(inputfile)
 
-#=
 CallAResponse.RunGfunc(inputfile)
 
+#=
 # need to organise the omegalist here
 #omglist = [0.1-0.2*im]
 
