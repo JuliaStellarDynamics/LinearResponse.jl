@@ -14,6 +14,8 @@ function MakeGuIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
                          tabeMat::Array{Float64},
                          Kuvals::Matrix{Float64},
                          K_v::Int64,nradial::Int64,
+                         ωmin::Float64,ωmax::Float64,
+                         vminarr::Array{Float64},vmaxarr::Array{Float64},
                          lharmonic::Int64;
                          ndim::Int64,
                          Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
@@ -33,15 +35,18 @@ function MakeGuIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
     tabGXi  = zeros(K_u)
 
     # compute the frequency scaling factors for this resonance
-    w_min,w_max = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+    #ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+    #vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
+    #vmin,vmax = OrbitalElements.find_vmin_vmax(uval,ωmin,ωmax,n1,n2,vbound,OrbitalElements.analytic_beta_c)
 
     for kuval in 1:K_u
 
         uval = Kuvals[kuval]
+        vmin = vminarr[kuval]
+        vmax = vmaxarr[kuval]
 
         # get the v integration boundaries. these are not perfectly exact (requires a zero-finding), but all other items going into the calculation are.
-        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
-        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,w_min,w_max,n1,n2,vbound,OrbitalElements.analytic_beta_c)
+        #vmin,vmax = OrbitalElements.find_vmin_vmax(uval,ωmin,ωmax,n1,n2,vbound,OrbitalElements.analytic_beta_c)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -53,7 +58,7 @@ function MakeGuIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dψ,d2ψ,1000.,Omega0)
+            alpha,beta = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,ωmin,ωmax)
 
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
@@ -68,7 +73,7 @@ function MakeGuIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
 
             # compute Jacobians
             #(alpha,beta) -> (u,v)
-            Jacalphabeta = OrbitalElements.JacalphabetaToUV(n1,n2,w_min,w_max,vval)
+            Jacalphabeta = OrbitalElements.JacalphabetaToUV(n1,n2,ωmin,ωmax,vval)
 
             #(E,L) -> (alpha,beta): Isochrone analytic
             JacEL        = OrbitalElements.IsochroneJacELtoAlphaBeta(alpha,beta,bc,M,G)
@@ -147,6 +152,20 @@ function RunGfuncIsochrone(inputfile::String)
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
         println("Gfunc.jl: Starting on ($n1,$n2).")
 
+        # could compute the (u,v) boundaries here (or at least wmin,wmax)
+        # compute the frequency scaling factors for this resonance
+        ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
+
+        # for some threading reason, make sure K_u is defined here
+        K_u = length(tabwGLquad)
+
+        # loop through once and design a v array for min, max
+        vminarr,vmaxarr = zeros(K_u),zeros(K_u)
+        for uval = 1:K_u
+           vminarr[uval],vmaxarr[uval] = OrbitalElements.find_vmin_vmax(tabuGLquad[uval],ωmin,ωmax,n1,n2,vbound,OrbitalElements.analytic_beta_c)
+        end
+
         # load a value of tabWmat, plus (a,e) values
         filename = wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb)
         file = h5open(filename,"r")
@@ -160,6 +179,7 @@ function RunGfuncIsochrone(inputfile::String)
             println("GFunc.jl: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
         end
 
+        # is having the file open bad?
         # need to loop through all combos of np and nq to make the full matrix.
         h5open(gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u), "w") do file
 
@@ -167,7 +187,26 @@ function RunGfuncIsochrone(inputfile::String)
             for np = 1:nradial
                 for nq = 1:nradial
 
-                    tabGXi = MakeGuIsochrone(ψ,dψ,d2ψ,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                    if (np==1) & (nq==1)
+                        @time tabGXi = MakeGuIsochrone(ψ,dψ,d2ψ,ndFdJ,
+                                                       n1,n2,np,nq,
+                                                       Wtab,atab,etab,
+                                                       tabuGLquad,K_v,nradial,
+                                                       ωmin,ωmax,
+                                                       vminarr,vmaxarr,
+                                                       lharmonic,
+                                                       ndim=ndim,Omega0=Omega0)
+                    else
+                        tabGXi = MakeGuIsochrone(ψ,dψ,d2ψ,ndFdJ,
+                                                       n1,n2,np,nq,
+                                                       Wtab,atab,etab,
+                                                       tabuGLquad,K_v,nradial,
+                                                       ωmin,ωmax,
+                                                       vminarr,vmaxarr,
+                                                       lharmonic,
+                                                       ndim=ndim,Omega0=Omega0)
+                    end
+
                     sumG = sum(tabGXi)
                     if (np>-100) & (nq>-100)
                         if isnan(sumG)
@@ -177,9 +216,11 @@ function RunGfuncIsochrone(inputfile::String)
                         end
                     end
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
-                end
-            end
-        end
+
+                end # end nq loop
+            end # end np loop
+
+        end # end open file
     end
 
 end

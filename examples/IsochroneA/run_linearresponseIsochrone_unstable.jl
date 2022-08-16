@@ -8,10 +8,10 @@ using HDF5
 #inputfile = "ModelParamIsochrone_roi.jl"
 
 # create a reduced version for checking
-inputfile = "ModelParamIsochrone_roi_reduced.jl"
+inputfile = "ModelParamIsochrone_roi.jl"
 
 # compute the Fourier-transformed basis elements
-CallAResponse.RunWmatIsochrone(inputfile)
+#CallAResponse.RunWmatIsochrone(inputfile)
 
 # compute the G(u) functions
 CallAResponse.RunGfuncIsochrone(inputfile)

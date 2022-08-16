@@ -72,7 +72,7 @@ function MakeWmatIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
             # now we need (rp,ra) that corresponds to (u,v)
 
             # these are exact relationships for the Isochrone cluster
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dψ,d2ψ)
+            alpha,beta = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,dψ,d2ψ)
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
             # convert from omega1,omega2 to (a,e)

@@ -12,8 +12,11 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
                 tabWMat::Array{Float64},
                 tabaMat::Array{Float64},
                 tabeMat::Array{Float64},
+                tabJMat::Array{Float64},
                 Kuvals::Matrix{Float64},
                 K_v::Int64,nradial::Int64,
+                ωmin::Float64,ωmax::Float64,
+                vminarr::Array{Float64},vmaxarr::Array{Float64},
                 lharmonic::Int64;
                 ndim::Int64,
                 Omega0::Float64=1.)
@@ -34,19 +37,11 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
     # set up a blank array
     tabGXi  = zeros(K_u)
 
-    # compute the frequency scaling factors for this resonance
-    ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
-
-    # define beta_c
-    # beta_c = OrbitalElements.make_betac(dψ,d2ψ,2000,Omega0)
-    beta_c(alpha_c::Float64)::Float64   = OrbitalElements.beta_circ(alpha_c,dψ,d2ψ,Omega0,rmax=1.0e6)
-
     for kuval in 1:K_u
 
         uval = Kuvals[kuval]
-
-        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
-        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,ωmin,ωmax,n1,n2,vbound,beta_c)
+        vmin = vminarr[kuval]
+        vmax = vmaxarr[kuval]
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -58,29 +53,35 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            #alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,dψ,d2ψ,1000.,Omega0)
-            alpha,beta = OrbitalElements.alphabeta_from_uv(uval,vval,n1,n2,ωmin,ωmax)
+            alpha,beta = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,ωmin,ωmax)
 
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
             # convert from omega1,omega2 to (a,e): using a tabled value
-            sma,ecc  = tabaMat[kuval,kvval],tabeMat[kuval,kvval]
+            sma,ecc = tabaMat[kuval,kvval],tabeMat[kuval,kvval]
 
             # get (rp,ra)
             rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
 
-            # need (E,L)
-            #Lval = OrbitalElements.L_from_rpra_pot(ψ,dψ,d2ψ,rp,ra)
-            #Eval = OrbitalElements.E_from_rpra_pot(ψ,dψ,d2ψ,rp,ra)
+            # need (E,L): this has some relatively expensive switches
             Eval,Lval = OrbitalElements.ELFromRpRa(ψ,dψ,d2ψ,rp,ra,TOLECC=0.001)
 
             # compute Jacobians
-            Jacalphabeta = OrbitalElements.JacalphabetaToUV(n1,n2,ωmin,ωmax,vval) #(alpha,beta) -> (u,v). owing to the remapping of omega, this has an extra 2/(ωmax-ωmin)
-            #JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)          #(E,L) -> (alpha,beta)
+            #(alpha,beta) -> (u,v).
+            # owing to the remapping of omega, this has an extra 2/(ωmax-ωmin)
+            Jacalphabeta = OrbitalElements.JacalphabetaToUV(n1,n2,ωmin,ωmax,vval)
+
+            #(E,L) -> (alpha,beta): this is the most expensive function here
+            #JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)
             #JacEL        = OrbitalElements.JacELToAlphaBetaAE(sma,ecc,ψ,dψ,d2ψ,Omega0)
-            JacEL        = OrbitalElements.JacELToAlphaBetaAE(ψ,dψ,d2ψ,d3ψ,d4ψ,sma,ecc,Omega0=Omega0)
-            JacJ         = (1/omega1)                                #(J) -> (E,L)
-            dimensionl   = (1/Omega0)                                # remove dimensionality from omega mapping
+            JacEL = tabJMat[kuval,kvval]
+            #JacEL = OrbitalElements.JacELToAlphaBetaAE(ψ,dψ,d2ψ,d3ψ,d4ψ,sma,ecc,Omega0=Omega0)
+
+            #(J) -> (E,L)
+            JacJ = (1/omega1)
+
+            # remove dimensionality from omega mapping
+            dimensionl = (1/Omega0)
 
 
             # get the resonance vector
@@ -132,6 +133,7 @@ end
 """
 function RunGfunc(inputfile::String)
 
+    # bring in the defined parameters
     include(inputfile)
 
     #####
@@ -141,19 +143,20 @@ function RunGfunc(inputfile::String)
         error("GFunc.jl: wmatdir or gfuncdir not found ")
     end
 
-    #####
-    # Legendre integration prep.
-    #####
+    # prep for Legendre integration
     tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
     tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
-    #####
-    # Construct the table of needed resonance vectors
-    #####
+    # make a function for the circular frequency relationship:
+    #  only needs to happen once, redefinition might kill us
+    #  could this move completely outside the function to help the compiler?
+    beta_c(alpha_c::Float64)::Float64 = OrbitalElements.beta_circ(alpha_c,dψ,d2ψ,Omega0,rmax=1.0e6)
 
-    # Number of resonance vectors
+    # compute the number of resonance vectors
     nbResVec = get_nbResVec(lharmonic,n1max,ndim)
-    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+
+    # fill in the array of resonance vectors (n1,n2)
+    tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
     println("GFunc.jl: Considering $nbResVec resonances.")
 
@@ -167,6 +170,7 @@ function RunGfunc(inputfile::String)
         Wtab = read(file,"wmat")
         atab = read(file,"amat")
         etab = read(file,"emat")
+        Jtab = read(file,"jELABmat")
         nradial,K_u,K_v = size(Wtab)
 
         # print the size of the found files if the first processor
@@ -174,17 +178,44 @@ function RunGfunc(inputfile::String)
             println("GFunc.jl: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
         end
 
+        # compute the frequency scaling factors for this resonance
+        ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+
+        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
+
+        # for some threading reason, make sure K_u is defined here
+        K_u = length(tabwGLquad)
+
+        # loop through once and design a v array for min, max
+        vminarr,vmaxarr = zeros(K_u),zeros(K_u)
+        for uval = 1:K_u
+           vminarr[uval],vmaxarr[uval] = OrbitalElements.find_vmin_vmax(tabuGLquad[uval],ωmin,ωmax,n1,n2,vbound,beta_c)
+        end
+
         # need to loop through all combos of np and nq to make the full matrix.
         h5open(gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u), "w") do file
 
             # loop through all basis function combinations
+            # can we just do an upper half calculation here?
             for np = 1:nradial
                 for nq = 1:nradial
 
                     if (np==1) & (nq==1)
-                        @time tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                        @time tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
+                                              ndFdJ,n1,n2,np,nq,
+                                              Wtab,atab,etab,Jtab,
+                                              tabuGLquad,K_v,nradial,
+                                              ωmin,ωmax,
+                                              vminarr,vmaxarr,
+                                              lharmonic,ndim=ndim,Omega0=Omega0)
                     else
-                        tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,n1,n2,np,nq,Wtab,atab,etab,tabuGLquad,K_v,nradial,lharmonic,ndim=ndim,Omega0=Omega0)
+                        tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
+                                        ndFdJ,n1,n2,np,nq,
+                                        Wtab,atab,etab,Jtab,
+                                        tabuGLquad,K_v,nradial,
+                                        ωmin,ωmax,
+                                        vminarr,vmaxarr,
+                                        lharmonic,ndim=ndim,Omega0=Omega0)
                     end
 
                     #
