@@ -24,8 +24,8 @@ using HDF5
 # Basis
 #####
 G  = 1.
-rb = 20.0
-lmax,nmax = 2,30 # Usually lmax corresponds to the considered harmonics lharmonic
+rb = 25.0
+lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
@@ -35,15 +35,15 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneAL2red3"
+modelname = "IsochroneAL2red4"
 
 bc, M, G = 1.,1.,1.
-ψ(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
-dψ(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
-d2ψ(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
-d3ψ(r::Float64)::Float64 = OrbitalElements.isochrone_dddpsi_dddr(r,bc,M,G)
-d4ψ(r::Float64)::Float64 = OrbitalElements.isochrone_ddddpsi_ddddr(r,bc,M,G)
-Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
+ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
+dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
+d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
+d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
+d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
+Omega0 = OrbitalElements.Omega0Isochrone(bc,M,G)
 
 
 dfname = "roi1.0"

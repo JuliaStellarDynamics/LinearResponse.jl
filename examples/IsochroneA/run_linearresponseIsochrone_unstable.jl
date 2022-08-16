@@ -8,13 +8,13 @@ using HDF5
 #inputfile = "ModelParamIsochrone_roi.jl"
 
 # create a reduced version for checking
-inputfile = "ModelParamIsochrone_roi.jl"
+inputfile = "ModelParamIsochrone_roi_reduced.jl"
 
 # compute the Fourier-transformed basis elements
-#CallAResponse.RunWmatIsochrone(inputfile)
+CallAResponse.RunWmatIsochrone(inputfile)
 
 # compute the G(u) functions
-CallAResponse.RunGfuncIsochrone(inputfile)
+#CallAResponse.RunGfuncIsochrone(inputfile)
 
 # compute the determinants with a gradient descent
 #bestomg = CallAResponse.FindZeroCrossing(inputfile,0.00,0.03,NITER=16)

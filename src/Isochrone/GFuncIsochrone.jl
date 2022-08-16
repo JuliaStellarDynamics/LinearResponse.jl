@@ -34,24 +34,18 @@ function MakeGuIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
     # set up a blank array
     tabGXi  = zeros(K_u)
 
-    # compute the frequency scaling factors for this resonance
-    #ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
-    #vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
-    #vmin,vmax = OrbitalElements.find_vmin_vmax(uval,ωmin,ωmax,n1,n2,vbound,OrbitalElements.analytic_beta_c)
-
     for kuval in 1:K_u
 
+        # retrieve integration values
         uval = Kuvals[kuval]
         vmin = vminarr[kuval]
         vmax = vmaxarr[kuval]
 
-        # get the v integration boundaries. these are not perfectly exact (requires a zero-finding), but all other items going into the calculation are.
-        #vmin,vmax = OrbitalElements.find_vmin_vmax(uval,ωmin,ωmax,n1,n2,vbound,OrbitalElements.analytic_beta_c)
-
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
 
-        res = 0.0 # Initialising the result
+        # initialise the result
+        res = 0.0
 
         for kvval in 1:K_v
             vval = vmin + deltav*(kvval-0.5)
@@ -63,7 +57,7 @@ function MakeGuIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
             omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
 
             # convert from omega1,omega2 to (a,e) using isochrone exact version
-            sma,ecc = OrbitalElements.isochrone_ae_from_omega1omega2(omega1,omega2,bc,M,G)
+            sma,ecc = OrbitalElements.IsochroneAEFromOmega1Omega2(omega1,omega2,bc,M,G)
 
             # get (rp,ra)
             rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
@@ -154,8 +148,8 @@ function RunGfuncIsochrone(inputfile::String)
 
         # could compute the (u,v) boundaries here (or at least wmin,wmax)
         # compute the frequency scaling factors for this resonance
-        ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
-        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
+        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,1000.,Omega0)
 
         # for some threading reason, make sure K_u is defined here
         K_u = length(tabwGLquad)
@@ -163,7 +157,7 @@ function RunGfuncIsochrone(inputfile::String)
         # loop through once and design a v array for min, max
         vminarr,vmaxarr = zeros(K_u),zeros(K_u)
         for uval = 1:K_u
-           vminarr[uval],vmaxarr[uval] = OrbitalElements.find_vmin_vmax(tabuGLquad[uval],ωmin,ωmax,n1,n2,vbound,OrbitalElements.analytic_beta_c)
+           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmax(tabuGLquad[uval],ωmin,ωmax,n1,n2,vbound,OrbitalElements.IsochroneBetaC)
         end
 
         # load a value of tabWmat, plus (a,e) values

@@ -32,7 +32,7 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,
 
     # compute the frequency scaling factors for this resonance
     # @IMPROVE: need a maximum radius for the root finding; here set to be 1000., but if the cluster was extremely extended, this could break
-    wmin,wmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+    wmin,wmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,1000.,Omega0)
 
     # define beta_c, empirically.
     # @IMPROVE: 2000 is the number of sample points; this also is hard-coded to sample between log R [-5,5], which would be adaptive
@@ -55,8 +55,8 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,
         uval = Kuvals[kuval]
 
         # get the corresponding v boundary values
-        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
-        vmin,vmax = OrbitalElements.find_vmin_vmax(uval,wmin,wmax,n1,n2,vbound,beta_c)
+        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,1000.,Omega0)
+        vmin,vmax = OrbitalElements.FindVminVmax(uval,wmin,wmax,n1,n2,vbound,beta_c)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -107,6 +107,7 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,
 
             # launch the integration from the left boundary by finding ThetaRpRa(u=-1.)
             gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
+            #gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,sma,ecc,EDGE=EDGE)
 
             # Uses the Rozier 2019 notation for the mapping to u
             Sigma, Delta = (ra+rp)*0.5, (ra-rp)*0.5
@@ -145,6 +146,7 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,
 
                 # get the corresponding value of Theta(u): could use (a,e) function here as well
                 gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
+                #gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,sma,ecc,EDGE=EDGE)
 
                 # Current value of dtheta1/du and dtheta2/du
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
@@ -188,6 +190,8 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,
 
                 # current value of dtheta1/du and dtheta2/du
                 gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
+                #gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,sma,ecc,EDGE=EDGE)
+
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
 
                 # updated basis elements for new rval

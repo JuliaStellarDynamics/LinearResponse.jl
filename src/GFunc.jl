@@ -179,9 +179,9 @@ function RunGfunc(inputfile::String)
         end
 
         # compute the frequency scaling factors for this resonance
-        ωmin,ωmax = OrbitalElements.find_wmin_wmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,1000.,Omega0)
 
-        vbound = OrbitalElements.find_vbound(n1,n2,dψ,d2ψ,1000.,Omega0)
+        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,1000.,Omega0)
 
         # for some threading reason, make sure K_u is defined here
         K_u = length(tabwGLquad)
@@ -189,7 +189,7 @@ function RunGfunc(inputfile::String)
         # loop through once and design a v array for min, max
         vminarr,vmaxarr = zeros(K_u),zeros(K_u)
         for uval = 1:K_u
-           vminarr[uval],vmaxarr[uval] = OrbitalElements.find_vmin_vmax(tabuGLquad[uval],ωmin,ωmax,n1,n2,vbound,beta_c)
+           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmax(tabuGLquad[uval],ωmin,ωmax,n1,n2,vbound,beta_c)
         end
 
         # need to loop through all combos of np and nq to make the full matrix.
