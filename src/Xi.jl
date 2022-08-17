@@ -106,7 +106,7 @@ function tabM!(omg::Complex{Float64},
         omg_nodim = omg/Omega0
 
         # Getting the rescaled frequency
-        varpi = OrbitalElements.get_varpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Omega0)
+        varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Omega0)
 
         # get the Legendre integration values
         PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)

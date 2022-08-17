@@ -38,10 +38,10 @@ nradial = basis.nmax
 modelname = "IsochroneE"
 
 bc, M, G = 1.,1.,1.
-potential(r::Float64)::Float64   = OrbitalElements.isochrone_psi(r,bc,M,G)
-dpotential(r::Float64)::Float64  = OrbitalElements.isochrone_dpsi_dr(r,bc,M,G)
-ddpotential(r::Float64)::Float64 = OrbitalElements.isochrone_ddpsi_ddr(r,bc,M,G)
-Omega0 = OrbitalElements.isochrone_Omega0(bc,M,G)
+potential(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
+dpotential(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
+ddpotential(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
+Omega0 = OrbitalElements.Omega0Isochrone(bc,M,G)
 
 
 dfname = "isotropic"

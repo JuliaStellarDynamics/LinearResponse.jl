@@ -11,7 +11,7 @@ import AstroBasis
 import PerturbPlasma
 
 
-"""MakeWmatIsochrone(ψ,dψ,d2ψ,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
+"""MakeWmatIsochrone(n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
 
 @IMPROVE: give basis a type?
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
@@ -20,8 +20,7 @@ import PerturbPlasma
 
 @WARNING: when parallelising, basis will need to be copies so it can overwrite tabUl
 """
-function MakeWmatIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
-                           n1::Int64,n2::Int64,
+function MakeWmatIsochrone(n1::Int64,n2::Int64,
                            Kuvals::Matrix{Float64},
                            K_v::Int64,
                            lharmonic::Int64,
@@ -35,10 +34,8 @@ function MakeWmatIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
     K_u = length(Kuvals)
 
     # compute the frequency scaling factors for this resonance
-    # not exact, has root finding: there is an exact version for the isochrone, however
-    #w_min,w_max = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+    # using exact values for the isochrone potential
     w_min,w_max = OrbitalElements.FindWminWmaxIsochrone(n1,n2)
-
 
     # allocate the results matrix
     tabWMat = zeros(basis.nmax,K_u,K_v)
@@ -55,9 +52,7 @@ function MakeWmatIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
         uval = Kuvals[kuval]
 
         # get the corresponding v values
-        # this requires a zero-finding.
-        #vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,1000.,Omega0)
-        #vmin,vmax = OrbitalElements.FindVminVmax(uval,w_min,w_max,n1,n2,vbound,OrbitalElements.IsochroneBetaC)
+        # exact values for the isochrone
         vmin,vmax = OrbitalElements.FindVminVmaxIsochrone(n1,n2,uval)
 
         # determine the step size in v
@@ -178,8 +173,6 @@ function MakeWmatIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
                 rval = Sigma + Delta*OrbitalElements.henon_f(u)
 
                 # current value of Theta
-                #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
-                #gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,sma,ecc,EDGE=EDGE)
                 gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Omega0)
 
                 # Current value of dtheta1/du and dtheta2/du, always well-posed
@@ -252,7 +245,7 @@ function RunWmatIsochrone(inputfile::String)
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat = MakeWmatIsochrone(ψ,dψ,d2ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,K_w,bc=bc,M=M,G=G)
+        @time tabWMat,tabaMat,tabeMat = MakeWmatIsochrone(n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,K_w,bc=bc,M=M,G=G)
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

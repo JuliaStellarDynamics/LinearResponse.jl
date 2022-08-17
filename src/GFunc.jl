@@ -179,9 +179,9 @@ function RunGfunc(inputfile::String)
         end
 
         # compute the frequency scaling factors for this resonance
-        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,1000.,Omega0)
+        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,10000.,Omega0)
 
-        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,1000.,Omega0)
+        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,10000.,Omega0)
 
         # for some threading reason, make sure K_u is defined here
         K_u = length(tabwGLquad)

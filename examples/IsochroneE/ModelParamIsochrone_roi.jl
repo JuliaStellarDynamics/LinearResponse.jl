@@ -25,7 +25,7 @@ using HDF5
 #####
 G  = 1.
 rb = 20.0
-lmax,nmax = 2,30 # Usually lmax corresponds to the considered harmonics lharmonic
+lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
@@ -35,7 +35,7 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneEL2red3"
+modelname = "IsochroneE"
 
 bc, M, G = 1.,1.,1.
 ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
@@ -100,7 +100,7 @@ K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely)?
 
 lharmonic = 2
-n1max = 2  # maximum number of radial resonances to consider
+n1max = 10  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 LINEAR = "unstable"

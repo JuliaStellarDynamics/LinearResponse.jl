@@ -5,8 +5,7 @@
 function to compute G(u), isochrone specific.
 
 """
-function MakeGuIsochrone(ψ::Function,dψ::Function,d2ψ::Function,
-                         ndFdJ::Function,
+function MakeGuIsochrone(ndFdJ::Function,
                          n1::Int64,n2::Int64,
                          np::Int64,nq::Int64,
                          tabWMat::Array{Float64},
@@ -148,8 +147,7 @@ function RunGfuncIsochrone(inputfile::String)
 
         # could compute the (u,v) boundaries here (or at least wmin,wmax)
         # compute the frequency scaling factors for this resonance
-        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,1000.,Omega0)
-        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,1000.,Omega0)
+        ωmin,ωmax = OrbitalElements.FindWminWmaxIsochrone(n1,n2)
 
         # for some threading reason, make sure K_u is defined here
         K_u = length(tabwGLquad)
@@ -157,7 +155,7 @@ function RunGfuncIsochrone(inputfile::String)
         # loop through once and design a v array for min, max
         vminarr,vmaxarr = zeros(K_u),zeros(K_u)
         for uval = 1:K_u
-           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmax(tabuGLquad[uval],ωmin,ωmax,n1,n2,vbound,OrbitalElements.IsochroneBetaC)
+           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmaxIsochrone(n1,n2,tabuGLquad[uval])
         end
 
         # load a value of tabWmat, plus (a,e) values
@@ -182,8 +180,7 @@ function RunGfuncIsochrone(inputfile::String)
                 for nq = 1:nradial
 
                     if (np==1) & (nq==1)
-                        @time tabGXi = MakeGuIsochrone(ψ,dψ,d2ψ,ndFdJ,
-                                                       n1,n2,np,nq,
+                        @time tabGXi = MakeGuIsochrone(n1,n2,np,nq,
                                                        Wtab,atab,etab,
                                                        tabuGLquad,K_v,nradial,
                                                        ωmin,ωmax,
@@ -191,16 +188,16 @@ function RunGfuncIsochrone(inputfile::String)
                                                        lharmonic,
                                                        ndim=ndim,Omega0=Omega0)
                     else
-                        tabGXi = MakeGuIsochrone(ψ,dψ,d2ψ,ndFdJ,
-                                                       n1,n2,np,nq,
-                                                       Wtab,atab,etab,
-                                                       tabuGLquad,K_v,nradial,
-                                                       ωmin,ωmax,
-                                                       vminarr,vmaxarr,
-                                                       lharmonic,
-                                                       ndim=ndim,Omega0=Omega0)
+                        tabGXi = MakeGuIsochrone(n1,n2,np,nq,
+                                                 Wtab,atab,etab,
+                                                 tabuGLquad,K_v,nradial,
+                                                 ωmin,ωmax,
+                                                 vminarr,vmaxarr,
+                                                 lharmonic,
+                                                 ndim=ndim,Omega0=Omega0)
                     end
 
+                    # do a NaN check (although this is now impossible!)
                     sumG = sum(tabGXi)
                     if (np>-100) & (nq>-100)
                         if isnan(sumG)
@@ -209,6 +206,7 @@ function RunGfuncIsochrone(inputfile::String)
                             #println("np=$np, nq=$nq, sumG=$sumG.")
                         end
                     end
+
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
 
                 end # end nq loop

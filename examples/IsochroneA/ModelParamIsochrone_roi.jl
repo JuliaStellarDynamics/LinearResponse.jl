@@ -35,7 +35,7 @@ nradial = basis.nmax
 #####
 
 
-modelname = "IsochroneAL2"
+modelname = "IsochroneA"
 
 bc, M, G = 1.,1.,1.
 ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)

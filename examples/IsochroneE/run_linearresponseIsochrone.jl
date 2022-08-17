@@ -6,7 +6,7 @@ using HDF5
 
 inputfile = "ModelParamIsochrone_roi.jl"
 
-CallAResponse.RunWmat(inputfile)
+#CallAResponse.RunWmat(inputfile)
 
 CallAResponse.RunGfunc(inputfile)
 
