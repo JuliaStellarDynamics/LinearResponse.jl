@@ -21,10 +21,10 @@ function MakeGuIsochrone(ndFdJ::Function,
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
-        pref = (2*pi)^2
+        pref = (2pi)^2
     else
         CMatrix = getCMatrix(lharmonic)
-        pref    = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2.0*lharmonic+1.0)
+        pref    = -2.0*(2pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2lharmonic+1)
     end
 
     # get basic parameters
@@ -114,40 +114,42 @@ end
     RunGfuncIsochrone(inputfile)
 
 """
-function RunGfuncIsochrone(inputfile::String)
+function RunGfuncIsochrone(inputfile::String,
+                           VERBOSE::Int64=1)
 
-    include(inputfile)
+    LoadConfiguration(inputfile)
 
-    #####
-    # Check directories names
-    #####
+    # check directory names
     if !(isdir(wmatdir) && isdir(gfuncdir))
-        error("GFunc.jl: wmatdir or gfuncdir not found ")
+        error("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: wmatdir or gfuncdir not found ")
     end
 
-    #####
-    # Legendre integration prep.
-    #####
+    # legendre integration prep
     tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
     tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
-    #####
-    # Construct the table of needed resonance vectors
-    #####
-
-    # Number of resonance vectors
+    # number of resonance vectors
     nbResVec = get_nbResVec(lharmonic,n1max,ndim)
-    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+    if VERBOSE > 0
+        println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Considering $nbResVec resonances.")
+    end
 
-    println("GFunc.jl: Considering $nbResVec resonances.")
+    # fill in the array of resonance vectors (n1,n2)
+    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+
 
     Threads.@threads for i = 1:nbResVec
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
-        println("Gfunc.jl: Starting on ($n1,$n2).")
+        if VERBOSE > 0
+            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Starting on ($n1,$n2).")
+        end
 
         # could compute the (u,v) boundaries here (or at least wmin,wmax)
         # compute the frequency scaling factors for this resonance
         ωmin,ωmax = OrbitalElements.FindWminWmaxIsochrone(n1,n2)
+        if VERBOSE > 0
+            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: ωmin=$ωmin,ωmax=$ωmax")
+        end
 
         # for some threading reason, make sure K_u is defined here
         K_u = length(tabwGLquad)
@@ -167,20 +169,27 @@ function RunGfuncIsochrone(inputfile::String)
         nradial,K_u,K_v = size(Wtab)
 
         # print the size of the found files if the first processor
-        if i==0
-            println("GFunc.jl: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
+        if (i==0) & (VERBOSE > 0)
+            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
+        end
+
+        outputfilename = gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u)
+        if isfile(outputfilename)
+            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $nresvec of $nbResVec, ($n1,$n2).")
+            continue
         end
 
         # is having the file open bad?
         # need to loop through all combos of np and nq to make the full matrix.
-        h5open(gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u), "w") do file
+        h5open(outputfilename, "w") do file
 
             # loop through all basis function combinations
             for np = 1:nradial
                 for nq = 1:nradial
 
-                    if (np==1) & (nq==1)
-                        @time tabGXi = MakeGuIsochrone(n1,n2,np,nq,
+                    if (np==1) & (nq==2) # get a sense of the timing. not the first one, that has compilation time too
+                        @time tabGXi = MakeGuIsochrone(ndFdJ,
+                                                       n1,n2,np,nq,
                                                        Wtab,atab,etab,
                                                        tabuGLquad,K_v,nradial,
                                                        ωmin,ωmax,
@@ -188,23 +197,14 @@ function RunGfuncIsochrone(inputfile::String)
                                                        lharmonic,
                                                        ndim=ndim,Omega0=Omega0)
                     else
-                        tabGXi = MakeGuIsochrone(n1,n2,np,nq,
+                        tabGXi = MakeGuIsochrone(ndFdJ,
+                                                 n1,n2,np,nq,
                                                  Wtab,atab,etab,
                                                  tabuGLquad,K_v,nradial,
                                                  ωmin,ωmax,
                                                  vminarr,vmaxarr,
                                                  lharmonic,
                                                  ndim=ndim,Omega0=Omega0)
-                    end
-
-                    # do a NaN check (although this is now impossible!)
-                    sumG = sum(tabGXi)
-                    if (np>-100) & (nq>-100)
-                        if isnan(sumG)
-                            println("NaN for n1=$n1, n2=$n2.")
-                        else
-                            #println("np=$np, nq=$nq, sumG=$sumG.")
-                        end
                     end
 
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)

@@ -24,8 +24,8 @@ using HDF5
 # Basis
 #####
 G  = 1.
-rb = 5.0
-lmax,nmax = 1,24 # Usually lmax corresponds to the considered harmonics lharmonic
+rb = 20.0
+lmax,nmax = 1,100 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
@@ -37,10 +37,12 @@ nradial = basis.nmax
 
 modelname = "IsochroneE"
 
-bc, M, G = 1.,1.,1.
-potential(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
-dpotential(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
-ddpotential(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
+bc, M = 1.,1.
+ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
+dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
+d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
+d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
+d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Omega0 = OrbitalElements.Omega0Isochrone(bc,M,G)
 
 
@@ -87,11 +89,11 @@ end
 # Parameters
 #####
 K_u        = 200    # number of Legendre integration sample points
-K_v        = 151    # number of allocations is directly proportional to this
-K_w        = 161    # number of allocations is insensitive to this (also time, largely?
+K_v        = 200    # number of allocations is directly proportional to this
+K_w        = 200    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 1
-n1max = 18  # maximum number of radial resonances to consider
+n1max = 10  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 LINEAR = "damped"

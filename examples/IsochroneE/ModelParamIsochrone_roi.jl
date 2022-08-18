@@ -100,10 +100,18 @@ K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely)?
 
 lharmonic = 2
-n1max = 10  # maximum number of radial resonances to consider
+n1max = 2#10  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 LINEAR = "unstable"
+# Frequencies to probe
+nOmega = 51
+Omegamin = -0.02
+Omegamax = 0.02
+nEta = 50
+Etamin = 0.001
+Etamax = 0.04
+
 
 
 #####
@@ -112,5 +120,7 @@ LINEAR = "unstable"
 wmatdir="wmat/"
 gfuncdir="gfunc/"
 modedir = "xifunc/"
+
+
 
 # WARNING : / at the end to check !

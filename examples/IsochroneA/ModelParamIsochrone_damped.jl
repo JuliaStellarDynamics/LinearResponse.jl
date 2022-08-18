@@ -30,15 +30,19 @@ basis     = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim      = basis.dimension
 nradial   = basis.nmax
 
+println("Using dimension $ndim.")
+
 #####
 # Model Potential
 #####
-modelname = "IsochroneAL2"
+modelname = "IsochroneA"
 
 bc, M = 1.,1.
-potential(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
-dpotential(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
-ddpotential(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
+ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
+dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
+d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
+d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
+d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Omega0 = OrbitalElements.Omega0Isochrone(bc,M,G)
 
 
@@ -63,19 +67,6 @@ function ndFdJ(n1::Int64,n2::Int64,
 end
 
 
-
-#####
-# Parameters
-#####
-K_u        = 200      # number of Legendre integration sample points
-K_v        = 200      # number of allocations is directly proportional to this
-NstepsWMat = 200      # number of allocations is insensitive to this (also time, largely?)
-
-lharmonic  = 2        # which harmonic we are considering
-n1max      = 10       # maximum number of radial resonances to consider
-
-LINEAR     = "damped" # Mode of response matrix computation
-
 #####
 # Outputs directories
 #####
@@ -83,14 +74,36 @@ wmatdir    = "wmat/"
 gfuncdir   = "gfunc/"
 modedir    = "xifunc/"
 
-# Frequencies to probe
-nOmega = 52#501 # Number of omega0 for which the response matrix is computed. ATTENTION, we choose this number to have a nice step distance
-Omegamin = 0.0#*Omega0 # Minimum omega value for which the response matrix is computed. ATTENTION, we use the symmetry of the response matrix, so that we only search for positive real(omega).
-Omegamax = 0.05#1*Omega0 # Maximum omega value for which the response matrix is computed
 
-# Evaluate the dispersion function even in eta=0.0 using the `damped' evaluation,
-# but this should not really change the plot that we are making in the lower-half of the complex plane.
-nEta = 51#501 # Number of eta for which the response matrix is computed. ATTENTION, we choose this number to have a nice step distance
-Etamin = -0.005#-0.06*Omega0#-0.005*Omega0 # Minimum eta value for which the response matrix is computed. ATTENTION, it is a negative number
-Etamax = 0.0#-0.0*Omega0 # Maximum eta value for which the response matrix is computed. ATTENTION, it is a negative number
 #####
+# Parameters
+#####
+K_u = 200      # number of Legendre integration sample points
+K_v = 200      # number of allocations is directly proportional to this
+K_w = 200      # number of allocations is insensitive to this (also time, largely?)
+
+lharmonic  = 1        # which harmonic we are considering
+n1max      = 10       # maximum number of radial resonances to consider
+
+
+LINEAR     = "unstable" # Mode of response matrix computation
+
+# Frequencies to probe
+nOmega = 61
+Omegamin = -0.05
+Omegamax = 0.05
+nEta = 30
+Etamin = 0.0001
+Etamax = 0.005
+
+#=
+LINEAR     = "damped" # Mode of response matrix computation
+
+# Frequencies to probe
+nOmega = 51
+Omegamin = 0.0
+Omegamax = 0.05
+nEta = 50
+Etamin = -0.005
+Etamax = 0.0
+=#

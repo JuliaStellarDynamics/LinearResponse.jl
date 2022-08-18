@@ -1,6 +1,19 @@
 
 
 
+"""
+make an identity matrix
+
+@IMPROVE: where should this live?
+"""
+function makeIMat(nradial::Int64)
+    IMat = zeros(Complex{Float64},nradial,nradial) # Static container for the identity matrix
+    ##########
+    for np=1:nradial # Loop over the radial elements to fill in the identity matrix
+        IMat[np,np] = 1.0 + 0.0im # Creating the identity matrix
+    end
+    return IMat
+end
 
 
 """

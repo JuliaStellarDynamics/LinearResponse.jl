@@ -273,7 +273,7 @@ function RunWmat(inputfile::String)
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat,tabJMat = MakeWmat(ψ,dψ,d2ψ,d3ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0=Omega0,K_w=K_w,verbose=2)
+        @time tabWMat,tabaMat,tabeMat,tabJMat = MakeWmat(ψ,dψ,d2ψ,d3ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0=Omega0,K_w=K_w,verbose=0)
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

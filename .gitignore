@@ -14,3 +14,4 @@ examples/xifunc
 examples/cleanup.sh
 
 src/Transform.jl
+src/Xi_legacy.jl
