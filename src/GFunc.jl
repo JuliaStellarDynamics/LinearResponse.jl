@@ -134,13 +134,13 @@ end
 function RunGfunc(inputfile::String)
 
     # bring in the defined parameters
-    include(inputfile)
+    LoadConfiguration(inputfile)
 
     #####
     # Check directories names
     #####
     if !(isdir(wmatdir) && isdir(gfuncdir))
-        error("GFunc.jl: wmatdir or gfuncdir not found ")
+        error("CallAResponse.GFuncIsochrone.RunGfunc: wmatdir or gfuncdir not found ")
     end
 
     # prep for Legendre integration
@@ -158,11 +158,11 @@ function RunGfunc(inputfile::String)
     # fill in the array of resonance vectors (n1,n2)
     tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
-    println("GFunc.jl: Considering $nbResVec resonances.")
+    println("CallAResponse.GFuncIsochrone.RunGfunc: Considering $nbResVec resonances.")
 
     Threads.@threads for i = 1:nbResVec
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
-        println("Gfunc.jl: Starting on ($n1,$n2).")
+        println("CallAResponse.GFuncIsochrone.RunGfunc: Starting on ($n1,$n2).")
 
         # load a value of tabWmat, plus (a,e) values
         filename = wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb)
@@ -175,7 +175,13 @@ function RunGfunc(inputfile::String)
 
         # print the size of the found files if the first processor
         if i==0
-            println("GFunc.jl: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
+            println("CallAResponse.GFuncIsochrone.RunGfunc: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
+        end
+
+        outputfilename = gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u)
+        if isfile(outputfilename)
+            println("CallAResponse.GFuncIsochrone.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2).")
+            continue
         end
 
         # compute the frequency scaling factors for this resonance
@@ -193,7 +199,7 @@ function RunGfunc(inputfile::String)
         end
 
         # need to loop through all combos of np and nq to make the full matrix.
-        h5open(gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u), "w") do file
+        h5open(outputfilename, "w") do file
 
             # loop through all basis function combinations
             # can we just do an upper half calculation here?

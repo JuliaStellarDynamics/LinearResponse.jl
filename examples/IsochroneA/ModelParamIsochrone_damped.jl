@@ -86,24 +86,22 @@ lharmonic  = 1        # which harmonic we are considering
 n1max      = 10       # maximum number of radial resonances to consider
 
 
-LINEAR     = "unstable" # Mode of response matrix computation
-
 # Frequencies to probe
-nOmega = 61
-Omegamin = -0.05
-Omegamax = 0.05
-nEta = 30
-Etamin = 0.0001
-Etamax = 0.005
-
-#=
-LINEAR     = "damped" # Mode of response matrix computation
-
-# Frequencies to probe
+LINEAR     = "damped"
 nOmega = 51
 Omegamin = 0.0
 Omegamax = 0.05
 nEta = 50
 Etamin = -0.005
 Etamax = 0.0
+
+#= # to see the computation in the upper half plane...
+# Frequencies to probe
+LINEAR     = "unstable"
+nOmega = 61
+Omegamin = -0.05
+Omegamax = 0.05
+nEta = 30
+Etamin = 0.0001
+Etamax = 0.005
 =#

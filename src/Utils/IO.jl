@@ -91,4 +91,16 @@ function AxiFilename(modedir::String,
 end
 
 
-#h5write("xifunc/tabaXI_n1_"*string(n1)*"_n2_"*string(n2)*"_np_"*string(np)*"_nq_"*string(nq)*"."*string(K_u)*".h5","tabGXi",tabaXi[nresvec][np,nq])
+"""
+    MFilename()
+
+"""
+function MFilename(modedir::String,
+                   modelname::String,
+                   dfname::String,
+                   lharmonic::Int64,
+                   K_u::Int64)
+
+    return modedir*"TabM_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"."*string(K_u)*".h5"
+
+end

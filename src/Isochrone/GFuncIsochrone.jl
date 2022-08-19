@@ -175,7 +175,7 @@ function RunGfuncIsochrone(inputfile::String,
 
         outputfilename = gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u)
         if isfile(outputfilename)
-            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $nresvec of $nbResVec, ($n1,$n2).")
+            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $i of $nbResVec, ($n1,$n2).")
             continue
         end
 

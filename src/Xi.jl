@@ -29,7 +29,8 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                             dfname::String,
                             lharmonic::Int64,
                             nradial::Int64;
-                            VERBOSE::Int64=0)
+                            VERBOSE::Int64=0,
+                            OVERWRITE::Bool=false)
 
     # get relevant sizes
     K_u      = size(tabwGLquad)[1]
@@ -50,11 +51,15 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
         n1,n2 = tabResVec[1,nresvec],tabResVec[2,nresvec]
 
-        # don't do this loop if the file calculation already exists:
+        # don't do this loop if the file calculation already exists (unless asked)
         outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,K_u)
         if isfile(outputfilename)
             println("CallAResponse.Xi.MakeMCoefficients: file already exists for step $nresvec of $nbResVec, ($n1,$n2).")
-            continue
+            if OVERWRITE
+                println("...recomputing anyway.")
+            else
+                continue
+            end
         end
 
         if VERBOSE > 0
@@ -64,6 +69,10 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         # open the resonance file
         filename = gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u)
         inputfile = h5open(filename,"r")
+
+        if VERBOSE > 0
+            println("CallAResponse.Xi.MakeMCoefficients: opened file $filename.")
+        end
 
         # Loop over the basis indices to consider
         for i_npnq=1:nb_npnq
@@ -137,12 +146,12 @@ function StageaMcoef(tabResVec::Matrix{Int64},
     # allocate memory
     tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,K_u)
 
-    #fill!(tabM,0.0 + 0.0*im) # Initialising the array to 0.
-    #####
-    Threads.@threads for nResVec=1:nbResVec # Loop over the resonances
+
+    #Threads.@threads for nResVec=1:nbResVec # Loop over the resonances
+    for nResVec=1:nbResVec # Loop over the resonances
         n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec] # Current resonance (n1,n2)
 
-        # retreive the correct M table
+        # retrieve the correct M table
         filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,K_u)
         inputfile = h5open(filename,"r")
 
@@ -154,7 +163,14 @@ function StageaMcoef(tabResVec::Matrix{Int64},
             tmptabaMcoef = read(inputfile,"aXinp"*string(np)*"nq"*string(nq))
 
             for k=1:K_u
+
+                # fill in the (np,nq) value
                 tabaMcoef[nResVec,np,nq,k] = tmptabaMcoef[k]
+
+                # fill the other symmetric side of the array:
+                # does not matter because we symmetrise later
+                tabaMcoef[nResVec,nq,np,k] = tmptabaMcoef[k]
+
             end
 
         end # end basis loop
@@ -190,42 +206,59 @@ function tabM!(omg::Complex{Float64},
     nbResVec = size(tabResVec)[2]
     K_u      = size(tabaMcoef)[4]
 
-    fill!(tabM,0.0 + 0.0*im) # Initialising the array to 0.
-    #####
-    for nResVec=1:nbResVec # Loop over the resonances
-        n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec] # Current resonance (n1,n2)
+    # initialise the array to 0.
+    fill!(tabM,0.0 + 0.0*im)
 
-        # Rescale to get the dimensionless frequency
+    #println("CallAResponse.Xi.tabM!: loop dimensions npnq=$nb_npnq, nResVec=$nbResVec, K_u=$K_u.")
+
+    # loop over the resonances: no threading here because we parallelise over frequencies
+    for nResVec=1:nbResVec
+
+        # get current resonance numbers (n1,n2)
+        n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec]
+
+        # Rescale to get dimensionless frequency
         omg_nodim = omg/Omega0
 
-        # Getting the rescaled frequency
+        # get the rescaled frequency
         varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Omega0)
 
         # get the Legendre integration values
         PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)
-        #PerturbPlasma.tabLeg!_UNSTABLE(varpi,K_u,struct_tabLeg)
-        tabDLeg = struct_tabLeg.tabDLeg # Name of the array where the D_k(w) are stored
 
-        # Loop over the basis indices to consider
+        # mame of the array where the D_k(w) are stored
+        tabDLeg = struct_tabLeg.tabDLeg
+
+        # loop over the basis indices to consider
         for i_npnq=1:nb_npnq
-            np, nq = tab_npnq[1,i_npnq], tab_npnq[2,i_npnq] # Current value of (np,nq)
 
-            # Loop over the Legendre functions to add all contributions
+            # get current value of (np,nq)
+            np, nq = tab_npnq[1,i_npnq], tab_npnq[2,i_npnq]
+
             res = 0.0 + 0.0*im
+
+            # loop over the Legendre functions to add all contributions
             for k=1:K_u
                 res += tabaMcoef[nResVec,np,nq,k]*tabDLeg[k]
             end
 
-            # fill the full matrix
-            tabM[np,nq] += res # Filling in the element (np,nq)
-            tabM[nq,np] += res # Filling in the element (nq,np). @WARNING: added twice for diagonal elements np=nq.
+            # fill the full M matrix:
+            # as tab_npnq is the upper triangular matrix (with the diagonal),
+            # we need to duplicate for symmetries
+
+            # fill in the element (np,nq)
+            tabM[np,nq] += res
+
+            # fill in the element (nq,np). @WARNING: added twice for diagonal elements np=nq.
+            tabM[nq,np] += res
 
         end # basis index loop
 
     end # resonance loop
 
+    # contributions were added twice for diagonal elements: reset
     for np=1:nradial
-        tabM[np,np] *= 0.5 # Contributions added twice for diagonal elements
+        tabM[np,np] *= 0.5
     end
 
 end
@@ -376,7 +409,7 @@ function FindZeroCrossing(inputfile::String,
     domega = 1.e-4
 
     completediterations = 0
-    Threads.@threads for i = 1:NITER
+    for i = 1:NITER
 
         # calculate the new off omega value
         omgvaloff = omgval + im*domega

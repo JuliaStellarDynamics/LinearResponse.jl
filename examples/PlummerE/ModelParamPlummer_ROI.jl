@@ -47,10 +47,10 @@ Omega0 = OrbitalElements.plummer_Omega0(bc,M,G)
 
 
 dfname = "roi1.0"
-dfname = "roi0.75"
+#dfname = "roi0.75"
 
 #function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
-function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.75)
+function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.0)
     #=
     """
     wrap the ndFdJ function you want
@@ -101,7 +101,14 @@ K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 2
-n1max = 2#10  # maximum number of radial resonances to consider
+n1max = 2 # maximum number of radial resonances to consider
+
+
+# output directories
+wmatdir="wmat/"
+gfuncdir="gfunc/"
+xifuncdir="xifunc/"
+modedir="xifunc/"
 
 
 LINEAR     = "unstable" # Mode of response matrix computation
@@ -115,12 +122,5 @@ Etamin = 0.001
 Etamax = 0.05
 
 
-#####
-# Outputs directories
-#####
-wmatdir="wmat/"
-gfuncdir="gfunc/"
-xifuncdir="xifunc/"
-modedir="xifunc/"
 
 # WARNING : / at the end to check !
