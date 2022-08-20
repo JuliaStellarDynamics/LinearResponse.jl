@@ -3,7 +3,7 @@
 import CallAResponse
 using HDF5
 
-inputfile = "ModelParamIsochrone_damped.jl"
+inputfile = "ModelParamPlummer_ISO.jl"
 
 # compute the Fourier-transformed basis elements
 #CallAResponse.RunWmat(inputfile)

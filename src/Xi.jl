@@ -99,6 +99,14 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                         continue
                     end
 
+                    # check for INF contribution: skip the contribution in that case
+                    if isinf(G)
+                        if VERBOSE > 1
+                            println("CallAResponse.Xi.MakeMCoefficients: Inf value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
+                        end
+                        continue
+                    end
+
                     w = tabwGLquad[i] # Current weight
                     P = tabPGLquad[k,i] # Current value of P_k. ATTENTION, to the order of the arguments.
                     res += w*G*P # Update of the sum
@@ -239,7 +247,17 @@ function tabM!(omg::Complex{Float64},
 
             # loop over the Legendre functions to add all contributions
             for k=1:K_u
-                res += tabaMcoef[nResVec,np,nq,k]*tabDLeg[k]
+
+                # hard check for nans
+                val = tabaMcoef[nResVec,np,nq,k]*tabDLeg[k]
+                if !isnan(val)
+                    res += val
+                else
+                    if k==1
+                        println("CallAResponse.Xi.tabM!: NaN found for n=($n1,$n2), npnq=($np,$nq), k=$k")
+                    end
+                end
+
             end
 
             # fill the full M matrix:
@@ -341,11 +359,14 @@ function RunM(inputfile::String,
 
         k = Threads.threadid()
 
-        if i==1
+        if i==2 # skip the first in case there is compile time built in
             @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Omega0)
         else
             tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Omega0)
         end
+
+        # do we need some sort of diagnostic check here?
+        #println("Mval=")
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
 

@@ -92,21 +92,21 @@ K_w        = 200    # number of allocations is insensitive to this (also time, l
 
 
 lharmonic = 1
-n1max = 0  # maximum number of radial resonances to consider
+n1max     = 10  # maximum number of radial resonances to consider
 
 # output directories
-wmatdir="wmat/"
-gfuncdir="gfunc/"
-modedir = "xifunc/"
+wmatdir   = "wmat/"
+gfuncdir  = "gfunc/"
+modedir   = "xifunc/"
 
 # Frequencies to probe
-LINEAR     = "damped"
-nOmega = 51
+LINEAR   = "damped"
+nOmega   = 51
 Omegamin = 0.0
 Omegamax = 0.05
-nEta = 50
-Etamin = -0.005
-Etamax = 0.0
+nEta     = 50
+Etamin   = -0.005
+Etamax   = 0.0
 
 
 # WARNING : / at the end to check !

@@ -5,24 +5,20 @@ import CallAResponse
 using HDF5
 
 # to mimic Fouvry & Prunet exactly
-#inputfile = "ModelParamIsochrone_roi.jl"
-
-# create a reduced version for checking
 inputfile = "ModelParamIsochrone_roi.jl"
 
 # compute the Fourier-transformed basis elements
-#CallAResponse.RunWmatIsochrone(inputfile)
+CallAResponse.RunWmatIsochrone(inputfile)
 
 # compute the G(u) functions
-#CallAResponse.RunGfuncIsochrone(inputfile)
+CallAResponse.RunGfuncIsochrone(inputfile)
 
 include(inputfile)
 tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 tabdet = CallAResponse.RunMIsochrone(inputfile,tabomega,VERBOSE=1)
 
 #=
-
-# compute the determinants with a gradient descent
+# compute the determinants with a gradient descent to find the exact frequency for ROI
 bestomg = CallAResponse.FindZeroCrossing(inputfile,0.00,0.03,NITER=16,VERBOSE=1)
 
 # for n1max=3
