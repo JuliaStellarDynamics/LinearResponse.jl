@@ -13,9 +13,10 @@ function ComputeModeTables(inputfile,
     # include configuration parameters
     LoadConfiguration(inputfile)
 
-    # check directory names
-    if !(isdir(gfuncdir) && isdir(modedir))
-        error("CallAResponse.Mode.ComputeModeTables: gfuncdir or modedir not found ")
+    # Check directory names
+    checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
+    if checkdirs < 0
+        return 0
     end
 
     # Construct the table of needed resonance vectors

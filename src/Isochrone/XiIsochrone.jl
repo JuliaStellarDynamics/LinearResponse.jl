@@ -105,11 +105,10 @@ function RunMIsochrone(inputfile::String,
 
     nomglist = length(omglist)
 
-    #####
-    # Check directories names
-    #####
-    if !(isdir(gfuncdir) && isdir(modedir))
-        error("CallAResponse.Xi.RunMIsochrone: gfuncdir or modedir not found.")
+    # Check directory names
+    checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
+    if checkdirs < 0
+        return 0
     end
 
     # calculate the number of resonance vectors
@@ -163,7 +162,7 @@ function RunMIsochrone(inputfile::String,
 
     end
 
-    WriteDeterminant(det_filename(modedir,modelname,dfname,lharmonic,n1max,K_u),omglist,tabdetXi)
+    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,K_u,rb),omglist,tabdetXi)
 
     return tabdetXi
 end

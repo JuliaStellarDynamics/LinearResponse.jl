@@ -323,11 +323,10 @@ function RunM(inputfile::String,
 
     nomglist = length(omglist)
 
-    #####
-    # Check directories names
-    #####
-    if !(isdir(gfuncdir) && isdir(modedir))
-        error("CallAResponse.Xi.RunM: gfuncdir or modedir not found.")
+    # Check directory names
+    checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
+    if checkdirs < 0
+        return 0
     end
 
     # calculate the number of resonance vectors
@@ -384,7 +383,7 @@ function RunM(inputfile::String,
 
     end
 
-    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,K_u,rb),omglist,tabdetXi)
+    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,K_u,rb),omglist,tabdetXi,rb)
 
     return tabdetXi
 end

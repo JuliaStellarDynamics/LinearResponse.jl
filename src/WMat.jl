@@ -192,7 +192,7 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                 # Begin step 4 of RK4
                 u += 0.5*duWMat # Updating the time by half a timestep: we are now at the next u value
                 # Current location of the radius, r=r(u)
-                rval = OrbitalElements.ru(u,a,e) 
+                rval = OrbitalElements.ru(u,a,e)
 
                 # current value of dtheta1/du and dtheta2/du
                 #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
@@ -238,9 +238,10 @@ function RunWmat(inputfile::String)
     # load model parameters
     include(inputfile)
 
-    # check directory before proceeding (save time if not.)
-    if !(isdir(wmatdir))
-        error("WMat.jl:: wmatdir not found")
+    # check wmat directory before proceeding (save time if not.)
+    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir)
+    if checkdirs < 0
+        return 0
     end
 
     # bases prep.

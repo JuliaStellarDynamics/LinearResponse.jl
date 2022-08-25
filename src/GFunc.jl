@@ -23,7 +23,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
-        # 2d prefactor, see Fouvry et al. 2015 
+        # 2d prefactor, see Fouvry et al. 2015
         # ATTENTION : Landau prescription for G(u) / (u - ω) not G(u) / (ω - u)
         #             Hence the minus sign.
         pref = - (2.0*pi)^(2)
@@ -135,11 +135,10 @@ function RunGfunc(inputfile::String)
     # bring in the defined parameters
     LoadConfiguration(inputfile)
 
-    #####
-    # Check directories names
-    #####
-    if !(isdir(wmatdir) && isdir(gfuncdir))
-        error("CallAResponse.GFuncIsochrone.RunGfunc: wmatdir or gfuncdir not found ")
+    # Check directory names
+    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
+    if checkdirs < 0
+        return 0
     end
 
     # prep for Legendre integration

@@ -119,9 +119,10 @@ function RunGfuncIsochrone(inputfile::String,
 
     LoadConfiguration(inputfile)
 
-    # check directory names
-    if !(isdir(wmatdir) && isdir(gfuncdir))
-        error("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: wmatdir or gfuncdir not found ")
+    # Check directory names
+    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
+    if checkdirs < 0
+        return 0
     end
 
     # legendre integration prep

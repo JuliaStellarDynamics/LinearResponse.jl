@@ -216,9 +216,10 @@ function RunWmatIsochrone(inputfile::String;
     # load model parameters
     include(inputfile)
 
-    # check directory before proceeding (save time if not.)
-    if !(isdir(wmatdir))
-        error("CallAResponse.WMatIsochrone.RunWmatIsochrone: wmatdir not found")
+    # check wmat directory before proceeding (save time if not.)
+    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir)
+    if checkdirs < 0
+        return 0
     end
 
     # bases prep.
