@@ -24,7 +24,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
         # 2d prefactor, see Fouvry et al. 2015
-        pref = (2.0*pi)^(2)
+        pref = - (2.0*pi)^(2)
     else
         # 3d prefactor, see Hamilton et al. 2018
         CMatrix = getCMatrix(lharmonic)
@@ -60,11 +60,8 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
             # convert from omega1,omega2 to (a,e): using a tabled value
             sma,ecc = tabaMat[kuval,kvval],tabeMat[kuval,kvval]
 
-            # get (rp,ra)
-            rp,ra = OrbitalElements.RpRafromAE(sma,ecc)
-
             # need (E,L): this has some relatively expensive switches
-            Eval,Lval = OrbitalElements.ELFromRpRa(ψ,dψ,d2ψ,rp,ra,TOLECC=0.001)
+            Eval,Lval = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,sma,ecc,TOLECC=0.001)
 
             # compute Jacobians
             #(alpha,beta) -> (u,v).
