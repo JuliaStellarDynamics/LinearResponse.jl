@@ -384,7 +384,7 @@ function RunM(inputfile::String,
 
     end
 
-    WriteDeterminant(det_filename(modedir,modelname,dfname,lharmonic,n1max,K_u),omglist,tabdetXi)
+    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,K_u),omglist,tabdetXi,rbasis)
 
     return tabdetXi
 end

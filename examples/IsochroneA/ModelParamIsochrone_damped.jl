@@ -10,7 +10,7 @@ using HDF5
 
 # choose a basis for computation of the Fourier-transformed basis elements
 G         = 1.     # the gravitational constant
-rb        = 5.0   # the scale for the basis elements
+rb        = 20.0   # the scale for the basis elements
 lmax,nmax = 2,100  # usually lmax corresponds to the considered harmonics lharmonic
 basis     = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim      = basis.dimension
@@ -60,7 +60,7 @@ K_v = 200      # number of allocations is directly proportional to this
 K_w = 200      # number of allocations is insensitive to this (also time, largely?)
 
 lharmonic = 1        # which harmonic we are considering?
-n1max     = 10       # maximum number of radial resonances to consider
+n1max     = 20       # maximum number of radial resonances to consider
 
 # Frequencies to probe
 LINEAR   = "damped"
