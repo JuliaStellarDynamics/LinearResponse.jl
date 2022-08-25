@@ -4,7 +4,7 @@ import PerturbPlasma
 using HDF5
 
 
-"""MakeWmat(ψ,dψ,d2ψ,d3ψ,n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
+"""MakeWmat(ψ,dψ,d2ψ,d3ψ,n1,n2,K_u,K_v,lharmonic,basis[,Ω0,K_w])
 
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
 @IMPROVE: parallelise by launching from both -1 and 1?
@@ -20,7 +20,7 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                   K_v::Int64,
                   lharmonic::Int64,
                   basis::AstroBasis.Basis_type;
-                  Omega0::Float64=1.,
+                  Ω0::Float64=1.,
                   K_w::Int64=50,
                   EDGE::Float64=0.01,
                   verbose::Int64=0)
@@ -33,12 +33,12 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
     # compute the frequency scaling factors for this resonance
     # @IMPROVE: need a maximum radius for the root finding; here set to be 1000., but if the cluster was extremely extended, this could break
-    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,10000.,Omega0)
+    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,10000.,Ω0)
 
     # define beta_c, empirically.
     # @IMPROVE: 2000 is the number of sample points; this also is hard-coded to sample between log R [-5,5], which would be adaptive
-    # beta_c = OrbitalElements.make_betac(dψ,d2ψ,2000,Omega0)
-    beta_c(alpha_c::Float64)::Float64 = OrbitalElements.beta_circ(alpha_c,dψ,d2ψ,Omega0,rmax=1.0e6)
+    # beta_c = OrbitalElements.make_betac(dψ,d2ψ,2000,Ω0)
+    βc(alpha_c::Float64)::Float64 = OrbitalElements.βcirc(alpha_c,dψ,d2ψ,Ω0,rmax=1.0e6)
 
     # allocate the results matrices
     tabWMat = zeros(basis.nmax,K_u,K_v)
@@ -60,8 +60,8 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         end
 
         # get the corresponding v boundary values
-        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,10000.,Omega0)
-        vmin,vmax = OrbitalElements.FindVminVmax(uval,ωmin,ωmax,n1,n2,vbound,beta_c)
+        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,10000.,Ω0)
+        vmin,vmax = OrbitalElements.FindVminVmax(uval,ωmin,ωmax,n1,n2,vbound,βc)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -75,58 +75,52 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            alpha,beta = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,ωmin,ωmax)
+            α,β = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,ωmin,ωmax)
 
-            omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
+            Ω1,Ω2 = α*Ω0,α*β*Ω0
 
             if verbose > 2
-                print("v=$kvval,o1=$omega1,o2=$omega2;")
+                print("v=$kvval,o1=$Ω1,o2=$Ω2;")
             end
 
-            # convert from omega1,omega2 to (a,e)
+            # convert from Ω1,Ω2 to (a,e)
             # need to crank the tolerance here, and also check that ecc < 0.
             # put a guard in place for frequency calculations!!
-            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,omega1,omega2)
+            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,Ω1,Ω2)
 
             # new, iterative brute force procedure
-            #a1,e1 = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,omega1,omega2,1*10^(-12),1)
+            #a1,e1 = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,Ω1,Ω2,1*10^(-12),1)
             #maxestep = 0.005
-            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,omega1,omega2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
-            sma,ecc = OrbitalElements.AEFromOmega1Omega2Brute(omega1,omega2,ψ,dψ,d2ψ,d3ψ,NINT=32,EDGE=EDGE,verbose=0)
+            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,Ω1,Ω2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
+            a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=32,EDGE=EDGE,verbose=0)
 
             #if verbose > 2
             #    print("a=$sma,ecc=$ecc")
             #end
 
             # save (a,e) values for later
-            tabaMat[kuval,kvval] = sma
-            tabeMat[kuval,kvval] = ecc
+            tabaMat[kuval,kvval] = a
+            tabeMat[kuval,kvval] = e
 
             # compute the Jacobian (E,L)->(alpha,beta) here. a little more expensive, but savings in the long run
-            #tabJMat[kuval,kvval] = OrbitalElements.JacELToAlphaBetaAE(ψ,dψ,d2ψ,d3ψ,d4ψ,sma,ecc,Omega0=Omega0)
-            tabJMat[kuval,kvval] = OrbitalElements.JacELToAlphaBetaAE(sma,ecc,ψ,dψ,d2ψ,Omega0)
-
-            # get (rp,ra)
-            rp,ra = OrbitalElements.RpRafromAE(sma,ecc)
+            #tabJMat[kuval,kvval] = OrbitalElements.JacELToAlphaBetaAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Ω0=Ω0)
+            tabJMat[kuval,kvval] = OrbitalElements.JacELToAlphaBetaAE(a,e,ψ,dψ,d2ψ,Ω0)
 
             # need angular momentum
-            Lval = OrbitalElements.LFromRpRa(ψ,dψ,d2ψ,rp,ra)
+            Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e)
 
             # Initialise the state vectors: u, theta1, (theta2-psi)
             u, theta1, theta2 = -1.0, 0.0, 0.0
 
             # launch the integration from the left boundary by finding ThetaRpRa(u=-1.)
             #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
-            gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,sma,ecc,EDGE=EDGE)
-
-            # Uses the Rozier 2019 notation for the mapping to u
-            Sigma, Delta = (ra+rp)*0.5, (ra-rp)*0.5
+            gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
 
             # Current location of the radius, r=r(u): isn't this exactly rp?
-            rval = Sigma + Delta*OrbitalElements.henon_f(u)
+            rval = OrbitalElements.ru(u,a,e)
 
             # the velocity for integration
-            dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
+            dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
 
             # collect the basis elements (in place!)
             AstroBasis.tabUl!(basis,lharmonic,rval)
@@ -152,14 +146,14 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                 u += 0.5*duWMat
 
                 # Current location of the radius, r=r(u)
-                rval = Sigma + Delta*OrbitalElements.henon_f(u)
+                rval = OrbitalElements.ru(u,a,e)
 
                 # get the corresponding value of Theta(u): could use (a,e) function here as well
                 #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
-                gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,sma,ecc,EDGE=EDGE)
+                gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
 
                 # Current value of dtheta1/du and dtheta2/du
-                dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
+                dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
 
                 # recompute the basis functions for the changed radius value
                 AstroBasis.tabUl!(basis,lharmonic,rval)
@@ -197,13 +191,14 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
                 # Begin step 4 of RK4
                 u += 0.5*duWMat # Updating the time by half a timestep: we are now at the next u value
-                rval = Sigma + Delta*OrbitalElements.henon_f(u) # Current location of the radius, r=r(u)
+                # Current location of the radius, r=r(u)
+                rval = OrbitalElements.ru(u,a,e) 
 
                 # current value of dtheta1/du and dtheta2/du
                 #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
-                gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,sma,ecc,EDGE=EDGE)
+                gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
 
-                dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
+                dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
 
                 # updated basis elements for new rval
                 AstroBasis.tabUl!(basis,lharmonic,rval)
@@ -273,7 +268,7 @@ function RunWmat(inputfile::String)
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat,tabJMat = MakeWmat(ψ,dψ,d2ψ,d3ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0=Omega0,K_w=K_w,verbose=0)
+        @time tabWMat,tabaMat,tabeMat,tabJMat = MakeWmat(ψ,dψ,d2ψ,d3ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Ω0=Ω0,K_w=K_w,verbose=0)
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

@@ -202,8 +202,8 @@ function StageaMcoef(tabResVec::Matrix{Int64},
 
 end
 
-"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dψ,d2ψ,LINEAR,Omega0)
-Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Omega0.
+"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dψ,d2ψ,LINEAR,Ω0)
+Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω0.
 
 @IMPROVE: The shape of the array could maybe be improved
 
@@ -219,7 +219,7 @@ function tabM!(omg::Complex{Float64},
                d2ψ::Function,
                nradial::Int64,
                LINEAR::String="unstable",
-               Omega0::Float64=1.0)
+               Ω0::Float64=1.0)
 
     # get dimensions from the relevant tables
     nb_npnq  = size(tab_npnq)[2]
@@ -238,10 +238,10 @@ function tabM!(omg::Complex{Float64},
         n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec]
 
         # Rescale to get dimensionless frequency
-        omg_nodim = omg/Omega0
+        omg_nodim = omg/Ω0
 
         # get the rescaled frequency
-        varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Omega0)
+        varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Ω0)
 
         # get the Legendre integration values
         PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)
@@ -372,9 +372,9 @@ function RunM(inputfile::String,
         k = Threads.threadid()
 
         if i==2 # skip the first in case there is compile time built in
-            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Omega0)
+            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Ω0)
         else
-            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Omega0)
+            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Ω0)
         end
 
         # do we need some sort of diagnostic check here?
@@ -384,7 +384,7 @@ function RunM(inputfile::String,
 
     end
 
-    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,K_u),omglist,tabdetXi,rbasis)
+    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,K_u,rb),omglist,tabdetXi)
 
     return tabdetXi
 end
@@ -395,11 +395,11 @@ end
 Newton-Raphson descent to find the zero crossing
 """
 function FindZeroCrossing(inputfile::String,
-                          Omegaguess::Float64,
+                          Ωguess::Float64,
                           Etaguess::Float64;
                           NITER::Int64=32,
                           eta::Bool=true,
-                          Omega0::Float64=1.0,
+                          Ω0::Float64=1.0,
                           ACCURACY::Float64=1.0e-10,
                           VERBOSE::Int64=0)
 
@@ -439,7 +439,7 @@ function FindZeroCrossing(inputfile::String,
     tabMlist = zeros(Complex{Float64},nradial,nradial)
     IMat = makeIMat(nradial)
 
-    omgval = Omegaguess + im*Etaguess
+    omgval = Ωguess + im*Etaguess
     domega = 1.e-4
 
     completediterations = 0
@@ -453,14 +453,14 @@ function FindZeroCrossing(inputfile::String,
         tabM!(omgval,tabMlist,tabaMcoef,
               tabResVec,tab_npnq,
               struct_tabLeglist,
-              dψ,d2ψ,nradial,LINEAR,Omega0)
+              dψ,d2ψ,nradial,LINEAR,Ω0)
 
         centralvalue = detXi(IMat,tabMlist)
 
         tabM!(omgvaloff,tabMlist,tabaMcoef,
               tabResVec,tab_npnq,
               struct_tabLeglist,
-              dψ,d2ψ,nradial,LINEAR,Omega0)
+              dψ,d2ψ,nradial,LINEAR,Ω0)
 
         offsetvalue = detXi(IMat,tabMlist)
 
