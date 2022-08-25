@@ -127,6 +127,7 @@ function WriteDeterminant(detname::String,
                           tabdet::Array{Complex{Float64}})
 
     h5open(detname, "w") do file
+        #write(file,"nx",)
         write(file,"omega",real(tabomega))
         write(file,"eta",imag(tabomega))
         write(file,"det",tabdet)
