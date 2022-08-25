@@ -61,7 +61,7 @@ K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 1   # azimuthal harmonic to consider
-n1max     = 0  # maximum number of radial resonances to consider
+n1max     = 10  # maximum number of radial resonances to consider
 
 # outputs directories
 wmatdir  = "wmat/"
@@ -69,7 +69,7 @@ gfuncdir = "gfunc/"
 xifuncdir= "xifunc/"
 modedir  = "xifunc/"
 
-
+#=
 # Frequencies to probe
 LINEAR   = "damped"
 nOmega   = 51
@@ -78,19 +78,19 @@ Omegamax = 0.015
 nEta     = 50
 Etamin   = -0.01
 Etamax   = 0.0
+=#
 
 
-#=
 # to see the computation in the upper half plane...
 # Frequencies to probe
 LINEAR   = "unstable"
 nOmega   = 61
-Omegamin = -0.005
-Omegamax = 0.005
+Omegamin = -0.05
+Omegamax = 0.05
 nEta     = 30
 Etamin   = 0.0001
 Etamax   = 0.005
-=#
+
 
 
 

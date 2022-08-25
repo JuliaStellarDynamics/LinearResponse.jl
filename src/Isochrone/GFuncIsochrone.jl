@@ -59,7 +59,7 @@ function MakeGuIsochrone(ndFdJ::Function,
             sma,ecc = OrbitalElements.IsochroneAEFromOmega1Omega2(omega1,omega2,bc,M,G)
 
             # get (rp,ra)
-            rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
+            rp,ra = OrbitalElements.RpRafromAE(sma,ecc)
 
             # need (E,L), use isochrone exact version
             Eval,Lval = OrbitalElements.isochrone_EL_from_rpra(rp,ra,bc,M,G)
@@ -173,7 +173,7 @@ function RunGfuncIsochrone(inputfile::String,
             println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
         end
 
-        outputfilename = gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u)
+        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
         if isfile(outputfilename)
             println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $i of $nbResVec, ($n1,$n2).")
             continue

@@ -76,7 +76,7 @@ function MakeWmatIsochrone(n1::Int64,n2::Int64,
             tabeMat[kuval,kvval] = ecc
 
             # get (rp,ra)
-            rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
+            rp,ra = OrbitalElements.RpRafromAE(sma,ecc)
 
             # need angular momentum
             Lval = OrbitalElements.isochrone_L_from_rpra(rp,ra,bc,M,G)
@@ -210,14 +210,15 @@ end
     RunWmatIsochrone(inputfile)
 
 """
-function RunWmatIsochrone(inputfile::String)
+function RunWmatIsochrone(inputfile::String;
+                          VERBOSE::Int64=1)
 
     # load model parameters
     include(inputfile)
 
     # check directory before proceeding (save time if not.)
     if !(isdir(wmatdir))
-        error("WMat.jl:: wmatdir not found")
+        error("CallAResponse.WMatIsochrone.RunWmatIsochrone: wmatdir not found")
     end
 
     # bases prep.
@@ -235,13 +236,22 @@ function RunWmatIsochrone(inputfile::String)
     tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
     # print the length of the list of resonance vectors
-    println("WMat.jl: Number of resonances to compute: $nbResVec")
+    println("CallAResponse.WMatIsochrone.RunWmatIsochrone: Number of resonances to compute: $nbResVec")
 
     Threads.@threads for i = 1:nbResVec
         k = Threads.threadid()
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
 
-        println("WMat.jl: Computing W for the ($n1,$n2) resonance.")
+        if VERBOSE > 0
+            println("CallAResponse.WMatIsochrone.RunWmatIsochrone: Computing W for the ($n1,$n2) resonance.")
+        end
+
+        if isfile(wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb))
+            if VERBOSE > 0
+                println("CallAResponse.WMatIsochrone.RunWmatIsochrone: ($n1,$n2) resonanance WMat file already exists.")
+            end
+            continue
+        end
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)

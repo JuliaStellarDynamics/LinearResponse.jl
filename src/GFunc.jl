@@ -61,7 +61,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
             sma,ecc = tabaMat[kuval,kvval],tabeMat[kuval,kvval]
 
             # get (rp,ra)
-            rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
+            rp,ra = OrbitalElements.RpRafromAE(sma,ecc)
 
             # need (E,L): this has some relatively expensive switches
             Eval,Lval = OrbitalElements.ELFromRpRa(ψ,dψ,d2ψ,rp,ra,TOLECC=0.001)
@@ -178,7 +178,7 @@ function RunGfunc(inputfile::String)
             println("CallAResponse.GFuncIsochrone.RunGfunc: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
         end
 
-        outputfilename = gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u)
+        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
         if isfile(outputfilename)
             println("CallAResponse.GFuncIsochrone.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2).")
             continue

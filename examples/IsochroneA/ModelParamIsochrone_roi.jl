@@ -32,6 +32,7 @@ Omega0 = OrbitalElements.Omega0Isochrone(bc,M,G)
 # choose a distribution function for G(u) calculation
 # if you change this, you will have to re-run the G calculation!
 dfname = "roi1.0"
+#dfname = "roi2.0"
 
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,

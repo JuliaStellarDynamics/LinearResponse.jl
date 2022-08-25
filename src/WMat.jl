@@ -107,7 +107,7 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             tabJMat[kuval,kvval] = OrbitalElements.JacELToAlphaBetaAE(sma,ecc,ψ,dψ,d2ψ,Omega0)
 
             # get (rp,ra)
-            rp,ra = OrbitalElements.rpra_from_ae(sma,ecc)
+            rp,ra = OrbitalElements.RpRafromAE(sma,ecc)
 
             # need angular momentum
             Lval = OrbitalElements.LFromRpRa(ψ,dψ,d2ψ,rp,ra)

@@ -36,70 +36,60 @@ function tabMIsochrone!(omg::Complex{Float64},
     # initialise the array to 0.
     fill!(tabM,0.0 + 0.0*im)
 
-    tabMtmp = zeros(Complex{Float64},nradial,nradial)
-
     #println("CallAResponse.Xi.tabM!: loop dimensions npnq=$nb_npnq, nResVec=$nbResVec, K_u=$K_u.")
 
-    # set up to output the tabM values
-    #h5open(MFilename(modedir,modelname,dfname,lharmonic,K_u), "w") do file
+    # loop over the resonances: no threading here because we parallelise over frequencies
+    for nResVec=1:nbResVec
 
-        # loop over the resonances: no threading here because we parallelise over frequencies
-        for nResVec=1:nbResVec
+        # get current resonance numbers (n1,n2)
+        n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec]
 
-            # get current resonance numbers (n1,n2)
-            n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec]
+        # Rescale to get dimensionless frequency
+        omg_nodim = omg/Omega0
 
-            # Rescale to get dimensionless frequency
-            omg_nodim = omg/Omega0
+        # get the rescaled frequency
+        varpi = OrbitalElements.GetVarpiIsochrone(omg_nodim,n1,n2)
 
-            # get the rescaled frequency
-            varpi = OrbitalElements.GetVarpiIsochrone(omg_nodim,n1,n2)
+        # get the Legendre integration values
+        PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)
 
-            # get the Legendre integration values
-            PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)
+        # mame of the array where the D_k(w) are stored
+        tabDLeg = struct_tabLeg.tabDLeg
 
-            # mame of the array where the D_k(w) are stored
-            tabDLeg = struct_tabLeg.tabDLeg
+        # loop over the basis indices to consider
+        for i_npnq=1:nb_npnq
 
-            # loop over the basis indices to consider
-            for i_npnq=1:nb_npnq
+            # get current value of (np,nq)
+            np, nq = tab_npnq[1,i_npnq], tab_npnq[2,i_npnq]
 
-                # get current value of (np,nq)
-                np, nq = tab_npnq[1,i_npnq], tab_npnq[2,i_npnq]
+            res = 0.0 + 0.0*im
 
-                res = 0.0 + 0.0*im
+            # loop over the Legendre functions to add all contributions
+            for k=1:K_u
+                res += tabaMcoef[nResVec,np,nq,k]*tabDLeg[k]
+            end
 
-                # loop over the Legendre functions to add all contributions
-                for k=1:K_u
-                    res += tabaMcoef[nResVec,np,nq,k]*tabDLeg[k]
-                end
+            # fill the full M matrix:
+            # as tab_npnq is the upper triangular matrix (with the diagonal),
+            # we need to duplicate for symmetries
 
-                # fill the full M matrix:
-                # as tab_npnq is the upper triangular matrix (with the diagonal),
-                # we need to duplicate for symmetries
+            # fill in the element (np,nq)
+            tabM[np,nq] += res
 
-                # fill in the element (np,nq)
-                tabM[np,nq] += res
+            # fill in the element (nq,np). @WARNING: added twice for diagonal elements np=nq.
+            tabM[nq,np] += res
+        end # basis index loop
 
-                # fill in the element (nq,np). @WARNING: added twice for diagonal elements np=nq.
-                tabM[nq,np] += res
+        # do the actual writing
+        #write(file, "tabMn1"*string(n1)*"n2"*string(n2),tabMtmp)
 
-                tabMtmp[np,nq] = res
-                tabMtmp[nq,np] = res
+    end # resonance loop
 
-            end # basis index loop
+    # contributions were added twice for diagonal elements: reset
+    for np=1:nradial
+        tabM[np,np] *= 0.5
+    end
 
-            # do the actual writing
-            #write(file, "tabMn1"*string(n1)*"n2"*string(n2),tabMtmp)
-
-        end # resonance loop
-
-        # contributions were added twice for diagonal elements: reset
-        for np=1:nradial
-            tabM[np,np] *= 0.5
-        end
-
-    #end # the M output file
 
 end
 
@@ -135,7 +125,7 @@ function RunMIsochrone(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,modedir=modedir)
 
     # allocate structs for D_k(omega) computation
     struct_tabLeglist = [PerturbPlasma.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
@@ -152,7 +142,7 @@ function RunMIsochrone(inputfile::String,
     tabdetXi = zeros(Complex{Float64},nomg)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
     println("CallAResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
 
     println("CallAResponse.Xi.RunMIsochrone: Starting frequency analysis, using $LINEAR integration.")

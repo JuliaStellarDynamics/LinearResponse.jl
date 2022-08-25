@@ -46,23 +46,23 @@ d4ψ(r::Float64)::Float64 = OrbitalElements.plummer_ddddpsi_ddddr(r,bc,M,G)
 Omega0 = OrbitalElements.plummer_Omega0(bc,M,G)
 
 
-dfname = "roi1.0"
+#dfname = "roi1.0"
 #dfname = "roi0.75"
+dfname = "roi0.90"
+#dfname = "roi1.1"
 
 
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,
                ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.0)
+               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.9)
 
     return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
 
 end
 
 
-#####
-# Parameters
-#####
+# integration parameters
 K_u = 200    # number of Legendre integration sample points
 K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely?
@@ -70,23 +70,32 @@ K_w = 200    # number of allocations is insensitive to this (also time, largely?
 lharmonic = 2
 n1max     = 2 # maximum number of radial resonances to consider
 
-
 # output directories
-wmatdir="wmat/"
-gfuncdir="gfunc/"
-xifuncdir="xifunc/"
-modedir="xifunc/"
+wmatdir  = "wmat/"
+gfuncdir = "gfunc/"
+xifuncdir= "xifunc/"
+modedir  = "xifunc/"
 
-
-LINEAR     = "unstable" # Mode of response matrix computation
-
+#=
 # Frequencies to probe
-nOmega = 51
+LINEAR   = "unstable"
+nOmega   = 51
 Omegamin = -0.02
 Omegamax = 0.02
-nEta = 50
-Etamin = 0.001
-Etamax = 0.05
+nEta     = 50
+Etamin   = 0.001
+Etamax   = 0.05
+=#
+
+# Frequencies to probe
+LINEAR   = "damped"
+nOmega   = 51
+Omegamin = -0.02
+Omegamax = 0.02
+nEta     = 50
+Etamin   = -0.005
+Etamax   = -0.0001
+
 
 
 

@@ -30,7 +30,8 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                             lharmonic::Int64,
                             nradial::Int64;
                             VERBOSE::Int64=0,
-                            OVERWRITE::Bool=false)
+                            OVERWRITE::Bool=false,
+                            modedir::String="")
 
     # get relevant sizes
     K_u      = size(tabwGLquad)[1]
@@ -52,14 +53,21 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         n1,n2 = tabResVec[1,nresvec],tabResVec[2,nresvec]
 
         # don't do this loop if the file calculation already exists (unless asked)
-        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,K_u)
+        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
         if isfile(outputfilename)
-            println("CallAResponse.Xi.MakeMCoefficients: file already exists for step $nresvec of $nbResVec, ($n1,$n2).")
+
+            # log if requested
+            if VERBOSE>0
+                println("CallAResponse.Xi.MakeMCoefficients: file already exists for step $nresvec of $nbResVec, ($n1,$n2).")
+            end
+
+            # decide if we want to overwrite anyway
             if OVERWRITE
                 println("...recomputing anyway.")
             else
                 continue
             end
+
         end
 
         if VERBOSE > 0
@@ -67,7 +75,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         end
 
         # open the resonance file
-        filename = gfunc_filename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u)
+        filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
         inputfile = h5open(filename,"r")
 
         if VERBOSE > 0
@@ -144,7 +152,11 @@ end
 function StageaMcoef(tabResVec::Matrix{Int64},
                      tab_npnq::Matrix{Int64},
                      K_u::Int64,
-                     nradial::Int64)
+                     nradial::Int64;
+                     modedir::String="",
+                     modelname::String="",
+                     dfname::String="",
+                     lharmonic::Int64="")
 
 
     # get dimensions from the relevant tables
@@ -160,7 +172,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
         n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec] # Current resonance (n1,n2)
 
         # retrieve the correct M table
-        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,K_u)
+        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
         inputfile = h5open(filename,"r")
 
         # Loop over the basis indices to consider
@@ -331,7 +343,7 @@ function RunM(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,modedir=modedir)
 
     # allocate structs for D_k(omega) computation
     struct_tabLeglist = [PerturbPlasma.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
@@ -348,7 +360,7 @@ function RunM(inputfile::String,
     tabdetXi = zeros(Complex{Float64},nomg)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
     println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
     println("CallAResponse.Xi.RunM: Starting frequency analysis, using $LINEAR integration.")
@@ -414,10 +426,11 @@ function FindZeroCrossing(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,modedir=modedir)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,
+                                          modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
     println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # Structs for D_k(omega) computation

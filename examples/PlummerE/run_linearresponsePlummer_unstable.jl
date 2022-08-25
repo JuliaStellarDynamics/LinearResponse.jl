@@ -11,9 +11,8 @@ inputfile = "ModelParamPlummer_ROI.jl"
 #CallAResponse.RunWmat(inputfile)
 
 # compute the G functions
-CallAResponse.RunGfunc(inputfile)
-
+#CallAResponse.RunGfunc(inputfile)
 
 include(inputfile)
 tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
-#tabdet = CallAResponse.RunM(inputfile,tabomega,VERBOSE=1)
+tabdet = CallAResponse.RunM(inputfile,tabomega,VERBOSE=1)

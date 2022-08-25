@@ -8,10 +8,10 @@ using HDF5
 inputfile = "ModelParamIsochrone_damped.jl"
 
 # compute the Fourier-transformed basis elements
-CallAResponse.RunWmatIsochrone(inputfile)
+#CallAResponse.RunWmatIsochrone(inputfile)
 
 # compute the G(u) functions
-CallAResponse.RunGfuncIsochrone(inputfile)
+#CallAResponse.RunGfuncIsochrone(inputfile)
 
 # need this to get the parameters...
 include(inputfile)
