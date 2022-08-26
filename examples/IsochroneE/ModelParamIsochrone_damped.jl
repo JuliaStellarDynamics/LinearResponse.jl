@@ -100,7 +100,6 @@ gfuncdir  = "gfunc/"
 modedir   = "xifunc/"
 
 # Frequencies to probe
-LINEAR   = "damped"
 nOmega   = 51
 Omegamin = 0.0
 Omegamax = 0.05

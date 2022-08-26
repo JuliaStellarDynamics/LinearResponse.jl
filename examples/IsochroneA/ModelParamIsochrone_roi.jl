@@ -62,7 +62,7 @@ K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 2
-n1max     = 2  # maximum number of radial resonances to consider
+n1max     = 20  # maximum number of radial resonances to consider
 
 # output directories
 wmatdir  = "wmat/"
@@ -70,7 +70,6 @@ gfuncdir = "gfunc/"
 modedir  = "xifunc/"
 
 # Frequencies to probe
-LINEAR   = "unstable"
 nOmega   = 61
 Omegamin = -0.05
 Omegamax = 0.05

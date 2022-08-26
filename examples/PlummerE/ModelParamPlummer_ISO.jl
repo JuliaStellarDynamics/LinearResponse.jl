@@ -83,7 +83,6 @@ Etamax   = 0.0
 
 # to see the computation in the upper half plane...
 # Frequencies to probe
-LINEAR   = "unstable"
 nOmega   = 61
 Omegamin = -0.05
 Omegamax = 0.05

@@ -14,8 +14,8 @@ CallAResponse.RunWmatIsochrone(inputfile)
 CallAResponse.RunGfuncIsochrone(inputfile)
 
 include(inputfile)
-tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
-tabdet = CallAResponse.RunMIsochrone(inputfile,tabomega,VERBOSE=1)
+#tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
+#tabdet = CallAResponse.RunMIsochrone(inputfile,tabomega,VERBOSE=1)
 
 # compute the determinants with a gradient descent to find the exact frequency for ROI
 bestomg = CallAResponse.FindZeroCrossing(inputfile,0.00,0.03,NITER=16,VERBOSE=1)

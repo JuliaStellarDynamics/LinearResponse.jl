@@ -78,7 +78,6 @@ modedir  = "xifunc/"
 
 #=
 # Frequencies to probe
-LINEAR   = "unstable"
 nOmega   = 51
 Omegamin = -0.02
 Omegamax = 0.02
@@ -88,7 +87,6 @@ Etamax   = 0.05
 =#
 
 # Frequencies to probe
-LINEAR   = "damped"
 nOmega   = 51
 Omegamin = -0.02
 Omegamax = 0.02

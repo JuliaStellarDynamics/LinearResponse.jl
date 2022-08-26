@@ -11,7 +11,7 @@ import AstroBasis
 import PerturbPlasma
 
 
-"""MakeWmatIsochrone(n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
+"""MakeWmatUVIsochrone(n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
 
 @IMPROVE: give basis a type?
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
@@ -20,17 +20,15 @@ import PerturbPlasma
 
 @WARNING: when parallelising, basis will need to be copies so it can overwrite tabUl
 """
-function MakeWmatIsochrone(n1::Int64,n2::Int64,
-                           Kuvals::Matrix{Float64},
-                           K_v::Int64,
-                           lharmonic::Int64,
-                           basis::AstroBasis.Basis_type,
-                           Omega0::Float64=1.,
-                           K_w::Int64=20;
-                           bc::Float64=1.0,M::Float64=1.0,G::Float64=1.0,EDGE::Float64=0.01)
-    #=
-    add rmax as a parameter?
-    =#
+function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
+                             Kuvals::Matrix{Float64},
+                             K_v::Int64,
+                             lharmonic::Int64,
+                             basis::AstroBasis.Basis_type,
+                             Omega0::Float64=1.,
+                             K_w::Int64=20;
+                             bc::Float64=1.0,M::Float64=1.0,G::Float64=1.0,EDGE::Float64=0.01)
+
     K_u = length(Kuvals)
 
     # compute the frequency scaling factors for this resonance
@@ -256,7 +254,7 @@ function RunWmatIsochrone(inputfile::String;
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat = MakeWmatIsochrone(n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,K_w,bc=bc,M=M,G=G)
+        @time tabWMat,tabaMat,tabeMat = MakeWmatUVIsochrone(n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,K_w,bc=bc,M=M,G=G)
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

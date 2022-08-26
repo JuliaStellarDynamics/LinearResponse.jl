@@ -4,7 +4,7 @@ import PerturbPlasma
 using HDF5
 
 
-"""MakeWmat(ψ,dψ,d2ψ,d3ψ,n1,n2,K_u,K_v,lharmonic,basis[,Ω0,K_w])
+"""MakeWmatUV(ψ,dψ,d2ψ,d3ψ,n1,n2,K_u,K_v,lharmonic,basis[,Ω0,K_w])
 
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
 @IMPROVE: parallelise by launching from both -1 and 1?
@@ -14,31 +14,28 @@ using HDF5
 
 @NOTE: AstroBasis provides the Basis_type data type.
 """
-function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                  n1::Int64,n2::Int64,
-                  Kuvals::Matrix{Float64},
-                  K_v::Int64,
-                  lharmonic::Int64,
-                  basis::AstroBasis.Basis_type;
-                  Ω0::Float64=1.,
-                  K_w::Int64=50,
-                  EDGE::Float64=0.01,
-                  verbose::Int64=0)
-    #=
-    add rmax as a parameter?
-    =#
+function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                    n1::Int64,n2::Int64,
+                    Kuvals::Matrix{Float64},
+                    K_v::Int64,
+                    lharmonic::Int64,
+                    basis::AstroBasis.Basis_type;
+                    Ω0::Float64=1.,
+                    K_w::Int64=50,
+                    EDGE::Float64=0.01,
+                    VERBOSE::Int64=0,
+                    rmax::Float64=1.0e6,
+                    NINT::Int64=32)
 
     # get the number of u samples from the input vector of u vals
     K_u = length(Kuvals)
 
     # compute the frequency scaling factors for this resonance
-    # @IMPROVE: need a maximum radius for the root finding; here set to be 1000., but if the cluster was extremely extended, this could break
-    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,10000.,Ω0)
+    # @IMPROVE: need a maximum radius for the root finding
+    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,rmax,Ω0)
 
-    # define beta_c, empirically.
-    # @IMPROVE: 2000 is the number of sample points; this also is hard-coded to sample between log R [-5,5], which would be adaptive
-    # beta_c = OrbitalElements.make_betac(dψ,d2ψ,2000,Ω0)
-    βc(alpha_c::Float64)::Float64 = OrbitalElements.βcirc(alpha_c,dψ,d2ψ,Ω0,rmax=1.0e6)
+    # define a function for beta_c
+    βc(alpha_c::Float64)::Float64 = OrbitalElements.βcirc(alpha_c,dψ,d2ψ,Ω0,rmax=rmax)
 
     # allocate the results matrices
     tabWMat = zeros(basis.nmax,K_u,K_v)
@@ -55,12 +52,12 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         # get the current u value
         uval = Kuvals[kuval]
 
-        if verbose > 1
+        if VERBOSE > 1
             println("\nCallAResponse.WMat.MakeWMat: on step $kuval of $K_u: u=$uval.")
         end
 
         # get the corresponding v boundary values
-        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,10000.,Ω0)
+        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,rmax,Ω0)
         vmin,vmax = OrbitalElements.FindVminVmax(uval,ωmin,ωmax,n1,n2,vbound,βc)
 
         # determine the step size in v
@@ -79,7 +76,7 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
             Ω1,Ω2 = α*Ω0,α*β*Ω0
 
-            if verbose > 2
+            if VERBOSE > 2
                 print("v=$kvval,o1=$Ω1,o2=$Ω2;")
             end
 
@@ -92,9 +89,9 @@ function MakeWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             #a1,e1 = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,Ω1,Ω2,1*10^(-12),1)
             #maxestep = 0.005
             #sma,ecc = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,Ω1,Ω2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
-            a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=32,EDGE=EDGE,verbose=0)
+            a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=NINT,EDGE=EDGE,VERBOSE=VERBOSE)
 
-            #if verbose > 2
+            #if VERBOSE > 2
             #    print("a=$sma,ecc=$ecc")
             #end
 
@@ -233,7 +230,8 @@ end
     RunWmat(inputfile)
 
 """
-function RunWmat(inputfile::String)
+function RunWmat(inputfile::String;
+                 VERBOSE::Int64=0)
 
     # load model parameters
     include(inputfile)
@@ -259,17 +257,31 @@ function RunWmat(inputfile::String)
     tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
     # print the length of the list of resonance vectors
-    println("WMat.jl: Number of resonances to compute: $nbResVec")
+    if VERBOSE>0
+        println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $nbResVec")
+    end
 
     Threads.@threads for i = 1:nbResVec
         k = Threads.threadid()
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
 
-        println("WMat.jl: Computing W for the ($n1,$n2) resonance.")
+        if VERBOSE>0
+            println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
+        end
 
-        # currently defaulting to timed version:
-        # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat,tabJMat = MakeWmat(ψ,dψ,d2ψ,d3ψ,n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Ω0=Ω0,K_w=K_w,verbose=0)
+        # compute the W matrices in UV space: timing optional
+        if VERBOSE>1
+            @time tabWMat,tabaMat,tabeMat,tabJMat = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
+                                                               n1,n2,
+                                                               tabuGLquad,K_v,lharmonic,bases[k],
+                                                               Ω0=Ω0,K_w=K_w,VERBOSE=VERBOSE)
+        else
+            tabWMat,tabaMat,tabeMat,tabJMat = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
+                                                         n1,n2,
+                                                         tabuGLquad,K_v,lharmonic,bases[k],
+                                                         Ω0=Ω0,K_w=K_w,VERBOSE=VERBOSE)
+        end
+
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

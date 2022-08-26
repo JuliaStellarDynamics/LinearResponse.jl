@@ -103,7 +103,6 @@ lharmonic = 2
 n1max = 2#10  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
-LINEAR = "unstable"
 # Frequencies to probe
 nOmega = 51
 Omegamin = -0.02

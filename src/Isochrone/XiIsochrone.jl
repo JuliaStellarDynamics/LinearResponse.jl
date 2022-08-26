@@ -11,7 +11,7 @@ VERBOSE flag rules
 using LinearAlgebra
 
 
-"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,LINEAR,Omega0)
+"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,Omega0)
 Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Omega0.
 
 @IMPROVE: The shape of the array could maybe be improved
@@ -25,7 +25,6 @@ function tabMIsochrone!(omg::Complex{Float64},
                         tab_npnq::Matrix{Int64},
                         struct_tabLeg::PerturbPlasma.struct_tabLeg_type,
                         nradial::Int64,
-                        LINEAR::String="unstable",
                         Omega0::Float64=1.0)
 
     # get dimensions from the relevant tables
@@ -51,7 +50,7 @@ function tabMIsochrone!(omg::Complex{Float64},
         varpi = OrbitalElements.GetVarpiIsochrone(omg_nodim,n1,n2)
 
         # get the Legendre integration values
-        PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)
+        PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg)
 
         # mame of the array where the D_k(w) are stored
         tabDLeg = struct_tabLeg.tabDLeg
@@ -144,7 +143,6 @@ function RunMIsochrone(inputfile::String,
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
     println("CallAResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
 
-    println("CallAResponse.Xi.RunMIsochrone: Starting frequency analysis, using $LINEAR integration.")
     println("CallAResponse.Xi.RunMIsochrone: computing $nomglist frequency values.")
 
     # loop through all frequencies
@@ -153,9 +151,9 @@ function RunMIsochrone(inputfile::String,
         k = Threads.threadid()
 
         if i==1
-            @time tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],nradial,LINEAR,Omega0)
+            @time tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],nradial,Omega0)
         else
-            tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],nradial,LINEAR,Omega0)
+            tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],nradial,Omega0)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])

@@ -202,7 +202,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
 
 end
 
-"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dψ,d2ψ,LINEAR,Ω0)
+"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dψ,d2ψ,Ω0)
 Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω0.
 
 @IMPROVE: The shape of the array could maybe be improved
@@ -218,7 +218,6 @@ function tabM!(omg::Complex{Float64},
                dψ::Function,
                d2ψ::Function,
                nradial::Int64,
-               LINEAR::String="unstable",
                Ω0::Float64=1.0)
 
     # get dimensions from the relevant tables
@@ -244,7 +243,7 @@ function tabM!(omg::Complex{Float64},
         varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Ω0)
 
         # get the Legendre integration values
-        PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg,LINEAR)
+        PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg)
 
         # mame of the array where the D_k(w) are stored
         tabDLeg = struct_tabLeg.tabDLeg
@@ -362,7 +361,6 @@ function RunM(inputfile::String,
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
     println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
-    println("CallAResponse.Xi.RunM: Starting frequency analysis, using $LINEAR integration.")
     println("CallAResponse.Xi.RunM: computing $nomglist frequency values.")
 
     # loop through all frequencies
@@ -371,9 +369,9 @@ function RunM(inputfile::String,
         k = Threads.threadid()
 
         if i==2 # skip the first in case there is compile time built in
-            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Ω0)
+            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0)
         else
-            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,LINEAR,Ω0)
+            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0)
         end
 
         # do we need some sort of diagnostic check here?
@@ -452,14 +450,14 @@ function FindZeroCrossing(inputfile::String,
         tabM!(omgval,tabMlist,tabaMcoef,
               tabResVec,tab_npnq,
               struct_tabLeglist,
-              dψ,d2ψ,nradial,LINEAR,Ω0)
+              dψ,d2ψ,nradial,Ω0)
 
         centralvalue = detXi(IMat,tabMlist)
 
         tabM!(omgvaloff,tabMlist,tabaMcoef,
               tabResVec,tab_npnq,
               struct_tabLeglist,
-              dψ,d2ψ,nradial,LINEAR,Ω0)
+              dψ,d2ψ,nradial,Ω0)
 
         offsetvalue = detXi(IMat,tabMlist)
 
