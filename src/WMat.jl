@@ -1,7 +1,3 @@
-import OrbitalElements
-import AstroBasis
-import PerturbPlasma
-using HDF5
 
 
 """MakeWmatUV(ψ,dψ,d2ψ,d3ψ,n1,n2,K_u,K_v,lharmonic,basis[,Ω0,K_w])
@@ -24,7 +20,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                     K_w::Int64=50,
                     EDGE::Float64=0.01,
                     VERBOSE::Int64=0,
-                    rmax::Float64=1.0e6,
+                    rmax::Float64=1.0e4,
                     NINT::Int64=32)
 
     # get the number of u samples from the input vector of u vals
@@ -67,8 +63,6 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
             # get the current v value
             vval = vmin + deltav*(kvval-0.5)
-
-
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
@@ -247,7 +241,7 @@ function RunWmat(inputfile::String;
     bases=[deepcopy(basis) for k=1:Threads.nthreads()]
 
     # Legendre integration prep.
-    tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
+    tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(K_u)
     tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
     # number of resonance vectors

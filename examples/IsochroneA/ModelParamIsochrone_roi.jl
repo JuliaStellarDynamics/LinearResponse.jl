@@ -5,14 +5,14 @@ driven by run_linearresponseIsochrone_unstable.jl
 
 import OrbitalElements
 import AstroBasis
-import PerturbPlasma
+import FiniteHilbertTransform
 using HDF5
 
 
 # choose a basis for computation of the Fourier-transformed basis elements
 G  = 1.
-rb = 20.0
-lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
+rb = 10.0
+lmax,nmax = 2,25 # Usually lmax corresponds to the considered harmonics lharmonic
 basis     = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim      = basis.dimension
 nradial   = basis.nmax
@@ -62,7 +62,7 @@ K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 2
-n1max     = 20  # maximum number of radial resonances to consider
+n1max     = 2  # maximum number of radial resonances to consider
 
 # output directories
 wmatdir  = "wmat/"

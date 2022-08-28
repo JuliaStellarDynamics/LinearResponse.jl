@@ -2,11 +2,11 @@
 
 import OrbitalElements
 import AstroBasis
-import PerturbPlasma
+import FiniteHilbertTransform
 import CallAResponse
 using HDF5
 
-function RunMIsochroneConvergence(inputfile::String,
+function RunNIsochroneConvergence(inputfile::String,
                                   omglist::Array{Complex{Float64}};
                                   VERBOSE::Int64=0)
 
@@ -28,7 +28,7 @@ function RunMIsochroneConvergence(inputfile::String,
         tabResVec = CallAResponse.maketabResVec(lharmonic,n1val,ndim)
 
         # get all weights
-        tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = PerturbPlasma.tabGLquad(K_u)
+        tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
 
         # make the (np,nq) vectors that we need to evaluate
         tab_npnq = CallAResponse.makeTabnpnq(nradial)
@@ -37,7 +37,7 @@ function RunMIsochroneConvergence(inputfile::String,
         CallAResponse.MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,modedir=modedir)
 
         # allocate structs for D_k(omega) computation
-        struct_tabLeglist = PerturbPlasma.struct_tabLeg_create(K_u)
+        struct_tabLeglist = FiniteHilbertTransform.struct_tabLeg_create(K_u)
 
         # allocate memory for the response matrices M and identity matrices
         tabM = zeros(Complex{Float64},nradial,nradial)

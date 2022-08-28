@@ -66,7 +66,7 @@ function MakeGuIsochrone(ndFdJ::Function,
 
             # compute Jacobians
             #(alpha,beta) -> (u,v)
-            Jacalphabeta = OrbitalElements.JacalphabetaToUV(n1,n2,ωmin,ωmax,vval)
+            Jacalphabeta = OrbitalElements.JacAlphaBetaToUV(n1,n2,ωmin,ωmax,vval)
 
             #(E,L) -> (alpha,beta): Isochrone analytic
             JacEL        = OrbitalElements.IsochroneJacELtoAlphaBeta(alpha,beta,bc,M,G)
@@ -126,7 +126,7 @@ function RunGfuncIsochrone(inputfile::String,
     end
 
     # legendre integration prep
-    tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
+    tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(K_u)
     tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
     # number of resonance vectors

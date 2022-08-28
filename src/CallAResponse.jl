@@ -1,5 +1,12 @@
 module CallAResponse
 
+# bring in the external dependencies
+import OrbitalElements
+import AstroBasis
+import FiniteHilbertTransform
+using HDF5
+
+
 # helper functions for constructing basis list, resonance list, prefactors (3d), writing utilities, and frequency tables
 include("Utils/Basis.jl")
 include("Utils/Resonances.jl")

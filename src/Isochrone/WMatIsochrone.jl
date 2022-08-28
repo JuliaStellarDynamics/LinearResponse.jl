@@ -8,7 +8,7 @@ What's different:
 
 import OrbitalElements
 import AstroBasis
-import PerturbPlasma
+import FiniteHilbertTransform
 
 
 """MakeWmatUVIsochrone(n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
@@ -225,7 +225,7 @@ function RunWmatIsochrone(inputfile::String;
     bases=[deepcopy(basis) for k=1:Threads.nthreads()]
 
     # Legendre integration prep.
-    tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
+    tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(K_u)
     tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
     # number of resonance vectors

@@ -142,7 +142,7 @@ function RunGfunc(inputfile::String)
     end
 
     # prep for Legendre integration
-    tabuGLquadtmp,tabwGLquad = PerturbPlasma.tabuwGLquad(K_u)
+    tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(K_u)
     tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
 
     # make a function for the circular frequency relationship:

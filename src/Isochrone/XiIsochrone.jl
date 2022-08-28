@@ -23,7 +23,7 @@ function tabMIsochrone!(omg::Complex{Float64},
                         tabaMcoef::Array{Float64,4},
                         tabResVec::Matrix{Int64},
                         tab_npnq::Matrix{Int64},
-                        struct_tabLeg::PerturbPlasma.struct_tabLeg_type,
+                        struct_tabLeg::FiniteHilbertTransform.struct_tabLeg_type,
                         nradial::Int64,
                         Omega0::Float64=1.0)
 
@@ -50,7 +50,7 @@ function tabMIsochrone!(omg::Complex{Float64},
         varpi = OrbitalElements.GetVarpiIsochrone(omg_nodim,n1,n2)
 
         # get the Legendre integration values
-        PerturbPlasma.get_tabLeg!(varpi,K_u,struct_tabLeg)
+        FiniteHilbertTransform.get_tabLeg!(varpi,K_u,struct_tabLeg)
 
         # mame of the array where the D_k(w) are stored
         tabDLeg = struct_tabLeg.tabDLeg
@@ -117,7 +117,7 @@ function RunMIsochrone(inputfile::String,
     tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
     # get all weights
-    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = PerturbPlasma.tabGLquad(K_u)
+    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
 
     # make the (np,nq) vectors that we need to evaluate
     tab_npnq = makeTabnpnq(nradial)
@@ -126,7 +126,7 @@ function RunMIsochrone(inputfile::String,
     MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,modedir=modedir)
 
     # allocate structs for D_k(omega) computation
-    struct_tabLeglist = [PerturbPlasma.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
+    struct_tabLeglist = [FiniteHilbertTransform.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
 
     # allocate memory for the response matrices M and identity matrices
     tabMlist = [zeros(Complex{Float64},nradial,nradial) for k=1:Threads.nthreads()]

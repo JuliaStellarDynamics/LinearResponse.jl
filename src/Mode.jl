@@ -27,7 +27,7 @@ function ComputeModeTables(inputfile,
     tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
     # get all Legendre weights
-    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = PerturbPlasma.tabGLquad(K_u)
+    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
 
     # make the (np,nq) vectors that we need to evaluate
     tab_npnq = makeTabnpnq(nradial)
@@ -40,7 +40,7 @@ function ComputeModeTables(inputfile,
     println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # struct for D_k(omega) computation
-    struct_tabLeglist = PerturbPlasma.struct_tabLeg_create(K_u)
+    struct_tabLeglist = FiniteHilbertTransform.struct_tabLeg_create(K_u)
 
     # memory for the response matrices M and identity matrices
     MMat = zeros(Complex{Float64},nradial,nradial)
@@ -50,7 +50,7 @@ function ComputeModeTables(inputfile,
     tabdetXi = zeros(Float64,nomg) # real part of the determinant
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dψ,d2ψ,nradial,LINEAR,Omega0)
+    tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dψ,d2ψ,nradial,Omega0)
     println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)

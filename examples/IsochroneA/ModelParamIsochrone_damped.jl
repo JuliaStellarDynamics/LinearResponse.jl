@@ -5,7 +5,7 @@ driven by run_linearresponseIsochrone_damped.jl
 
 import OrbitalElements
 import AstroBasis
-import PerturbPlasma
+import FiniteHilbertTransform
 using HDF5
 
 # choose a basis for computation of the Fourier-transformed basis elements
@@ -63,7 +63,6 @@ lharmonic = 1        # which harmonic we are considering?
 n1max     = 0       # maximum number of radial resonances to consider
 
 # Frequencies to probe
-LINEAR   = "damped"
 nOmega   = 51
 Omegamin = 0.0
 Omegamax = 0.05
@@ -73,7 +72,6 @@ Etamax   = 0.0
 
 #= # to see the computation in the upper half plane...
 # Frequencies to probe
-LINEAR     = "unstable"
 nOmega = 61
 Omegamin = -0.05
 Omegamax = 0.05
