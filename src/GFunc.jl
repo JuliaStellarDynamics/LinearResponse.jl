@@ -156,11 +156,11 @@ function RunGfunc(inputfile::String)
     # fill in the array of resonance vectors (n1,n2)
     tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
-    println("CallAResponse.GFuncIsochrone.RunGfunc: Considering $nbResVec resonances.")
+    println("CallAResponse.GFunc.RunGfunc: Considering $nbResVec resonances.")
 
     Threads.@threads for i = 1:nbResVec
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
-        println("CallAResponse.GFuncIsochrone.RunGfunc: Starting on ($n1,$n2).")
+        println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
         # load a value of tabWmat, plus (a,e) values
         filename = wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb)
@@ -173,12 +173,12 @@ function RunGfunc(inputfile::String)
 
         # print the size of the found files if the first processor
         if i==0
-            println("CallAResponse.GFuncIsochrone.RunGfunc: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
+            println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
         end
 
         outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
         if isfile(outputfilename)
-            println("CallAResponse.GFuncIsochrone.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2).")
+            println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2).")
             continue
         end
 
