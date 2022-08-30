@@ -48,8 +48,8 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
     # loop through all resonance vectors
     # make this parallel, but check that the loop is exited cleanly?
-    Threads.@threads for nresvec in 1:nbResVec
-    #for nresvec in 1:nbResVec
+    # Threads.@threads for nresvec in 1:nbResVec
+    for nresvec in 1:nbResVec
 
         n1,n2 = tabResVec[1,nresvec],tabResVec[2,nresvec]
 
