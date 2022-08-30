@@ -55,12 +55,12 @@ modedir    = "xifunc/"
 
 
 # integration parameters
-K_u = 200      # number of Legendre integration sample points
+K_u = 205      # number of Legendre integration sample points
 K_v = 200      # number of allocations is directly proportional to this
-K_w = 200      # number of allocations is insensitive to this (also time, largely?)
+K_w = 5000     # number of allocations is insensitive to this (also time, largely?)
 
 lharmonic = 1        # which harmonic we are considering?
-n1max     = 0       # maximum number of radial resonances to consider
+n1max     = 12       # maximum number of radial resonances to consider
 
 # Frequencies to probe
 nOmega   = 51

@@ -1,7 +1,7 @@
 name = "CallAResponse"
 uuid = "b55f3ae4-0c12-11ed-076a-67f81ab2b5b1"
-authors = ["Mike Petersen <petersen@iap.fr>"]
-version = "0.2.2"
+authors = ["Mike Petersen <petersen@iap.fr>", "Mathieu Roule <roule@iap.fr>"]
+version = "0.2.3"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
@@ -14,7 +14,7 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 OrbitalElements = "a3b07092-bde3-4843-b84f-c597d614ec7b"
 AstroBasis = "f9f069e8-36d3-4f22-8c0d-26ca7e8540d8"
-PerturbPlasma = "68cdf181-988b-4042-8999-0b9541c1c3c2"
+FiniteHilbertTransform = "68cdf181-988b-4042-8999-0b9541c1c3c2"
 
 [compat]
 julia = "1.5"

@@ -123,7 +123,7 @@ function RunMIsochrone(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,modedir=modedir)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,rb=rb)
 
     # allocate structs for D_k(omega) computation
     struct_tabLeglist = [FiniteHilbertTransform.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
@@ -140,7 +140,7 @@ function RunMIsochrone(inputfile::String,
     tabdetXi = zeros(Complex{Float64},nomg)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
     println("CallAResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
 
     println("CallAResponse.Xi.RunMIsochrone: computing $nomglist frequency values.")
@@ -163,4 +163,65 @@ function RunMIsochrone(inputfile::String,
     WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,K_u,rb),omglist,tabdetXi)
 
     return tabdetXi
+end
+
+
+
+"""
+for a single omega, compute the shape of the mode
+
+"""
+function ComputeModeTablesIsochrone(inputfile,
+                                    omgval::Complex{Float64};
+                                    VERBOSE::Int64=0)
+
+    # include configuration parameters
+    LoadConfiguration(inputfile)
+
+    # Check directory names
+    checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
+    if checkdirs < 0
+        return 0
+    end
+
+    # Construct the table of needed resonance vectors
+    # Number of resonance vectors
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
+
+    # fill in the array of resonance vectors (n1,n2)
+    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+
+    # get all Legendre weights
+    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
+
+    # make the (np,nq) vectors that we need to evaluate
+    tab_npnq = makeTabnpnq(nradial)
+
+    # make the decomposition coefficients a_k
+    #MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,rb=rb)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,rb=rb)
+
+    # load aXi values
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+
+    # struct for D_k(omega) computation
+    struct_tabLeglist = FiniteHilbertTransform.struct_tabLeg_create(K_u)
+
+    # memory for the response matrices M and identity matrices
+    MMat = zeros(Complex{Float64},nradial,nradial)
+
+    # Containers for determinant and min eigenvalue
+    nomg = 1
+    tabdetXi = zeros(Float64,nomg) # real part of the determinant
+    tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
+
+    #tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dψ,d2ψ,nradial,Omega0)
+    tabMIsochrone!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,nradial,Omega0)
+    println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
+
+    # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
+    EV,EF,EM = mevXi(MMat)
+
+    return EV,EF,EM
 end

@@ -343,7 +343,7 @@ function RunM(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,modedir=modedir)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,modedir=modedir,rb=rb)
 
     # allocate structs for D_k(omega) computation
     struct_tabLeglist = [FiniteHilbertTransform.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
@@ -360,7 +360,7 @@ function RunM(inputfile::String,
     tabdetXi = zeros(Complex{Float64},nomg)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
     println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
     println("CallAResponse.Xi.RunM: computing $nomglist frequency values.")
@@ -425,11 +425,11 @@ function FindZeroCrossing(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,modedir=modedir)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,modedir=modedir,rb=rb)
 
     # load aXi values
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,
-                                          modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
+                                          modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
     println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # Structs for D_k(omega) computation

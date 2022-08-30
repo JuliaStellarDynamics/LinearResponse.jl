@@ -204,6 +204,285 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
 end
 
 
+
+function IntegrateOverOrbit!(Wvals::Array{Float64},
+                             a::Float64,e::Float64,
+                             Ω1::Float64,Ω2::Float64,
+                             lharmonic::Int64,
+                             n1::Int64,n2::Int64,
+                             basis::AstroBasis.Basis_type,
+                             K_w::Int64=100;
+                             bc::Float64=1.,Ω0::Float64=1.0,M::Float64=1.0,G::Float64=1.0)
+
+
+     # set the matrix step size
+     duWMat = (2.0)/(K_w)
+
+    # get (rp,ra)
+    rp,ra = OrbitalElements.RpRafromAE(a,e)
+
+    # need angular momentum
+    Lval = OrbitalElements.isochrone_L_from_rpra(rp,ra,bc,M,G)
+
+    println("rp=$rp,ra=$ra,Lval=$Lval")
+
+    # Initialise the state vectors: u, theta1, (theta2-psi)
+    u, theta1, theta2 = -1.0, 0.0, 0.0
+
+    # launch the integration from the left boundary
+    gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+
+    # Current location of the radius, r=r(u): isn't this exactly rp?
+    rval = OrbitalElements.ru(u,a,e)
+
+    # the velocity for integration
+    dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
+
+    # collect the basis elements (in place!)
+    AstroBasis.tabUl!(basis,lharmonic,rval)
+
+    # start the integration loop now that we are initialised
+    # at each step, we are performing an RK4-like calculation
+    for istep=1:K_w
+
+        # RK4 step 1
+        # compute the first prefactor
+        pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
+
+        # Loop over the radial indices to sum basis contributions
+        for np=1:basis.nmax
+            Wvals[np] += pref1*basis.tabUl[np]
+        end
+
+        # update velocities at end of step 1
+        k1_1 = duWMat*dt1du
+        k2_1 = duWMat*dt2du
+
+        # RK4 step 2
+        # Update the time by half a timestep
+        u += 0.5*duWMat
+
+        # Current location of the radius, r=r(u)
+        rval = OrbitalElements.ru(u,a,e)
+
+        # current value of Theta
+        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+
+        # Current value of dtheta1/du and dtheta2/du
+        dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
+
+        # recompute the basis functions for the changed radius value
+        AstroBasis.tabUl!(basis,lharmonic,rval)
+
+        # Common prefactor for all the increments
+        # Depends on the updated (theta1+0.5*k1_1,theta2+0.5*k2_1)
+        # the factor (1.0/3.0) comes from RK4
+        pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1))
+
+        # update velocities at end of step 2
+        k1_2 = duWMat*dt1du
+        k2_2 = duWMat*dt2du
+
+        # RK4 step 3
+        # The time, u, is not updated for this step
+        # For this step, no need to re-compute the basis elements, as r has not been updated
+
+        # Common prefactor for all the increments
+        # depends on the updated (theta1+0.5*k1_2,theta2+0.5*k2_2)
+        # the factor (1.0/3.0) comes from RK4
+        pref3 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_2) + n2*(theta2+0.5*k2_2))
+
+        # Loop over the radial indices to sum basis contributions
+        for np=1:basis.nmax
+            #tabWMat[np,kuval,kvval] += pref3*basis.tabUl[np]
+            Wvals[np] += (pref2+pref3)*basis.tabUl[np]
+        end
+
+        k1_3 = k1_2 # Does not need to be updated
+        k2_3 = k2_2 # Does not need to be updated
+
+        # RK4 step 4
+        # update the time by half a timestep: we are now at the next u value
+        u += 0.5*duWMat
+
+        # current location of the radius, r=r(u)
+        rval = OrbitalElements.ru(u,a,e)
+
+        # current value of Theta
+        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+
+        # Current value of dtheta1/du and dtheta2/du, always well-posed
+        dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
+
+        # updated basis elements for new rval
+        AstroBasis.tabUl!(basis,lharmonic,rval)
+
+        # Common prefactor for all the increments:
+        # Depends on the updated (theta1+k1_3,theta2+k2_3)
+        # the factor (1.0/6.0) comes from RK4
+        pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k1_3) + n2*(theta2+k2_3))
+
+        # Loop over the radial indices to sum basis contributions
+        for np=1:basis.nmax
+            Wvals[np] += pref4*basis.tabUl[np]
+        end
+
+        # current velocities for theta1,theta2
+        k1_4 = duWMat*dt1du
+        k2_4 = duWMat*dt2du
+
+        # update the positions using RK4-like sum
+        theta1 += (k1_1 + 2.0*k1_2 + 2.0*k1_3 + k1_4)/(6.0)
+        theta2 += (k2_1 + 2.0*k2_2 + 2.0*k2_3 + k2_4)/(6.0)
+
+    end
+
+end
+
+
+
+
+function IntegrateOverOrbitAllSteps!(Wvals::Array{Float64,2},
+                                     uarr::Array{Float64},theta1arr::Array{Float64},theta2arr::Array{Float64},
+                                     a::Float64,e::Float64,
+                                     Ω1::Float64,Ω2::Float64,
+                                     lharmonic::Int64,
+                                     n1::Int64,n2::Int64,
+                                     basis::AstroBasis.Basis_type,
+                                     K_w::Int64=100;
+                                     bc::Float64=1.,Ω0::Float64=1.0,M::Float64=1.0,G::Float64=1.0)
+
+
+    # set the matrix step size
+    duWMat = (2.0)/(K_w)
+
+    # get (rp,ra)
+    rp,ra = OrbitalElements.RpRafromAE(a,e)
+
+    # need angular momentum
+    Lval = OrbitalElements.isochrone_L_from_rpra(rp,ra,bc,M,G)
+
+    # Initialise the state vectors: u, theta1, (theta2-psi)
+    u, theta1, theta2 = -1.0, 0.0, 0.0
+
+    # launch the integration from the left boundary
+    gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+
+    # Current location of the radius, r=r(u): isn't this exactly rp?
+    rval = OrbitalElements.ru(u,a,e)
+
+    # the velocity for integration
+    dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
+
+    # collect the basis elements (in place!)
+    AstroBasis.tabUl!(basis,lharmonic,rval)
+
+    # start the integration loop now that we are initialised
+    # at each step, we are performing an RK4-like calculation
+    for wstep=1:K_w
+
+        # RK4 step 1
+        # compute the first prefactor
+        pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
+
+        # Loop over the radial indices to sum basis contributions
+        for np=1:basis.nmax
+            Wvals[np,wstep] = pref1*basis.tabUl[np]
+        end
+
+        # update velocities at end of step 1
+        k1_1 = duWMat*dt1du
+        k2_1 = duWMat*dt2du
+
+        # RK4 step 2
+        # Update the time by half a timestep
+        u += 0.5*duWMat
+
+        # Current location of the radius, r=r(u)
+        rval = OrbitalElements.ru(u,a,e)
+
+        # current value of Theta
+        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+
+        # Current value of dtheta1/du and dtheta2/du
+        dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
+
+        # recompute the basis functions for the changed radius value
+        AstroBasis.tabUl!(basis,lharmonic,rval)
+
+        # Common prefactor for all the increments
+        # Depends on the updated (theta1+0.5*k1_1,theta2+0.5*k2_1)
+        # the factor (1.0/3.0) comes from RK4
+        pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1))
+
+        # update velocities at end of step 2
+        k1_2 = duWMat*dt1du
+        k2_2 = duWMat*dt2du
+
+        # RK4 step 3
+        # The time, u, is not updated for this step
+        # For this step, no need to re-compute the basis elements, as r has not been updated
+
+        # Common prefactor for all the increments
+        # depends on the updated (theta1+0.5*k1_2,theta2+0.5*k2_2)
+        # the factor (1.0/3.0) comes from RK4
+        pref3 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_2) + n2*(theta2+0.5*k2_2))
+
+        # Loop over the radial indices to sum basis contributions
+        for np=1:basis.nmax
+            #tabWMat[np,kuval,kvval] += pref3*basis.tabUl[np]
+            Wvals[np,wstep] += (pref2+pref3)*basis.tabUl[np]
+        end
+
+        k1_3 = k1_2 # Does not need to be updated
+        k2_3 = k2_2 # Does not need to be updated
+
+        # RK4 step 4
+        # update the time by half a timestep: we are now at the next u value
+        u += 0.5*duWMat
+
+        # current location of the radius, r=r(u)
+        rval = OrbitalElements.ru(u,a,e)
+
+        # current value of Theta
+        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+
+        # Current value of dtheta1/du and dtheta2/du, always well-posed
+        dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
+
+        # updated basis elements for new rval
+        AstroBasis.tabUl!(basis,lharmonic,rval)
+
+        # Common prefactor for all the increments:
+        # Depends on the updated (theta1+k1_3,theta2+k2_3)
+        # the factor (1.0/6.0) comes from RK4
+        pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k1_3) + n2*(theta2+k2_3))
+
+        # Loop over the radial indices to sum basis contributions
+        for np=1:basis.nmax
+            Wvals[np,wstep] += pref4*basis.tabUl[np]
+        end
+
+        # current velocities for theta1,theta2
+        k1_4 = duWMat*dt1du
+        k2_4 = duWMat*dt2du
+
+        # update the positions using RK4-like sum
+        theta1 += (k1_1 + 2.0*k1_2 + 2.0*k1_3 + k1_4)/(6.0)
+        theta2 += (k2_1 + 2.0*k2_2 + 2.0*k2_3 + k2_4)/(6.0)
+
+        # record values
+        theta1arr[wstep] = (k1_1 + 2.0*k1_2 + 2.0*k1_3 + k1_4)/(6.0)
+        theta2arr[wstep] = (k2_1 + 2.0*k2_2 + 2.0*k2_3 + k2_4)/(6.0)
+        uarr[wstep] = u - 0.5*duWMat
+
+    end
+
+end
+
+
+
+
 """
     RunWmatIsochrone(inputfile)
 
@@ -245,7 +524,7 @@ function RunWmatIsochrone(inputfile::String;
             println("CallAResponse.WMatIsochrone.RunWmatIsochrone: Computing W for the ($n1,$n2) resonance.")
         end
 
-        if isfile(wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb))
+        if isfile(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,nradial,rb,K_u,K_v,K_w))
             if VERBOSE > 0
                 println("CallAResponse.WMatIsochrone.RunWmatIsochrone: ($n1,$n2) resonanance WMat file already exists.")
             end
@@ -258,7 +537,7 @@ function RunWmatIsochrone(inputfile::String;
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.
-        h5open(wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb), "w") do file
+        h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,nradial,rb,K_u,K_v,K_w), "w") do file
             write(file, "wmat",tabWMat)
             write(file, "amat",tabaMat)
             write(file, "emat",tabeMat)

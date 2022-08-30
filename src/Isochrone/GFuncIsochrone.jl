@@ -117,7 +117,11 @@ end
 function RunGfuncIsochrone(inputfile::String,
                            VERBOSE::Int64=1)
 
-    LoadConfiguration(inputfile)
+    #LoadConfiguration(inputfile)
+    #lock(lk) # force load on all threads
+    include(inputfile)
+        #println("K_v=$K_v")
+    #end
 
     # Check directory names
     checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
@@ -140,6 +144,9 @@ function RunGfuncIsochrone(inputfile::String,
 
 
     Threads.@threads for i = 1:nbResVec
+        #K_v=200
+        #K_w=5000
+        #println("K_v=$K_v")
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
         if VERBOSE > 0
             println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Starting on ($n1,$n2).")
@@ -162,7 +169,7 @@ function RunGfuncIsochrone(inputfile::String,
         end
 
         # load a value of tabWmat, plus (a,e) values
-        filename = wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb)
+        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,basis.nmax,rb,K_u,K_v,K_w)
         file = h5open(filename,"r")
         Wtab = read(file,"wmat")
         atab = read(file,"amat")

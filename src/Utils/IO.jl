@@ -66,16 +66,18 @@ end
 
 
 """
-    wmat_filename()
+    WMatFilename()
 
 filename for a given wmat result
 """
-function wmat_filename(wmatdir::String,
-                        modelname::String,
-                        lharmonic::Int64,n1::Int64,n2::Int64,
-                        rb::Float64)
+function WMatFilename(wmatdir::String,
+                      modelname::String,
+                      lharmonic::Int64,n1::Int64,n2::Int64,
+                      nradial::Int64,
+                      rb::Float64,
+                      K_u::Int64,K_v::Int64,K_w::Int64)
 
-    return wmatdir*"wmat_"*modelname*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*".h5"
+    return wmatdir*"wmat_"*modelname*"_nradial_"*string(nradial)*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*"_Ku_"*string(K_u)*"_Kv_"*string(K_v)*"_Kw_"*string(K_w)*".h5"
 end
 
 """

@@ -21,6 +21,7 @@ As `CallAResponse` is (currently) unregistered, if you would like to add it to y
 
 -----------------------------
 
-### Author
+### Authors
 
 Mike Petersen -  @michael-petersen - petersen@iap.fr
+Mathieu Roule - @MathieuRoule - roule@iap.fr
