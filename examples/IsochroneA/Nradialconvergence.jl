@@ -20,7 +20,10 @@ function RunNIsochroneConvergence(inputfile::String,
         error("CallAResponse.Xi.RunMIsochrone: gfuncdir or modedir not found.")
     end
 
-    for n1val=1:20
+    # pick some fiducial n1val
+    n1val = 8
+
+    for nradial=1:100
         # calculate the number of resonance vectors
         nbResVec = CallAResponse.get_nbResVec(lharmonic,n1val,ndim)
 
@@ -34,7 +37,7 @@ function RunNIsochroneConvergence(inputfile::String,
         tab_npnq = CallAResponse.makeTabnpnq(nradial)
 
         # make the decomposition coefficients a_k
-        CallAResponse.MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,modedir=modedir)
+        CallAResponse.MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,rb=rb)
 
         # allocate structs for D_k(omega) computation
         struct_tabLeglist = FiniteHilbertTransform.struct_tabLeg_create(K_u)
@@ -46,7 +49,7 @@ function RunNIsochroneConvergence(inputfile::String,
         IMat = CallAResponse.makeIMat(nradial)
 
         # load aXi values
-        tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic)
+        tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
         println("CallAResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
 
         # chop the matrix down here and re-specify nradial
@@ -55,28 +58,24 @@ function RunNIsochroneConvergence(inputfile::String,
         tab_npnq = CallAResponse.makeTabnpnq(nradial)
 
         # loop through all frequencies
-        #omgval = 0.0143 - 0.00142im # min for n1max=10; no .1. label
-        omgval = 0.01 - 0.00073im # min for n1max=16; .2. label
-        LINEAR = "damped"
+        omgval = 0.0143 - 0.00142im # min for n1max=10; no .1. label
+        #omgval = 0.01 - 0.00073im # min for n1max=16; .2. label
 
-        println("CallAResponse.Xi.RunMIsochrone: Starting frequency analysis, using $LINEAR integration.")
         #println("CallAResponse.Xi.RunMIsochrone: computing $nomglist frequency values.")
 
-        @time CallAResponse.tabMIsochrone!(omgval,tabM,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,nradial,LINEAR,Omega0)
+        @time CallAResponse.tabMIsochrone!(omgval,tabM,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,nradial,Omega0)
 
         detXival = CallAResponse.detXi(IMat,tabM)
-        println("o=$omgval,n1max=$n1val,det=$detXival")
+        println("o=$omgval,nradial=$nradial,det=$detXival")
 
-        h5open(modedir*"Mtab_n1max_"*string(n1val)*".2.hdf5", "w") do file
+        h5open(modedir*"Mtab_n1max_"*string(n1val)*"_nradial_"*string(nradial)*".2.hdf5", "w") do file
             write(file,"realM",real(tabM))
             write(file,"imagM",imag(tabM))
         end
         #println("n1max=$n1val,tabMlistval=$(tabMlist[1][nptest,nqtest])")
 
     end
-        #WriteDeterminant(det_filename(modedir,modelname,dfname,lharmonic,n1max,K_u),omglist,tabdetXi)
 
-        #return tabdetXi
 end
 
 
@@ -85,4 +84,4 @@ inputfile = "ModelParamIsochrone_damped.jl"
 include(inputfile)
 tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 
-RunMIsochroneConvergence(inputfile,tabomega)
+RunNIsochroneConvergence(inputfile,tabomega)

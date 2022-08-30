@@ -10,7 +10,7 @@ using HDF5
 
 # choose a basis for computation of the Fourier-transformed basis elements
 G         = 1.     # the gravitational constant
-rb        = 25.0   # the scale for the basis elements
+rb        = 20.0   # the scale for the basis elements
 lmax,nmax = 2,100  # usually lmax corresponds to the considered harmonics lharmonic
 basis     = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim      = basis.dimension

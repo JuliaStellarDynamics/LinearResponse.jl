@@ -25,13 +25,14 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                             tabPGLquad::Matrix{Float64},
                             tabINVcGLquad::Vector{Float64},
                             gfuncdir::String,
+                            modedir::String,
                             modelname::String,
                             dfname::String,
                             lharmonic::Int64,
                             nradial::Int64;
                             VERBOSE::Int64=0,
                             OVERWRITE::Bool=false,
-                            modedir::String="")
+                            rb::Float64=1.0)
 
     # get relevant sizes
     K_u      = size(tabwGLquad)[1]
@@ -156,7 +157,8 @@ function StageaMcoef(tabResVec::Matrix{Int64},
                      modedir::String="",
                      modelname::String="",
                      dfname::String="",
-                     lharmonic::Int64="")
+                     lharmonic::Int64="",
+                     rb::Float64=1.0)
 
 
     # get dimensions from the relevant tables
