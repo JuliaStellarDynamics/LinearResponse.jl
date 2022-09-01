@@ -17,21 +17,24 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                     lharmonic::Int64,
                     basis::AstroBasis.Basis_type;
                     Ω0::Float64=1.,
+                    rmin::Float64=1.0e-6,
+                    rmax::Float64=1.0e4,
                     K_w::Int64=50,
                     EDGE::Float64=0.01,
                     VERBOSE::Int64=0,
-                    rmax::Float64=1.0e4,
                     NINT::Int64=32)
 
     # get the number of u samples from the input vector of u vals
     K_u = length(Kuvals)
 
+    # Frequency cuts associated to [rmin,rmax] 
+    # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
+    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω0=Ω0)
     # compute the frequency scaling factors for this resonance
-    # @IMPROVE: need a maximum radius for the root finding
-    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,rmax,Ω0)
+    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,Ω0=Ω0,rmin=rmin,rmax=rmax)
 
     # define a function for beta_c
-    βc(alpha_c::Float64)::Float64 = OrbitalElements.βcirc(alpha_c,dψ,d2ψ,Ω0,rmax=rmax)
+    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Ω0,rmin=rmin,rmax=rmax)
 
     # allocate the results matrices
     tabWMat = zeros(basis.nmax,K_u,K_v)
@@ -53,8 +56,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         end
 
         # get the corresponding v boundary values
-        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,rmax,Ω0)
-        vmin,vmax = OrbitalElements.FindVminVmax(uval,ωmin,ωmax,n1,n2,vbound,βc)
+        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω0=Ω0,rmin=rmin,rmax=rmax)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -268,18 +270,18 @@ function RunWmat(inputfile::String;
             @time tabWMat,tabaMat,tabeMat,tabJMat = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
                                                                n1,n2,
                                                                tabuGLquad,K_v,lharmonic,bases[k],
-                                                               Ω0=Ω0,K_w=K_w,VERBOSE=VERBOSE)
+                                                               Ω0=Ω0,rmin=rmin,rmax=rmax,K_w=K_w,VERBOSE=VERBOSE)
         else
             tabWMat,tabaMat,tabeMat,tabJMat = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
                                                          n1,n2,
                                                          tabuGLquad,K_v,lharmonic,bases[k],
-                                                         Ω0=Ω0,K_w=K_w,VERBOSE=VERBOSE)
+                                                         Ω0=Ω0,rmin=rmin,rmax=rmax,K_w=K_w,VERBOSE=VERBOSE)
         end
 
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.
-        h5open(wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb), "w") do file
+        h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,nradial,rb,K_u,K_v,K_w), "w") do file
             write(file, "wmat",tabWMat)
             write(file, "amat",tabaMat)
             write(file, "emat",tabeMat)

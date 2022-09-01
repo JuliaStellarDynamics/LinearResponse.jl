@@ -242,7 +242,7 @@ function tabM!(omg::Complex{Float64},
         omg_nodim = omg/Ω0
 
         # get the rescaled frequency
-        varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Ω0)
+        varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω0=Ω0,rmin=rmin,rmax=rmax)
 
         # get the Legendre integration values
         FiniteHilbertTransform.get_tabLeg!(varpi,K_u,struct_tabLeg)
@@ -343,7 +343,7 @@ function RunM(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,modedir=modedir,rb=rb)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,rb=rb)
 
     # allocate structs for D_k(omega) computation
     struct_tabLeglist = [FiniteHilbertTransform.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]

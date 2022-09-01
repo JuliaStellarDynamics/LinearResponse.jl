@@ -148,7 +148,7 @@ function RunGfunc(inputfile::String)
     # make a function for the circular frequency relationship:
     #  only needs to happen once, redefinition might kill us
     #  could this move completely outside the function to help the compiler?
-    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Ω0,rmax=1.0e6)
+    βc(alphac::Float64)::Float64 = OrbitalElements.βcirc(alphac,dψ,d2ψ,Ω0,rmin=rmin,rmax=rmax)
 
     # compute the number of resonance vectors
     nbResVec = get_nbResVec(lharmonic,n1max,ndim)
@@ -163,13 +163,13 @@ function RunGfunc(inputfile::String)
         println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
         # load a value of tabWmat, plus (a,e) values
-        filename = wmat_filename(wmatdir,modelname,lharmonic,n1,n2,rb)
+        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,nradial,rb,K_u,K_v,K_w)
         file = h5open(filename,"r")
         Wtab = read(file,"wmat")
         atab = read(file,"amat")
         etab = read(file,"emat")
         Jtab = read(file,"jELABmat")
-        nradial,K_u,K_v = size(Wtab)
+        close(file)
 
         # print the size of the found files if the first processor
         if i==0
@@ -182,18 +182,16 @@ function RunGfunc(inputfile::String)
             continue
         end
 
+        # Frequency cuts associated to [rmin,rmax] 
+        # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
+        αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω0=Ω0)
         # compute the frequency scaling factors for this resonance
-        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,10000.,Ω0)
-
-        vbound = OrbitalElements.FindVbound(n1,n2,dψ,d2ψ,10000.,Ω0)
-
-        # for some threading reason, make sure K_u is defined here
-        K_u = length(tabwGLquad)
+        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,Ω0=Ω0,rmin=rmin,rmax=rmax)
 
         # loop through once and design a v array for min, max
         vminarr,vmaxarr = zeros(K_u),zeros(K_u)
         for uval = 1:K_u
-           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmax(tabuGLquad[uval],ωmin,ωmax,n1,n2,vbound,βc)
+           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmax(tabuGLquad[uval],n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω0=Ω0,rmin=rmin,rmax=rmax)
         end
 
         # need to loop through all combos of np and nq to make the full matrix.
