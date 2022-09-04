@@ -27,7 +27,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     # get the number of u samples from the input vector of u vals
     K_u = length(Kuvals)
 
-    # Frequency cuts associated to [rmin,rmax] 
+    # Frequency cuts associated to [rmin,rmax]
     # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
     αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω0=Ω0)
     # compute the frequency scaling factors for this resonance
@@ -223,18 +223,38 @@ end
 
 
 """
-    RunWmat(inputfile)
+    RunWmat()
 
 """
-function RunWmat(inputfile::String;
+function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                 wmatdir::String,
+                 K_u::Int64,K_v::Int64,K_w::Int64,
+                 basis::AstroBasis.Basis_type,
+                 lharmonic::Int64,
+                 n1max::Int64,
+                 nradial::Int64,
+                 Ω0::Float64,
+                 modelname::String,
+                 rb::Float64,
+                 rmin::Float64,rmax::Float64;
                  VERBOSE::Int64=0)
 
     # load model parameters
-    include(inputfile)
+    #include(inputfile)
 
     # check wmat directory before proceeding (save time if not.)
     checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir)
     if checkdirs < 0
+        return 0
+    end
+
+    # get basis parameters
+    ndim = basis.dimension
+    nradialmax = basis.nmax
+
+    # check if we can cover the specified radial orders
+    if nradialmax > nradial
+        println("CallAResponse.WMat.RunWmat: the input basis does not have sufficient nradial ($nradialmax) for the requested value ($nradial).")
         return 0
     end
 
@@ -263,6 +283,13 @@ function RunWmat(inputfile::String;
 
         if VERBOSE>0
             println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
+        end
+
+        if isfile(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,nradial,rb,K_u,K_v,K_w))
+            if VERBOSE > 0
+                println("CallAResponse.WMatIsochrone.RunWmatIsochrone: ($n1,$n2) resonanance WMat file already exists.")
+            end
+            continue
         end
 
         # compute the W matrices in UV space: timing optional

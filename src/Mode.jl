@@ -6,12 +6,19 @@
 for a single omega, compute the shape of the mode
 
 """
-function ComputeModeTables(inputfile,
-                           omgval::Complex{Float64};
+function ComputeModeTables(omgval::Complex{Float64},
+                           ψ::Function,dψ::Function,d2ψ::Function,
+                           gfuncdir::String,modedir::String,
+                           K_u::Int64,K_v::Int64,K_w::Int64,
+                           basis::AstroBasis.Basis_type,
+                           lharmonic::Int64,
+                           n1max::Int64,
+                           nradial::Int64,
+                           Ω0::Float64,
+                           modelname::String,dfname::String,
+                           rb::Float64,
+                           rmin::Float64,rmax::Float64;
                            VERBOSE::Int64=0)
-
-    # include configuration parameters
-    LoadConfiguration(inputfile)
 
     # Check directory names
     checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
@@ -107,16 +114,19 @@ end
 
 
 """
+    GetModeShape(basis,l,Rmin,Rmax,nR,EigenMode)
 Function that computes the radial shape of a given mode
 -see Eq. (72) of Hamilton+ (2018)
+
+
+
 """
-function GetModeShape(inputfile::String,
+function GetModeShape(basis::AstroBasis.Basis_type,
+                      lharmonic::Int64,
                       Rmin::Float64,Rmax::Float64,
                       nRMode::Int64,
-                      tabEigenMode::Array{Float64})
-
-    # load model parameters: this exposes basis
-    include(inputfile)
+                      EigenMode::Array{Float64};
+                      VERBOSE::Int64=0)
 
     # prep the basis
     AstroBasis.fill_prefactors!(basis)
@@ -125,10 +135,11 @@ function GetModeShape(inputfile::String,
     deltaRMode = (Rmax - Rmin)/(nRMode - 1)
 
     # table of R for which the mode is computed
-    tabRMode = collect(Rmin:deltaRMode:Rmax)
+    ModeRadius = collect(Rmin:deltaRMode:Rmax)
 
     # table containing the radial shape of the mode
-    tabShapeMode = zeros(Float64,nRMode)
+    ModePotentialShape = zeros(Float64,nRMode)
+    ModeDensityShape = zeros(Float64,nRMode)
 
     println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
 
@@ -136,26 +147,29 @@ function GetModeShape(inputfile::String,
     for irad=1:nRMode
 
         # current value of R
-        R = tabRMode[irad]
+        R = ModeRadius[irad]
 
-        # initialise the value
-        val = 0.0
+        # initialise the values
+        pval = 0.0
+        dval = 0.0
 
         # for each basis element, add the coefficient contribution
         for np=1:nradial
 
             # add the contribution from the basis elements.
-            val += tabEigenMode[np]*AstroBasis.getUln(basis,lharmonic,np-1,R)
+            pval += EigenMode[np]*AstroBasis.getUln(basis,lharmonic,np-1,R)
+            dval += EigenMode[np]*AstroBasis.getDln(basis,lharmonic,np-1,R)
 
         end
 
         # log contribution in table
-        tabShapeMode[irad] = val
+        tabShapeMode[irad] = pval
     end
 
     h5open(mode_filename(modedir,modelname,lharmonic,n1max,K_u), "w") do file
-        write(file,"tabRMode",tabRMode)         # write tabRMode to file
-        write(file,"tabShapeMode",tabShapeMode) # write tabShapeMode to file
+        write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
+        write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
+        write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file
     end
 
     # return just in case we want to do something else

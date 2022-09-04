@@ -29,10 +29,10 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                             modelname::String,
                             dfname::String,
                             lharmonic::Int64,
-                            nradial::Int64;
+                            nradial::Int64,
+                            rb::Float64;
                             VERBOSE::Int64=0,
-                            OVERWRITE::Bool=false,
-                            rb::Float64=1.0)
+                            OVERWRITE::Bool=false)
 
     # get relevant sizes
     K_u      = size(tabwGLquad)[1]
@@ -40,7 +40,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
     nbResVec = size(tabResVec)[2]
 
     if VERBOSE > 2
-        println("CallAResponse.Xi.MakeMCoefficients: Check params: K_u=$K_u, nb_npnq=$nb_npnq, nbResVec=$nbResVec.")
+        println("CallAResponse.Xi.MakeaMCoefficients: Check params: K_u=$K_u, nb_npnq=$nb_npnq, nbResVec=$nbResVec.")
     end
 
     # allocate the workspace
@@ -59,7 +59,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
             # log if requested
             if VERBOSE>0
-                println("CallAResponse.Xi.MakeMCoefficients: file already exists for step $nresvec of $nbResVec, ($n1,$n2).")
+                println("CallAResponse.Xi.MakeaMCoefficients: file already exists for step $nresvec of $nbResVec, ($n1,$n2).")
             end
 
             # decide if we want to overwrite anyway
@@ -72,7 +72,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         end
 
         if VERBOSE > 0
-            println("CallAResponse.Xi.MakeMCoefficients: on step $nresvec of $nbResVec: ($n1,$n2).")
+            println("CallAResponse.Xi.MakeaMCoefficients: on step $nresvec of $nbResVec: ($n1,$n2).")
         end
 
         # open the resonance file
@@ -80,7 +80,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         inputfile = h5open(filename,"r")
 
         if VERBOSE > 0
-            println("CallAResponse.Xi.MakeMCoefficients: opened file $filename.")
+            println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
         end
 
         # Loop over the basis indices to consider
@@ -103,7 +103,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                     # check for NaN contribution: skip this contribution in that case
                     if isnan(G)
                         if VERBOSE > 1
-                            println("CallAResponse.Xi.MakeMCoefficients: NaN value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
+                            println("CallAResponse.Xi.MakeaMCoefficients: NaN value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
                         end
                         continue
                     end
@@ -111,13 +111,13 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                     # check for INF contribution: skip the contribution in that case
                     if isinf(G)
                         if VERBOSE > 1
-                            println("CallAResponse.Xi.MakeMCoefficients: Inf value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
+                            println("CallAResponse.Xi.MakeaMCoefficients: Inf value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
                         end
                         continue
                     end
 
                     w = tabwGLquad[i] # Current weight
-                    P = tabPGLquad[k,i] # Current value of P_k. ATTENTION, to the order of the arguments.
+                    P = tabPGLquad[k,i] # Current value of P_k
                     res += w*G*P # Update of the sum
                 end
 
@@ -204,6 +204,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
 
 end
 
+
 """tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dψ,d2ψ,Ω0)
 Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω0.
 
@@ -220,7 +221,8 @@ function tabM!(omg::Complex{Float64},
                dψ::Function,
                d2ψ::Function,
                nradial::Int64,
-               Ω0::Float64=1.0)
+               Ω0::Float64,
+               rmin::Float64,rmax::Float64)
 
     # get dimensions from the relevant tables
     nb_npnq  = size(tab_npnq)[2]
@@ -315,13 +317,21 @@ end
 
 
 
-function RunM(inputfile::String,
-              omglist::Array{Complex{Float64}};
+function RunM(omglist::Array{Complex{Float64}},
+              ψ::Function,dψ::Function,d2ψ::Function,
+              gfuncdir::String,modedir::String,
+              K_u::Int64,K_v::Int64,K_w::Int64,
+              basis::AstroBasis.Basis_type,
+              lharmonic::Int64,
+              n1max::Int64,
+              nradial::Int64,
+              Ω0::Float64,
+              modelname::String,dfname::String,
+              rb::Float64,
+              rmin::Float64,rmax::Float64;
               VERBOSE::Int64=0)
 
-    # need some sort of 'if' for whether this already exists
-    include(inputfile)
-
+    # how many omega values are we computing?
     nomglist = length(omglist)
 
     # Check directory names
@@ -329,6 +339,9 @@ function RunM(inputfile::String,
     if checkdirs < 0
         return 0
     end
+
+    # get basis parameters
+    ndim = basis.dimension
 
     # calculate the number of resonance vectors
     nbResVec = get_nbResVec(lharmonic,n1max,ndim)
@@ -342,8 +355,12 @@ function RunM(inputfile::String,
     # make the (np,nq) vectors that we need to evaluate
     tab_npnq = makeTabnpnq(nradial)
 
+    if VERBOSE >= 0
+        println("CallAResponse.Xi.RunM: Constructing M coefficients.")
+    end
+
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,rb=rb)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
 
     # allocate structs for D_k(omega) computation
     struct_tabLeglist = [FiniteHilbertTransform.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
@@ -359,11 +376,20 @@ function RunM(inputfile::String,
     nomg = length(omglist)
     tabdetXi = zeros(Complex{Float64},nomg)
 
+    if VERBOSE >= 0
+        println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
+    end
+
     # load aXi values
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
-    println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
-    println("CallAResponse.Xi.RunM: computing $nomglist frequency values.")
+    if VERBOSE >= 0
+        println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
+    end
+
+    if VERBOSE > 0
+        println("CallAResponse.Xi.RunM: computing $nomglist frequency values.")
+    end
 
     # loop through all frequencies
     Threads.@threads for i = 1:nomg
@@ -371,13 +397,10 @@ function RunM(inputfile::String,
         k = Threads.threadid()
 
         if i==2 # skip the first in case there is compile time built in
-            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0)
+            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax)
         else
-            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0)
+            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax)
         end
-
-        # do we need some sort of diagnostic check here?
-        #println("Mval=")
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
 
@@ -393,17 +416,22 @@ end
 """
 Newton-Raphson descent to find the zero crossing
 """
-function FindZeroCrossing(inputfile::String,
-                          Ωguess::Float64,
-                          Etaguess::Float64;
+function FindZeroCrossing(Ωguess::Float64,Etaguess::Float64,
+                          ψ::Function,dψ::Function,d2ψ::Function,
+                          gfuncdir::String,modedir::String,
+                          K_u::Int64,K_v::Int64,K_w::Int64,
+                          basis::AstroBasis.Basis_type,
+                          lharmonic::Int64,
+                          n1max::Int64,
+                          nradial::Int64,
+                          Ω0::Float64,
+                          modelname::String,dfname::String,
+                          rb::Float64,
+                          rmin::Float64,rmax::Float64;
                           NITER::Int64=32,
                           eta::Bool=true,
-                          Ω0::Float64=1.0,
                           ACCURACY::Float64=1.0e-10,
                           VERBOSE::Int64=0)
-
-    # need some sort of 'if' for whether this already exists
-    LoadConfiguration(inputfile)
 
     #####
     # Check directories names
@@ -411,6 +439,9 @@ function FindZeroCrossing(inputfile::String,
     if !(isdir(gfuncdir) && isdir(modedir))
         error("CallAResponse.Xi.jl: gfuncdir or modedir not found.")
     end
+
+    # get basis parameters
+    ndim = basis.dimension
 
     #####
     # Construct the table of needed resonance vectors
@@ -425,7 +456,7 @@ function FindZeroCrossing(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,modedir=modedir,rb=rb)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
 
     # load aXi values
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,

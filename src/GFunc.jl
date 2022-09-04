@@ -130,10 +130,25 @@ end
     RunGfunc(inputfile)
 
 """
-function RunGfunc(inputfile::String)
+function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
+                  ndFdJ::Function,
+                  wmatdir::String,gfuncdir::String,
+                  K_u::Int64,K_v::Int64,K_w::Int64,
+                  basis::AstroBasis.Basis_type,
+                  lharmonic::Int64,
+                  n1max::Int64,
+                  nradial::Int64,
+                  Ω0::Float64,
+                  modelname::String,dfname::String,
+                  rb::Float64,
+                  rmin::Float64,rmax::Float64;
+                  VERBOSE::Int64=0)
 
     # bring in the defined parameters
-    LoadConfiguration(inputfile)
+    #LoadConfiguration(inputfile)
+
+    # get basis parameters
+    ndim = basis.dimension
 
     # Check directory names
     checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
@@ -182,7 +197,7 @@ function RunGfunc(inputfile::String)
             continue
         end
 
-        # Frequency cuts associated to [rmin,rmax] 
+        # Frequency cuts associated to [rmin,rmax]
         # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
         αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω0=Ω0)
         # compute the frequency scaling factors for this resonance

@@ -17,7 +17,7 @@ function MakeGuIsochrone(ndFdJ::Function,
                          vminarr::Array{Float64},vmaxarr::Array{Float64},
                          lharmonic::Int64;
                          ndim::Int64,
-                         Omega0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
+                         Ω0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
@@ -53,7 +53,7 @@ function MakeGuIsochrone(ndFdJ::Function,
             # now we need (rp,ra) that corresponds to (u,v)
             alpha,beta = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,ωmin,ωmax)
 
-            omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
+            omega1,omega2 = alpha*Ω0,alpha*beta*Ω0
 
             # convert from omega1,omega2 to (a,e) using isochrone exact version
             sma,ecc = OrbitalElements.IsochroneAEFromOmega1Omega2(omega1,omega2,bc,M,G)
@@ -75,7 +75,7 @@ function MakeGuIsochrone(ndFdJ::Function,
             JacJ         = (1/omega1)
 
             # remove dimensionality
-            dimensionl   = (1/Omega0)
+            dimensionl   = (1/Ω0)
 
 
             # get the resonance vector
@@ -114,20 +114,28 @@ end
     RunGfuncIsochrone(inputfile)
 
 """
-function RunGfuncIsochrone(inputfile::String,
-                           VERBOSE::Int64=1)
+function RunGfuncIsochrone(ndFdJ::Function,
+                           wmatdir::String,gfuncdir::String,
+                           K_u::Int64,K_v::Int64,K_w::Int64,
+                           basis::AstroBasis.Basis_type,
+                           lharmonic::Int64,
+                           n1max::Int64,
+                           nradial::Int64,
+                           Ω0::Float64,
+                           modelname::String,dfname::String,
+                           rb::Float64;
+                           bc::Float64=1.0,G::Float64=1.0,M::Float64=1.0,
+                           VERBOSE::Int64=0)
 
-    #LoadConfiguration(inputfile)
-    #lock(lk) # force load on all threads
-    include(inputfile)
-        #println("K_v=$K_v")
-    #end
 
     # Check directory names
     checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
     if checkdirs < 0
         return 0
     end
+
+    # get basis parameters
+    ndim = basis.dimension
 
     # legendre integration prep
     tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(K_u)
@@ -144,9 +152,7 @@ function RunGfuncIsochrone(inputfile::String,
 
 
     Threads.@threads for i = 1:nbResVec
-        #K_v=200
-        #K_w=5000
-        #println("K_v=$K_v")
+
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
         if VERBOSE > 0
             println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Starting on ($n1,$n2).")
@@ -203,7 +209,7 @@ function RunGfuncIsochrone(inputfile::String,
                                                        ωmin,ωmax,
                                                        vminarr,vmaxarr,
                                                        lharmonic,
-                                                       ndim=ndim,Omega0=Omega0)
+                                                       ndim=ndim,Ω0=Ω0)
                     else
                         tabGXi = MakeGuIsochrone(ndFdJ,
                                                  n1,n2,np,nq,
@@ -212,7 +218,7 @@ function RunGfuncIsochrone(inputfile::String,
                                                  ωmin,ωmax,
                                                  vminarr,vmaxarr,
                                                  lharmonic,
-                                                 ndim=ndim,Omega0=Omega0)
+                                                 ndim=ndim,Ω0=Ω0)
                     end
 
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)

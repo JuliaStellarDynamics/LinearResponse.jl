@@ -1,7 +1,7 @@
 """The same as WMat.jl, but Isochrone ψ specific for testing
 
 What's different:
--Use analytic inversion (IsochroneAEFromOmega1Omega2)
+-Use analytic inversion (IsochroneAEFromΩ1Ω2)
 -Use analytic relationship between alpha and beta for circular orbits
 
 """
@@ -11,7 +11,7 @@ import AstroBasis
 import FiniteHilbertTransform
 
 
-"""MakeWmatUVIsochrone(n1,n2,K_u,K_v,lharmonic,basis[,Omega0,K_w])
+"""MakeWmatUVIsochrone(n1,n2,K_u,K_v,lharmonic,basis[,Ω0,K_w])
 
 @IMPROVE: give basis a type?
 @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
@@ -25,7 +25,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                              K_v::Int64,
                              lharmonic::Int64,
                              basis::AstroBasis.Basis_type,
-                             Omega0::Float64=1.,
+                             Ω0::Float64=1.,
                              K_w::Int64=20;
                              bc::Float64=1.0,M::Float64=1.0,G::Float64=1.0,EDGE::Float64=0.01)
 
@@ -63,7 +63,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
 
             # these are exact relationships
             alpha,beta = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,w_min,w_max)
-            omega1,omega2 = alpha*Omega0,alpha*beta*Omega0
+            omega1,omega2 = alpha*Ω0,alpha*beta*Ω0
 
             # big step: convert input (u,v) to (rp,ra)
             # convert from omega1,omega2 to (a,e) using exact Isochrone inversion
@@ -83,7 +83,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
             u, theta1, theta2 = -1.0, 0.0, 0.0
 
             # launch the integration from the left boundary
-            gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Omega0)
+            gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
             # Uses the Rozier 2019 notation for the mapping to u
             Sigma, Delta = (ra+rp)*0.5, (ra-rp)*0.5
@@ -122,7 +122,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                 rval = Sigma + Delta*OrbitalElements.henon_f(u)
 
                 # current value of Theta
-                gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Omega0)
+                gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
                 # Current value of dtheta1/du and dtheta2/du
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
@@ -171,7 +171,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                 rval = Sigma + Delta*OrbitalElements.henon_f(u)
 
                 # current value of Theta
-                gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Omega0)
+                gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
                 # Current value of dtheta1/du and dtheta2/du, always well-posed
                 dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
@@ -205,7 +205,7 @@ end
 
 
 
-function IntegrateOverOrbit!(Wvals::Array{Float64},
+function IntegrateOverOrbit!(Wvals::Array{Float64},T1::Float64,T2::Float64,
                              a::Float64,e::Float64,
                              Ω1::Float64,Ω2::Float64,
                              lharmonic::Int64,
@@ -230,7 +230,7 @@ function IntegrateOverOrbit!(Wvals::Array{Float64},
     u, theta1, theta2 = -1.0, 0.0, 0.0
 
     # launch the integration from the left boundary
-    gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+    gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
     # Current location of the radius, r=r(u): isn't this exactly rp?
     rval = OrbitalElements.ru(u,a,e)
@@ -266,7 +266,7 @@ function IntegrateOverOrbit!(Wvals::Array{Float64},
         rval = OrbitalElements.ru(u,a,e)
 
         # current value of Theta
-        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
         # Current value of dtheta1/du and dtheta2/du
         dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
@@ -309,7 +309,7 @@ function IntegrateOverOrbit!(Wvals::Array{Float64},
         rval = OrbitalElements.ru(u,a,e)
 
         # current value of Theta
-        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
         # Current value of dtheta1/du and dtheta2/du, always well-posed
         dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
@@ -335,7 +335,12 @@ function IntegrateOverOrbit!(Wvals::Array{Float64},
         theta1 += (k1_1 + 2.0*k1_2 + 2.0*k1_3 + k1_4)/(6.0)
         theta2 += (k2_1 + 2.0*k2_2 + 2.0*k2_3 + k2_4)/(6.0)
 
+
+
     end
+
+    T1 = theta1
+    T2 = theta2
 
 end
 
@@ -366,7 +371,7 @@ function IntegrateOverOrbitAllSteps!(Wvals::Array{Float64,2},
     u, theta1, theta2 = -1.0, 0.0, 0.0
 
     # launch the integration from the left boundary
-    gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+    gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
     # Current location of the radius, r=r(u): isn't this exactly rp?
     rval = OrbitalElements.ru(u,a,e)
@@ -402,7 +407,7 @@ function IntegrateOverOrbitAllSteps!(Wvals::Array{Float64,2},
         rval = OrbitalElements.ru(u,a,e)
 
         # current value of Theta
-        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
         # Current value of dtheta1/du and dtheta2/du
         dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
@@ -445,7 +450,7 @@ function IntegrateOverOrbitAllSteps!(Wvals::Array{Float64,2},
         rval = OrbitalElements.ru(u,a,e)
 
         # current value of Theta
-        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Omega0=Ω0)
+        gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω0=Ω0)
 
         # Current value of dtheta1/du and dtheta2/du, always well-posed
         dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
@@ -484,18 +489,34 @@ end
 
 
 """
-    RunWmatIsochrone(inputfile)
+    RunWmatIsochrone()
 
 """
-function RunWmatIsochrone(inputfile::String;
-                          VERBOSE::Int64=1)
-
-    # load model parameters
-    include(inputfile)
+function RunWmatIsochrone(wmatdir::String,
+                          K_u::Int64,K_v::Int64,K_w::Int64,
+                          basis::AstroBasis.Basis_type,
+                          lharmonic::Int64,
+                          n1max::Int64,
+                          nradial::Int64,
+                          Ω0::Float64,
+                          modelname::String,
+                          rb::Float64;
+                          bc::Float64=1.0,G::Float64=1.0,M::Float64=1.0,
+                          VERBOSE::Int64=0)
 
     # check wmat directory before proceeding (save time if not.)
     checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir)
     if checkdirs < 0
+        return 0
+    end
+
+    # get basis parameters
+    ndim = basis.dimension
+    nradialmax = basis.nmax
+
+    # check if we can cover the specified radial orders
+    if nradialmax > nradial
+        println("CallAResponse.WMat.RunWmatIsochrone: the input basis does not have sufficient nradial ($nradialmax) for the requested value ($nradial).")
         return 0
     end
 
@@ -533,7 +554,7 @@ function RunWmatIsochrone(inputfile::String;
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat = MakeWmatUVIsochrone(n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Omega0,K_w,bc=bc,M=M,G=G)
+        @time tabWMat,tabaMat,tabeMat = MakeWmatUVIsochrone(n1,n2,tabuGLquad,K_v,lharmonic,bases[k],Ω0,K_w,bc=bc,M=M,G=G)
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

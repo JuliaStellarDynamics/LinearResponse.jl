@@ -21,7 +21,7 @@ using HDF5
 
 # basis parameters
 G  = 1.
-rb = 20.0
+rb = 5.0
 lmax,nmax = 1,100 # number of basis functions
 
 # automatically set up the basis parameters
@@ -38,7 +38,7 @@ dψ(r::Float64)::Float64  = OrbitalElements.plummer_dpsi_dr(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.plummer_ddpsi_ddr(r,bc,M,G)
 d3ψ(r::Float64)::Float64 = OrbitalElements.plummer_dddpsi_dddr(r,bc,M,G)
 d4ψ(r::Float64)::Float64 = OrbitalElements.plummer_ddddpsi_ddddr(r,bc,M,G)
-Omega0 = OrbitalElements.plummer_Omega0(bc,M,G)
+Ω0 = OrbitalElements.plummer_Omega0(bc,M,G)
 
 #dfname = "isotropic"
 
@@ -61,7 +61,7 @@ K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely?
 
 lharmonic = 1   # azimuthal harmonic to consider
-n1max     = 10  # maximum number of radial resonances to consider
+n1max     = 20  # maximum number of radial resonances to consider
 
 # outputs directories
 wmatdir  = "wmat/"

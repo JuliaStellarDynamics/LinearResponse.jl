@@ -24,8 +24,9 @@ using HDF5
 # Basis
 #####
 G  = 1.
-rb = 10.0
-lmax,nmax = 2,25 # Usually lmax corresponds to the considered harmonics lharmonic
+#rb = 20.0
+rb = 2.0
+lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
@@ -40,6 +41,9 @@ d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
 d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
 d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Ω0 = OrbitalElements.Omega0Isochrone(bc,M,G)
+
+rmin = 0.0
+rmax = 10000.0
 
 
 dfname = "roi1.0"
@@ -71,7 +75,7 @@ K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely)?
 
 lharmonic = 2
-n1max = 2#10  # maximum number of radial resonances to consider
+n1max = 4  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe
