@@ -222,7 +222,8 @@ function tabM!(omg::Complex{Float64},
                d2ψ::Function,
                nradial::Int64,
                Ω0::Float64,
-               rmin::Float64,rmax::Float64)
+               rmin::Float64,rmax::Float64;
+               VERBOSE::Int64=0)
 
     # get dimensions from the relevant tables
     nb_npnq  = size(tab_npnq)[2]
@@ -244,7 +245,7 @@ function tabM!(omg::Complex{Float64},
         omg_nodim = omg/Ω0
 
         # get the rescaled frequency
-        varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω0=Ω0,rmin=rmin,rmax=rmax)
+        varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Ω0,rmin=rmin,rmax=rmax)
 
         # get the Legendre integration values
         FiniteHilbertTransform.get_tabLeg!(varpi,K_u,struct_tabLeg)
@@ -268,7 +269,7 @@ function tabM!(omg::Complex{Float64},
                 if !isnan(val)
                     res += val
                 else
-                    if k==1
+                    if (k==1) & (VERBOSE>1)
                         println("CallAResponse.Xi.tabM!: NaN found for n=($n1,$n2), npnq=($np,$nq), k=$k")
                     end
                 end
@@ -397,9 +398,9 @@ function RunM(omglist::Array{Complex{Float64}},
         k = Threads.threadid()
 
         if i==2 # skip the first in case there is compile time built in
-            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax)
+            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax,VERBOSE=VERBOSE)
         else
-            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax)
+            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax,VERBOSE=VERBOSE)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])

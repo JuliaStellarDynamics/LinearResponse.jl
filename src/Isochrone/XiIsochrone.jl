@@ -123,7 +123,7 @@ function RunMIsochrone(inputfile::String,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,rb=rb)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE,OVERWRITE=false)
 
     # allocate structs for D_k(omega) computation
     struct_tabLeglist = [FiniteHilbertTransform.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]

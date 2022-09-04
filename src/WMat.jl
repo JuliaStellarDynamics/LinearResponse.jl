@@ -29,9 +29,9 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
     # Frequency cuts associated to [rmin,rmax]
     # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
-    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω0=Ω0)
+    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω0)
     # compute the frequency scaling factors for this resonance
-    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,Ω0=Ω0,rmin=rmin,rmax=rmax)
+    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,Ω₀=Ω0,rmin=rmin,rmax=rmax)
 
     # define a function for beta_c
     βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Ω0,rmin=rmin,rmax=rmax)
@@ -51,12 +51,12 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         # get the current u value
         uval = Kuvals[kuval]
 
-        if VERBOSE > 1
+        if VERBOSE > 2
             println("\nCallAResponse.WMat.MakeWMat: on step $kuval of $K_u: u=$uval.")
         end
 
         # get the corresponding v boundary values
-        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω0=Ω0,rmin=rmin,rmax=rmax)
+        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω0,rmin=rmin,rmax=rmax)
 
         # determine the step size in v
         deltav = (vmax - vmin)/(K_v)
@@ -96,7 +96,6 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             tabeMat[kuval,kvval] = e
 
             # compute the Jacobian (E,L)->(alpha,beta) here. a little more expensive, but savings in the long run
-            #tabJMat[kuval,kvval] = OrbitalElements.JacELToAlphaBetaAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Ω0=Ω0)
             tabJMat[kuval,kvval] = OrbitalElements.JacELToAlphaBetaAE(a,e,ψ,dψ,d2ψ,Ω0)
 
             # need angular momentum
