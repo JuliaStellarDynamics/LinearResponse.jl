@@ -33,12 +33,12 @@ nradial = basis.nmax
 # model Potential
 modelname = "PlummerE"
 bc, M = 1.,1.
-ψ(r::Float64)::Float64   = OrbitalElements.plummer_psi(r,bc,M,G)
-dψ(r::Float64)::Float64  = OrbitalElements.plummer_dpsi_dr(r,bc,M,G)
-d2ψ(r::Float64)::Float64 = OrbitalElements.plummer_ddpsi_ddr(r,bc,M,G)
-d3ψ(r::Float64)::Float64 = OrbitalElements.plummer_dddpsi_dddr(r,bc,M,G)
-d4ψ(r::Float64)::Float64 = OrbitalElements.plummer_ddddpsi_ddddr(r,bc,M,G)
-Ω0 = OrbitalElements.plummer_Omega0(bc,M,G)
+ψ(r::Float64)::Float64   = OrbitalElements.ψPlummer(r,bc,M,G)
+dψ(r::Float64)::Float64  = OrbitalElements.dψPlummer(r,bc,M,G)
+d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψPlummer(r,bc,M,G)
+d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψPlummer(r,bc,M,G)
+d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψPlummer(r,bc,M,G)
+Ω0 = OrbitalElements.Ω₀Plummer(bc,M,G)
 
 #dfname = "isotropic"
 

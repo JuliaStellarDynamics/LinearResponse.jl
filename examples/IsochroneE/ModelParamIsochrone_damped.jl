@@ -43,7 +43,7 @@ dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
 d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
 d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
-Ω0 = OrbitalElements.Omega0Isochrone(bc,M,G)
+Ω0 = OrbitalElements.Ω₀Isochrone(bc,M,G)
 
 rmin = 0.0
 rmax = 10000.0

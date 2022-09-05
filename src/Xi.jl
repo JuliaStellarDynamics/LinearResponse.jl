@@ -34,7 +34,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
     # get relevant sizes
     Ku       = FHT.Ku
-    nb_npnq  = size(tabnpnq)[2]
+    nbnpnq  = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
     if VERBOSE > 2
@@ -42,7 +42,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
     end
 
     # allocate the workspace
-    tabaMcoef = zeros(Float64,nradial,nradial,K_u)
+    tabaMcoef = zeros(Float64,nradial,nradial,Ku)
 
     # loop through all resonance vectors
     # make this parallel, but check that the loop is exited cleanly?
@@ -52,7 +52,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         n1,n2 = tabResVec[1,nres],tabResVec[2,nres]
 
         # don't do this loop if the file calculation already exists (unless asked)
-        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
+        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
         if isfile(outputfilename)
 
             # log if requested
@@ -74,7 +74,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         end
 
         # open the resonance file
-        filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
+        filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
         inputfile = h5open(filename,"r")
 
         if VERBOSE > 0
@@ -89,41 +89,18 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
             # read in the correct G(u) function
             tabGXi = read(inputfile,"GXinp"*string(np)*"nq"*string(nq))
 
-            # Loop over the Legendre functions
+            # get the contribution
+            res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi)
+
             for k=1:K_u
 
-                res = 0.0 # Initialisation of the result
-
-                for i=1:K_u # Loop over the G-L nodes
-
-                    G = tabGXi[i] # Current value of G[u_i]
-
-                    # check for NaN contribution: skip this contribution in that case
-                    if isnan(G)
-                        if VERBOSE > 1
-                            println("CallAResponse.Xi.MakeaMCoefficients: NaN value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
-                        end
-                        continue
-                    end
-
-                    # check for INF contribution: skip the contribution in that case
-                    if isinf(G)
-                        if VERBOSE > 1
-                            println("CallAResponse.Xi.MakeaMCoefficients: Inf value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
-                        end
-                        continue
-                    end
-
-                    w = tabwGLquad[i] # Current weight
-                    P = tabPGLquad[k,i] # Current value of P_k
-                    res += w*G*P # Update of the sum
+                if warnflag[k] > 0
+                    println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k")
                 end
 
-                res *= tabINVcGLquad[k] # Multiplying by the Legendre prefactor.
-
                 # populate the symmetric matrix
-                tabaMcoef[np,nq,k] = res # Element (np,nq)
-                tabaMcoef[nq,np,k] = res # Element (nq,np). If np=nq overwrite (this is fine).
+                tabaMcoef[np,nq,k] = res[k] # Element (np,nq)
+                tabaMcoef[nq,np,k] = res[k] # Element (nq,np). If np=nq overwrite (this is fine).
 
             end
 
@@ -243,11 +220,12 @@ function tabM!(ω::Complex{Float64},
         # get the rescaled frequency
         ϖ = OrbitalElements.Getϖ(ωnodim,n1,n2,dψ,d2ψ,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
 
-        # get the Legendre integration values
-        FiniteHilbertTransform.get_tabLeg!(ϖ,FHT)
+        # get the integration values
+        FiniteHilbertTransform.GettabD!(ϖ,FHT)
 
         # mame of the array where the D_k(w) are stored
         tabD = FHT.tabD
+
 
         # loop over the basis indices to consider
         for i_npnq=1:nbnpnq
@@ -320,6 +298,7 @@ function RunM(ωlist::Array{Complex{Float64}},
               FHT::FiniteHilbertTransform.FHTtype,
               Kv::Int64,Kw::Int64,
               basis::AstroBasis.Basis_type,
+              FHT::FiniteHilbertTransform.FHTtype,
               lharmonic::Int64,
               n1max::Int64,
               Ω₀::Float64,
@@ -353,7 +332,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     # make the decomposition coefficients a_k
     MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
 
-    # allocate structs for D_k(omega) computation
+    # allocate memory for FHT structs
     FHTlist = [deepcopy(FHT) for k=1:Threads.nthreads()]
 
     # allocate memory for the response matrices M and identity matrices
