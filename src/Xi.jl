@@ -21,9 +21,7 @@ is this struggling from having to pass around a gigantic array? what if we did m
 """
 function MakeaMCoefficients(tabResVec::Matrix{Int64},
                             tabnpnq::Matrix{Int64},
-                            tabwGLquad::Vector{Float64},
-                            tabPGLquad::Matrix{Float64},
-                            tabINVcGLquad::Vector{Float64},
+                            FHT::FiniteHilbertTransform.FHTtype,
                             gfuncdir::String,
                             modedir::String,
                             modelname::String,
@@ -35,7 +33,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                             OVERWRITE::Bool=false)
 
     # get relevant sizes
-    K_u      = size(tabwGLquad)[1]
+    K_u      = FHT.Ku
     nb_npnq  = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
@@ -91,41 +89,18 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
             # read in the correct G(u) function
             tabGXi = read(inputfile,"GXinp"*string(np)*"nq"*string(nq))
 
-            # Loop over the Legendre functions
+            # get the contribution
+            res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi)
+
             for k=1:K_u
 
-                res = 0.0 # Initialisation of the result
-
-                for i=1:K_u # Loop over the G-L nodes
-
-                    G = tabGXi[i] # Current value of G[u_i]
-
-                    # check for NaN contribution: skip this contribution in that case
-                    if isnan(G)
-                        if VERBOSE > 1
-                            println("CallAResponse.Xi.MakeaMCoefficients: NaN value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
-                        end
-                        continue
-                    end
-
-                    # check for INF contribution: skip the contribution in that case
-                    if isinf(G)
-                        if VERBOSE > 1
-                            println("CallAResponse.Xi.MakeaMCoefficients: Inf value for (n1,n2,np,nq)=($n1,$n2,$np,$nq) and K_u=$i (of $K_u).")
-                        end
-                        continue
-                    end
-
-                    w = tabwGLquad[i] # Current weight
-                    P = tabPGLquad[k,i] # Current value of P_k
-                    res += w*G*P # Update of the sum
+                if warnflag[k] > 0
+                    println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k")
                 end
 
-                res *= tabINVcGLquad[k] # Multiplying by the Legendre prefactor.
-
                 # populate the symmetric matrix
-                tabaMcoef[np,nq,k] = res # Element (np,nq)
-                tabaMcoef[nq,np,k] = res # Element (nq,np). If np=nq overwrite (this is fine).
+                tabaMcoef[np,nq,k] = res[k] # Element (np,nq)
+                tabaMcoef[nq,np,k] = res[k] # Element (nq,np). If np=nq overwrite (this is fine).
 
             end
 
@@ -217,7 +192,7 @@ function tabM!(omg::Complex{Float64},
                tabaMcoef::Array{Float64,4},
                tabResVec::Matrix{Int64},
                tab_npnq::Matrix{Int64},
-               struct_tabLeg::FiniteHilbertTransform.struct_tabLeg_type,
+               FHT::FiniteHilbertTransform.FHTtype,
                dψ::Function,
                d2ψ::Function,
                nradial::Int64,
@@ -228,7 +203,7 @@ function tabM!(omg::Complex{Float64},
     # get dimensions from the relevant tables
     nb_npnq  = size(tab_npnq)[2]
     nbResVec = size(tabResVec)[2]
-    K_u      = size(tabaMcoef)[4]
+    K_u      = FHT.Ku
 
     # initialise the array to 0.
     fill!(tabM,0.0 + 0.0*im)
@@ -248,11 +223,11 @@ function tabM!(omg::Complex{Float64},
         varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Ω0,rmin=rmin,rmax=rmax)
         #varpi = OrbitalElements.GetVarpi(omg_nodim,wmin,wmax)
 
-        # get the Legendre integration values
-        FiniteHilbertTransform.get_tabLeg!(varpi,K_u,struct_tabLeg)
+        # get the integration values
+        FiniteHilbertTransform.GettabD!(varpi,FHT)
 
         # mame of the array where the D_k(w) are stored
-        tabDLeg = struct_tabLeg.tabDLeg
+        tabDLeg = FHT.tabDLeg
 
         # loop over the basis indices to consider
         for i_npnq=1:nb_npnq
@@ -324,6 +299,7 @@ function RunM(omglist::Array{Complex{Float64}},
               gfuncdir::String,modedir::String,
               K_u::Int64,K_v::Int64,K_w::Int64,
               basis::AstroBasis.Basis_type,
+              FHT::FiniteHilbertTransform.FHTtype,
               lharmonic::Int64,
               n1max::Int64,
               nradial::Int64,
@@ -351,9 +327,6 @@ function RunM(omglist::Array{Complex{Float64}},
     # fill in the array of resonance vectors (n1,n2)
     tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
-    # get all weights
-    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
-
     # make the (np,nq) vectors that we need to evaluate
     tab_npnq = makeTabnpnq(nradial)
 
@@ -362,10 +335,11 @@ function RunM(omglist::Array{Complex{Float64}},
     end
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
+    MakeaMCoefficients(tabResVec,tab_npnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
 
     # allocate structs for D_k(omega) computation
-    struct_tabLeglist = [FiniteHilbertTransform.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
+    #FHTlist = [FiniteHilbertTransform.FHTcreate(K_u,FHT.name) for k=1:Threads.nthreads()]
+    FHTlist = [deepcopy(FHT) for k=1:Threads.nthreads()]
 
     # allocate memory for the response matrices M and identity matrices
     tabMlist = [zeros(Complex{Float64},nradial,nradial) for k=1:Threads.nthreads()]
@@ -399,9 +373,9 @@ function RunM(omglist::Array{Complex{Float64}},
         k = Threads.threadid()
 
         if i==2 # skip the first in case there is compile time built in
-            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax,VERBOSE=VERBOSE)
+            @time tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,FHTlist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax,VERBOSE=VERBOSE)
         else
-            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax,VERBOSE=VERBOSE)
+            tabM!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,FHTlist[k],dψ,d2ψ,nradial,Ω0,rmin,rmax,VERBOSE=VERBOSE)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])

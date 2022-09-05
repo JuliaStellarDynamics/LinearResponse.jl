@@ -74,6 +74,9 @@ K_u = 200    # number of Legendre integration sample points
 K_v = 200    # number of allocations is directly proportional to this
 K_w = 200    # number of allocations is insensitive to this (also time, largely)?
 
+# define the helper for the Finite Hilbert Transform
+FHT = FiniteHilbertTransform.LegendreFHTcreate(K_u)
+
 lharmonic = 2
 n1max = 4  # maximum number of radial resonances to consider
 

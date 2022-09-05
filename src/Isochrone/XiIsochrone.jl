@@ -23,14 +23,14 @@ function tabMIsochrone!(omg::Complex{Float64},
                         tabaMcoef::Array{Float64,4},
                         tabResVec::Matrix{Int64},
                         tab_npnq::Matrix{Int64},
-                        struct_tabLeg::FiniteHilbertTransform.struct_tabLeg_type,
+                        FHT::FiniteHilbertTransform.FHTtype,
                         nradial::Int64,
                         Ω0::Float64=1.0)
 
     # get dimensions from the relevant tables
     nb_npnq  = size(tab_npnq)[2]
     nbResVec = size(tabResVec)[2]
-    K_u      = size(tabaMcoef)[4]
+    K_u      = FHT.Ku
 
     # initialise the array to 0.
     fill!(tabM,0.0 + 0.0*im)
@@ -50,7 +50,7 @@ function tabMIsochrone!(omg::Complex{Float64},
         varpi = OrbitalElements.GetVarpiIsochrone(omg_nodim,n1,n2)
 
         # get the Legendre integration values
-        FiniteHilbertTransform.get_tabLeg!(varpi,K_u,struct_tabLeg)
+        FiniteHilbertTransform.GettabD!(varpi,FHT)
 
         # mame of the array where the D_k(w) are stored
         tabDLeg = struct_tabLeg.tabDLeg
@@ -99,6 +99,7 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
                        gfuncdir::String,modedir::String,
                        K_u::Int64,K_v::Int64,K_w::Int64,
                        basis::AstroBasis.Basis_type,
+                       FHT::FiniteHilbertTransform.FHTtype,
                        lharmonic::Int64,
                        n1max::Int64,
                        nradial::Int64,
@@ -124,17 +125,15 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
     # fill in the array of resonance vectors (n1,n2)
     tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
-    # get all weights
-    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
 
     # make the (np,nq) vectors that we need to evaluate
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE,OVERWRITE=false)
+    MakeaMCoefficients(tabResVec,tab_npnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE,OVERWRITE=false)
 
     # allocate structs for D_k(omega) computation
-    struct_tabLeglist = [FiniteHilbertTransform.struct_tabLeg_create(K_u) for k=1:Threads.nthreads()]
+    struct_tabLeglist = [deepcopy(FHT) for k=1:Threads.nthreads()]
 
     # allocate memory for the response matrices M and identity matrices
     tabMlist = [zeros(Complex{Float64},nradial,nradial) for k=1:Threads.nthreads()]
