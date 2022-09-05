@@ -248,7 +248,7 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
                                    nradial::Int64,
                                    Ω0::Float64,
                                    modelname::String,dfname::String,
-                                   rb::Float64,
+                                   rb::Float64;
                                    NITER::Int64=32,
                                    eta::Bool=true,
                                    ACCURACY::Float64=1.0e-10,
@@ -275,7 +275,7 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
     tab_npnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
 
     # load aXi values
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,
@@ -341,4 +341,69 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
 
     return omgval
 
+end
+
+
+
+
+"""
+for a single omega, compute the shape of the mode
+
+"""
+function ComputeModeTablesIsochrone(omgval::Complex{Float64},
+                                    gfuncdir::String,modedir::String,
+                                    K_u::Int64,K_v::Int64,K_w::Int64,
+                                    basis::AstroBasis.Basis_type,
+                                    lharmonic::Int64,
+                                    n1max::Int64,
+                                    nradial::Int64,
+                                    Ω0::Float64,
+                                    modelname::String,dfname::String,
+                                    rb::Float64,
+                                    VERBOSE::Int64=0)
+
+    # Check directory names
+    checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
+    if checkdirs < 0
+        return 0
+    end
+
+    # Construct the table of needed resonance vectors
+    # Number of resonance vectors
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
+
+    # fill in the array of resonance vectors (n1,n2)
+    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+
+    # get all Legendre weights
+    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
+
+    # make the (np,nq) vectors that we need to evaluate
+    tab_npnq = makeTabnpnq(nradial)
+
+    # make the decomposition coefficients a_k
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
+
+    # load aXi values
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+
+    # struct for D_k(omega) computation
+    struct_tabLeglist = FiniteHilbertTransform.struct_tabLeg_create(K_u)
+
+    # memory for the response matrices M and identity matrices
+    MMat = zeros(Complex{Float64},nradial,nradial)
+
+    # Containers for determinant and min eigenvalue
+    nomg = 1
+    tabdetXi = zeros(Float64,nomg) # real part of the determinant
+    tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
+
+    tabMIsochrone!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,nradial,Omega0,rb)
+    println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
+
+    # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
+    EV,EF,EM = mevXi(MMat)
+
+    return EV,EF,EM
 end

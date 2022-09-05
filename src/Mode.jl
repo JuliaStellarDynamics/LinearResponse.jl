@@ -57,7 +57,10 @@ function ComputeModeTables(omgval::Complex{Float64},
     tabdetXi = zeros(Float64,nomg) # real part of the determinant
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dψ,d2ψ,nradial,Omega0)
+    tabM!(omgval,tabMlist,tabaMcoef,
+          tabResVec,tab_npnq,
+          struct_tabLeglist,
+          dψ,d2ψ,nradial,Ω0,rmin,rmax)
     println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)

@@ -31,6 +31,7 @@ CallAResponse.RunGfuncIsochrone(ndFdJ,
                                 rb,
                                 VERBOSE=1)
 
+#=
 # make a grid of omegas to test
 tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 tabdet = CallAResponse.RunMIsochrone(tabomega,
@@ -44,19 +45,20 @@ tabdet = CallAResponse.RunMIsochrone(tabomega,
                                      modelname,dfname,
                                      rb,
                                      VERBOSE=1)
+=#
 
 # compute the determinants with a gradient descent to find the exact frequency for ROI
-bestomg = CallAResponse.FindZeroCrossingIsochrone(0.00,0.03,ψ,dψ,d2ψ,
-                                         gfuncdir,modedir,
-                                         K_u,K_v,K_w,
-                                         basis,
-                                         lharmonic,
-                                         n1max,
-                                         nradial,
-                                         Ω0,
-                                         modelname,dfname,
-                                         rb,
-                                         rmin,rmax,NITER=16,VERBOSE=1)
+bestomg = CallAResponse.FindZeroCrossingIsochrone(0.00,0.03,
+                                                  gfuncdir,modedir,
+                                                  K_u,K_v,K_w,
+                                                  basis,
+                                                  lharmonic,
+                                                  n1max,
+                                                  nradial,
+                                                  Ω0,
+                                                  modelname,dfname,
+                                                  rb,
+                                                  NITER=16,VERBOSE=1)
 
 bestomg = 0.0 + 0.022im
 
