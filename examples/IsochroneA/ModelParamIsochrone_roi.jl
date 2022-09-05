@@ -20,7 +20,7 @@ nradial   = basis.nmax
 modelname = "IsochroneA"
 
 bc, M, G = 1.,1.,1.
-Ω0 = OrbitalElements.Omega0Isochrone(bc,M,G)
+Ω0 = OrbitalElements.Ω₀Isochrone(bc,M,G)
 
 # choose a distribution function for G(u) calculation
 # if you change this, you will have to re-run the G calculation!
