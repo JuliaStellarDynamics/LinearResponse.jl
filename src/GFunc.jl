@@ -8,7 +8,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
                 ndFdJ::Function,
                 n1::Int64,n2::Int64,
                 np::Int64,nq::Int64,
-                tabWMat::Array{Float64,2},
+                tabWMat::Array{Float64,3},
                 tabΩ1Ω2Mat::Array{Float64,3},
                 tabAEMat::Array{Float64,3},
                 tabJMat::Array{Float64,2},
@@ -16,7 +16,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
                 Kv::Int64,
                 ndim::Int64,nradial::Int64,
                 ωmin::Float64,ωmax::Float64,
-                tabvminmax::Array{Float64,2}
+                tabvminmax::Array{Float64,2},
                 lharmonic::Int64;
                 Ω₀::Float64=1.)
 
@@ -41,8 +41,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
     for kuval in 1:Ku
 
         uval = tabu[kuval]
-        vmin = vminarr[kuval]
-        vmax = vmaxarr[kuval]
+        vmin, vmax = tabvminmax[kuval,:]
 
         # determine the step size in v
         deltav = (vmax - vmin)/(Kv)
@@ -122,15 +121,14 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
                   basis::AstroBasis.Basis_type,
                   lharmonic::Int64,
                   n1max::Int64,
-                  Ω0::Float64,
+                  Ω₀::Float64,
                   modelname::String,dfname::String,
-                  rb::Float64,
                   rmin::Float64,rmax::Float64;
-                  VERBOSE::Int64=0)
+                  VERBOSE::Int64=0,
+                  OVERWRITE::Bool=false)
 
     # get basis parameters
-    ndim = basis.dimension
-    nradial = basis.nmax
+    ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
 
     # Check directory names
     checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
@@ -153,9 +151,23 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
         println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
+        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
+        if isfile(outputfilename)
+            if (OVERWRITE == false)
+                if VERBOSE > 0
+                    println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): no computation.")
+                end
+                continue
+            else
+                if VERBOSE > 0
+                    println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): recomputing and overwritting.")
+                end
+            end
+        end
+
         # load a value of tabWmat, plus (a,e) values
-        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,,rb,K_u,K_v,K_w)
-        file = h5open(filename,"r"
+        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw)
+        file = h5open(filename,"r")
         Wtab = read(file,"wmat")
         Ω1Ω2tab = read(file,"Omgmat")
         AEtab = read(file,"AEmat")
@@ -169,13 +181,7 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
 
         # print the size of the found files if the first processor
         if i==0
-            println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
-        end
-
-        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
-        if isfile(outputfilename)
-            println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2).")
-            continue
+            println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,Ku=$Ku,Kv=$Kv")
         end
 
         # need to loop through all combos of np and nq to make the full matrix.

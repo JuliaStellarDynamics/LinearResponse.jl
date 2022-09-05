@@ -82,7 +82,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         end
 
         # Loop over the basis indices to consider
-        for i_npnq=1:nb_npnq
+        for i_npnq=1:nbnpnq
             np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
 
             # open the correct resonance vector
@@ -92,7 +92,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
             # get the contribution
             res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi)
 
-            for k=1:K_u
+            for k=1:Ku
 
                 if warnflag[k] > 0
                     println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k")
@@ -112,7 +112,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
         h5open(outputfilename, "w") do outputfile
-            for i_npnq=1:nb_npnq
+            for i_npnq=1:nbnpnq
                 np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
                 write(outputfile, "aXinp"*string(np)*"nq"*string(nq),tabaMcoef[np,nq,:])
             end
@@ -126,8 +126,8 @@ end
 
 """put all aXi values into memory"""
 function StageaMcoef(tabResVec::Matrix{Int64},
-                     tab_npnq::Matrix{Int64},
-                     K_u::Int64,
+                     tabnpnq::Matrix{Int64},
+                     Ku::Int64,
                      nradial::Int64;
                      modedir::String="",
                      modelname::String="",
@@ -137,11 +137,11 @@ function StageaMcoef(tabResVec::Matrix{Int64},
 
 
     # get dimensions from the relevant tables
-    nb_npnq  = size(tab_npnq)[2]
+    nbnpnq  = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
     # allocate memory
-    tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,K_u)
+    tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,Ku)
 
 
     #Threads.@threads for nres=1:nbResVec # Loop over the resonances
@@ -149,17 +149,17 @@ function StageaMcoef(tabResVec::Matrix{Int64},
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres] # Current resonance (n1,n2)
 
         # retrieve the correct M table
-        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
+        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
         inputfile = h5open(filename,"r")
 
         # Loop over the basis indices to consider
-        for i_npnq=1:nb_npnq
-            np, nq = tab_npnq[1,i_npnq], tab_npnq[2,i_npnq] # Current value of (np,nq)
+        for i_npnq=1:nbnpnq
+            np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
 
             # get the table from the inputfile
             tmptabaMcoef = read(inputfile,"aXinp"*string(np)*"nq"*string(nq))
 
-            for k=1:K_u
+            for k=1:Ku
 
                 # fill in the (np,nq) value
                 tabaMcoef[nres,np,nq,k] = tmptabaMcoef[k]
@@ -224,7 +224,7 @@ function tabM!(ω::Complex{Float64},
         FiniteHilbertTransform.GettabD!(ϖ,FHT)
 
         # mame of the array where the D_k(w) are stored
-        tabD = FHT.tabD
+        tabD = FHT.tabDLeg
 
 
         # loop over the basis indices to consider
@@ -298,14 +298,13 @@ function RunM(ωlist::Array{Complex{Float64}},
               FHT::FiniteHilbertTransform.FHTtype,
               Kv::Int64,Kw::Int64,
               basis::AstroBasis.Basis_type,
-              FHT::FiniteHilbertTransform.FHTtype,
               lharmonic::Int64,
               n1max::Int64,
               Ω₀::Float64,
               modelname::String,dfname::String,
-              rb::Float64,
               rmin::Float64,rmax::Float64;
-              VERBOSE::Int64=0)
+              VERBOSE::Int64=0,
+              OVERWRITE::Bool=false)
 
     # Check directory names
     checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
@@ -314,7 +313,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     end
 
     # get basis parameters
-    ndim, nradial = basis.dimension, basis.nmax
+    ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
 
     # Resonance vectors
     nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
@@ -330,7 +329,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     end
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
 
     # allocate memory for FHT structs
     FHTlist = [deepcopy(FHT) for k=1:Threads.nthreads()]

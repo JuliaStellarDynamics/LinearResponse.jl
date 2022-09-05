@@ -238,7 +238,6 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                  n1max::Int64,
                  Ω₀::Float64,
                  modelname::String,
-                 rb::Float64,
                  rmin::Float64,rmax::Float64;
                  VERBOSE::Int64=0,
                  OVERWRITE::Bool=false)
@@ -250,7 +249,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     end
 
     # get basis parameters
-    ndim, nradial = basis.dimension, basis.nmax 
+    ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
 
     # bases prep.
     AstroBasis.fill_prefactors!(basis)
@@ -279,7 +278,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         if isfile(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw))
             file = h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "r")
             oldnradial = read(file,"nradial")
-            if (nradial <= oldnradial) && (OVERWRITE == false)
+            if (OVERWRITE == false) && (nradial <= oldnradial)
                 if VERBOSE > 0
                     println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
                 end
