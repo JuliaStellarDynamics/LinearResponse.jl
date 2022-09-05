@@ -1,9 +1,8 @@
 
 """
+    MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,n1,n2,np,nq,tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabu,Kv,ndim,nradial,ωmin,ωmax,tabvminvmax,lharmonic[,Ω₀])
+
 function to compute G(u)
-
-@ATTENTION, the dimensionality (e.g. 2d vs 3d) is now encoded in 'ndim'.
-
 """
 function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                 ndFdJ::Function,
@@ -14,11 +13,11 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
                 tabAEMat::Array{Float64,3},
                 tabJMat::Array{Float64,2},
                 tabu::Array{Float64},
-                Kv::Int64,nradial::Int64,
+                Kv::Int64,
+                ndim::Int64,nradial::Int64,
                 ωmin::Float64,ωmax::Float64,
                 tabvminmax::Array{Float64,2}
                 lharmonic::Int64;
-                ndim::Int64,
                 Ω₀::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
@@ -111,8 +110,9 @@ end
 
 
 """
-    RunGfunc(inputfile)
+    RunGfunc()
 
+@TO DESCRIBE
 """
 function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                   ndFdJ::Function,
@@ -190,18 +190,18 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
                         @time tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
                                               ndFdJ,n1,n2,np,nq,
                                               Wtab,Ω1Ω2tab,AEtab,Jtab,
-                                              tabu,Kv,nradial,
+                                              tabu,Kv,ndim,nradial,
                                               ωmin,ωmax,
                                               vminmaxtab,
-                                              lharmonic,ndim=ndim,Ω₀=Ω₀)
+                                              lharmonic,Ω₀=Ω₀)
                     else
                         tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
                                         ndFdJ,n1,n2,np,nq,
                                         Wtab,Ω1Ω2tab,AEtab,Jtab,
-                                        tabu,Kv,nradial,
+                                        tabu,Kv,ndim,nradial,
                                         ωmin,ωmax,
                                         vminmaxtab,
-                                        lharmonic,ndim=ndim,Ω₀=Ω₀)
+                                        lharmonic,Ω₀=Ω₀)
                     end
 
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
