@@ -7,7 +7,7 @@ for a single omega, compute the shape of the mode
 
 """
 function ComputeModeTables(omgval::Complex{Float64},
-                           ψ::Function,dψ::Function,d2ψ::Function,
+                           dψ::Function,d2ψ::Function,
                            gfuncdir::String,modedir::String,
                            K_u::Int64,K_v::Int64,K_w::Int64,
                            basis::AstroBasis.Basis_type,
@@ -17,7 +17,6 @@ function ComputeModeTables(omgval::Complex{Float64},
                            Ω0::Float64,
                            modelname::String,dfname::String,
                            rb::Float64,
-                           rmin::Float64,rmax::Float64;
                            VERBOSE::Int64=0)
 
     # Check directory names
@@ -173,6 +172,6 @@ function GetModeShape(basis::AstroBasis.Basis_type,
     end
 
     # return just in case we want to do something else
-    return tabRMode,tabShapeMode
+    return ModeRadius,ModePotentialShape,ModeDensityShape
 
 end

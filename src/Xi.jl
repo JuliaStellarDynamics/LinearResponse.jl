@@ -246,6 +246,7 @@ function tabM!(omg::Complex{Float64},
 
         # get the rescaled frequency
         varpi = OrbitalElements.GetVarpi(omg_nodim,n1,n2,dψ,d2ψ,Ω₀=Ω0,rmin=rmin,rmax=rmax)
+        #varpi = OrbitalElements.GetVarpi(omg_nodim,wmin,wmax)
 
         # get the Legendre integration values
         FiniteHilbertTransform.get_tabLeg!(varpi,K_u,struct_tabLeg)
@@ -319,7 +320,7 @@ end
 
 
 function RunM(omglist::Array{Complex{Float64}},
-              ψ::Function,dψ::Function,d2ψ::Function,
+              dψ::Function,d2ψ::Function,
               gfuncdir::String,modedir::String,
               K_u::Int64,K_v::Int64,K_w::Int64,
               basis::AstroBasis.Basis_type,
@@ -418,7 +419,7 @@ end
 Newton-Raphson descent to find the zero crossing
 """
 function FindZeroCrossing(Ωguess::Float64,Etaguess::Float64,
-                          ψ::Function,dψ::Function,d2ψ::Function,
+                          dψ::Function,d2ψ::Function,
                           gfuncdir::String,modedir::String,
                           K_u::Int64,K_v::Int64,K_w::Int64,
                           basis::AstroBasis.Basis_type,
@@ -487,14 +488,14 @@ function FindZeroCrossing(Ωguess::Float64,Etaguess::Float64,
         tabM!(omgval,tabMlist,tabaMcoef,
               tabResVec,tab_npnq,
               struct_tabLeglist,
-              dψ,d2ψ,nradial,Ω0)
+              dψ,d2ψ,nradial,Ω0,rmin,rmax)
 
         centralvalue = detXi(IMat,tabMlist)
 
         tabM!(omgvaloff,tabMlist,tabaMcoef,
               tabResVec,tab_npnq,
               struct_tabLeglist,
-              dψ,d2ψ,nradial,Ω0)
+              dψ,d2ψ,nradial,Ω0,rmin,rmax)
 
         offsetvalue = detXi(IMat,tabMlist)
 

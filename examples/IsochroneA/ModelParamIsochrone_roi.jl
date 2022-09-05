@@ -63,10 +63,10 @@ gfuncdir = "gfunc/"
 modedir  = "xifunc/"
 
 # Frequencies to probe
-nOmega   = 61
+nOmega   = 11#61
 Omegamin = -0.05
 Omegamax = 0.05
-nEta     = 30
+nEta     = 10#30
 Etamin   = 0.0001
 Etamax   = 0.005
 

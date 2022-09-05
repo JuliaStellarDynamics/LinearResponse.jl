@@ -41,7 +41,7 @@ tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 
 # compute the matrix response at each location
 tabdet = CallAResponse.RunM(tabomega,
-                            ψ,dψ,d2ψ,
+                            dψ,d2ψ,
                             gfuncdir,modedir,
                             K_u,K_v,K_w,
                             basis,
@@ -56,7 +56,7 @@ tabdet = CallAResponse.RunM(tabomega,
 
 
 # compute the determinants with a gradient descent
-bestomg = CallAResponse.FindZeroCrossing(0.00,0.03,ψ,dψ,d2ψ,
+bestomg = CallAResponse.FindZeroCrossing(0.00,0.03,dψ,d2ψ,
                                          gfuncdir,modedir,
                                          K_u,K_v,K_w,
                                          basis,
@@ -72,7 +72,7 @@ bestomg = CallAResponse.FindZeroCrossing(0.00,0.03,ψ,dψ,d2ψ,
 println("The zero-crossing frequency is $bestomg.")
 
 # for the minimum, go back and compute the mode shape
-EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,ψ,dψ,d2ψ,
+EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,dψ,d2ψ,
                                          gfuncdir,modedir,
                                          K_u,K_v,K_w,
                                          basis,

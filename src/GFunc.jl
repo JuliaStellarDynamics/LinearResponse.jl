@@ -70,11 +70,9 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
             # owing to the remapping of Ω, this has an extra 2/(ωmax-ωmin)
             Jacαβ = OrbitalElements.JacAlphaBetaToUV(n1,n2,ωmin,ωmax,vval)
 
-            #(E,L) -> (α,β): this is the most expensive function here
-            #JacEL        = OrbitalElements.JacEL_to_alphabeta(alpha,beta)
-            #JacEL        = OrbitalElements.JacELToAlphaBetaAE(a,e,ψ,dψ,d2ψ,Ω0)
+            #(E,L) -> (α,β): this is the most expensive function here,
+            # so we have pre-tabulated it
             JacEL = tabJMat[kuval,kvval]
-            #JacEL = OrbitalElements.JacELToAlphaBetaAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Ω0=Ω0)
 
             #(J) -> (E,L)
             JacJ = (1/Ω1)
@@ -199,14 +197,14 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
 
         # Frequency cuts associated to [rmin,rmax]
         # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
-        αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω0=Ω0)
+        αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω0)
         # compute the frequency scaling factors for this resonance
-        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,Ω0=Ω0,rmin=rmin,rmax=rmax)
+        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,Ω₀=Ω0,rmin=rmin,rmax=rmax)
 
         # loop through once and design a v array for min, max
         vminarr,vmaxarr = zeros(K_u),zeros(K_u)
         for uval = 1:K_u
-           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmax(tabuGLquad[uval],n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω0=Ω0,rmin=rmin,rmax=rmax)
+           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmax(tabuGLquad[uval],n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω0,rmin=rmin,rmax=rmax)
         end
 
         # need to loop through all combos of np and nq to make the full matrix.

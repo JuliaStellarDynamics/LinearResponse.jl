@@ -11,8 +11,8 @@ VERBOSE flag rules
 using LinearAlgebra
 
 
-"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,Omega0)
-Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Omega0.
+"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,Ω0)
+Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω0.
 
 @IMPROVE: The shape of the array could maybe be improved
 
@@ -25,7 +25,7 @@ function tabMIsochrone!(omg::Complex{Float64},
                         tab_npnq::Matrix{Int64},
                         struct_tabLeg::FiniteHilbertTransform.struct_tabLeg_type,
                         nradial::Int64,
-                        Omega0::Float64=1.0)
+                        Ω0::Float64=1.0)
 
     # get dimensions from the relevant tables
     nb_npnq  = size(tab_npnq)[2]
@@ -44,7 +44,7 @@ function tabMIsochrone!(omg::Complex{Float64},
         n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec]
 
         # Rescale to get dimensionless frequency
-        omg_nodim = omg/Omega0
+        omg_nodim = omg/Ω0
 
         # get the rescaled frequency
         varpi = OrbitalElements.GetVarpiIsochrone(omg_nodim,n1,n2)
@@ -95,12 +95,17 @@ end
 
 
 
-function RunMIsochrone(inputfile::String,
-                       omglist::Array{Complex{Float64}};
+function RunMIsochrone(omglist::Array{Complex{Float64}},
+                       gfuncdir::String,modedir::String,
+                       K_u::Int64,K_v::Int64,K_w::Int64,
+                       basis::AstroBasis.Basis_type,
+                       lharmonic::Int64,
+                       n1max::Int64,
+                       nradial::Int64,
+                       Ω0::Float64,
+                       modelname::String,dfname::String,
+                       rb::Float64;
                        VERBOSE::Int64=0)
-
-    # need some sort of 'if' for whether this already exists
-    include(inputfile)
 
     nomglist = length(omglist)
 
@@ -109,6 +114,9 @@ function RunMIsochrone(inputfile::String,
     if checkdirs < 0
         return 0
     end
+
+    # get basis parameters
+    ndim = basis.dimension
 
     # calculate the number of resonance vectors
     nbResVec = get_nbResVec(lharmonic,n1max,ndim)
@@ -151,9 +159,9 @@ function RunMIsochrone(inputfile::String,
         k = Threads.threadid()
 
         if i==1
-            @time tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],nradial,Omega0)
+            @time tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],nradial,Ω0)
         else
-            tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],nradial,Omega0)
+            tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist[k],nradial,Ω0)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
@@ -216,12 +224,121 @@ function ComputeModeTablesIsochrone(inputfile,
     tabdetXi = zeros(Float64,nomg) # real part of the determinant
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    #tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dψ,d2ψ,nradial,Omega0)
-    tabMIsochrone!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,nradial,Omega0)
+    #tabM!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,dψ,d2ψ,nradial,Ω0)
+    tabMIsochrone!(omgval,MMat,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,nradial,Ω0)
     println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
     EV,EF,EM = mevXi(MMat)
 
     return EV,EF,EM
+end
+
+
+
+"""
+Newton-Raphson descent to find the zero crossing
+"""
+function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
+                                   gfuncdir::String,modedir::String,
+                                   K_u::Int64,K_v::Int64,K_w::Int64,
+                                   basis::AstroBasis.Basis_type,
+                                   lharmonic::Int64,
+                                   n1max::Int64,
+                                   nradial::Int64,
+                                   Ω0::Float64,
+                                   modelname::String,dfname::String,
+                                   rb::Float64,
+                                   NITER::Int64=32,
+                                   eta::Bool=true,
+                                   ACCURACY::Float64=1.0e-10,
+                                   VERBOSE::Int64=0)
+
+    # check directories
+    if !(isdir(gfuncdir) && isdir(modedir))
+        error("CallAResponse.Xi.jl: gfuncdir or modedir not found.")
+    end
+
+    # get basis parameters
+    ndim = basis.dimension
+
+    #####
+    # Construct the table of needed resonance vectors
+    #####
+    nbResVec = get_nbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
+    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+
+    # get all weights
+    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
+
+    # make the (np,nq) vectors that we need to evaluate
+    tab_npnq = makeTabnpnq(nradial)
+
+    # make the decomposition coefficients a_k
+    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
+
+    # load aXi values
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,
+                                          modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+
+    # Structs for D_k(omega) computation
+    struct_tabLeglist = FiniteHilbertTransform.struct_tabLeg_create(K_u)
+    # memory for the response matrices M and identity matrices
+    tabMlist = zeros(Complex{Float64},nradial,nradial)
+    IMat = makeIMat(nradial)
+
+    omgval = Ωguess + im*Etaguess
+    domega = 1.e-4
+
+    completediterations = 0
+
+    # this must be indicative of the multiprocessing bug: Threads helps here, even for 1
+    #Threads.@threads for i = 1:NITER
+    for i = 1:NITER
+
+        # calculate the new off omega value
+        omgvaloff = omgval + im*domega
+
+        println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
+
+        tabMIsochrone!(omgval,tabMlist,tabaMcoef,
+              tabResVec,tab_npnq,
+              struct_tabLeglist,
+              nradial,Ω0,rmin,rmax)
+
+        centralvalue = detXi(IMat,tabMlist)
+
+        tabMIsochrone!(omgvaloff,tabMlist,tabaMcoef,
+              tabResVec,tab_npnq,
+              struct_tabLeglist,
+              nradial,Ω0,rmin,rmax)
+
+        offsetvalue = detXi(IMat,tabMlist)
+
+        # ignore the imaginary part
+        derivative = real(offsetvalue - centralvalue)/domega
+
+        # take a step in omega given the derivative
+        stepsize = real(centralvalue)/derivative
+        omgval  = omgval - im*stepsize
+
+        println("Newomg=$omgval, cval=$centralvalue, oval=$offsetvalue")
+
+        # record iteration number
+        completediterations += 1
+
+        # check if we have gotten close enough already
+        if abs(stepsize) < ACCURACY
+            break
+        end
+
+    end
+
+    if VERBOSE > 0
+        println("CallAResponse.Xi.FindZeroCrossingIsochrone: zero found in $completediterations steps.")
+    end
+
+    return omgval
+
 end
