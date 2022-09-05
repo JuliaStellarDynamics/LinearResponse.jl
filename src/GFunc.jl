@@ -9,17 +9,17 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
                 ndFdJ::Function,
                 n1::Int64,n2::Int64,
                 np::Int64,nq::Int64,
-                tabWMat::Array{Float64},
-                tabaMat::Array{Float64},
-                tabeMat::Array{Float64},
-                tabJMat::Array{Float64},
-                Kuvals::Matrix{Float64},
-                K_v::Int64,nradial::Int64,
+                tabWMat::Array{Float64,2},
+                tabΩ1Ω2Mat::Array{Float64,3},
+                tabAEMat::Array{Float64,3},
+                tabJMat::Array{Float64,2},
+                tabu::Array{Float64},
+                Kv::Int64,nradial::Int64,
                 ωmin::Float64,ωmax::Float64,
-                vminarr::Array{Float64},vmaxarr::Array{Float64},
+                tabvminmax::Array{Float64,2}
                 lharmonic::Int64;
                 ndim::Int64,
-                Ω0::Float64=1.)
+                Ω₀::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
@@ -34,33 +34,33 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
     end
 
     # get basic parameters
-    K_u     = length(Kuvals)
+    Ku     = length(tabu)
 
     # set up a blank array
-    tabGXi  = zeros(K_u)
+    tabGXi  = zeros(Ku)
 
-    for kuval in 1:K_u
+    for kuval in 1:Ku
 
-        uval = Kuvals[kuval]
+        uval = tabu[kuval]
         vmin = vminarr[kuval]
         vmax = vmaxarr[kuval]
 
         # determine the step size in v
-        deltav = (vmax - vmin)/(K_v)
+        deltav = (vmax - vmin)/(Kv)
 
         res = 0.0 # Initialising the result
 
-        for kvval in 1:K_v
+        for kvval in 1:Kv
             vval = vmin + deltav*(kvval-0.5)
 
-            # big step: convert input (u,v) to (rp,ra)
-            # now we need (rp,ra) that corresponds to (u,v)
-            α,β = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,ωmin,ωmax)
-
-            Ω1,Ω2 = α*Ω0,α*β*Ω0
-
-            # convert from Ω1,Ω2 to (a,e): using a tabled value
-            a,e = tabaMat[kuval,kvval],tabeMat[kuval,kvval]
+            ####
+            # (u,v) -> (a,e)
+            # From WMat computations
+            ####
+            # (u,v) -> (Ω1,Ω2)
+            Ω1,Ω2 = tabΩ1Ω2Mat[kuval,kvval,:]
+            # (Ω1,Ω2) -> (a,e)
+            a,e = tabAEMat[kuval,kvval,:]
 
             # need (E,L): this has some relatively expensive switches
             Eval,Lval = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=0.001)
@@ -68,7 +68,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
             # compute Jacobians
             #(α,β) -> (u,v).
             # owing to the remapping of Ω, this has an extra 2/(ωmax-ωmin)
-            Jacαβ = OrbitalElements.JacAlphaBetaToUV(n1,n2,ωmin,ωmax,vval)
+            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,ωmin,ωmax,vval)
 
             #(E,L) -> (α,β): this is the most expensive function here,
             # so we have pre-tabulated it
@@ -78,8 +78,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
             JacJ = (1/Ω1)
 
             # remove dimensionality from Ω mapping
-            dimensionl = (1/Ω0)
-
+            dimensionl = (1/Ω₀)
 
             # get the resonance vector
             ndotΩ = n1*Ω1 + n2*Ω2
@@ -90,19 +89,6 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
             # get tabulated W values for different basis functions np,nq
             Wp = tabWMat[np,kuval,kvval]
             Wq = tabWMat[nq,kuval,kvval]
-
-            # todo: make this block @static
-            #=
-            # do a nan check?
-            nancheck = false
-            if (nancheck)
-                tmp = pref*Lval*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq
-
-                if isnan(tmp)
-                    println(Jacalphabeta," ",JacEL," ",pref," ",(Lval/Ω1)," ",valndFdJ," ",Wp," ",Wq)
-                end
-            end
-            =#
 
             if ndim==2
                 res += pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
@@ -131,22 +117,20 @@ end
 function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                   ndFdJ::Function,
                   wmatdir::String,gfuncdir::String,
-                  K_u::Int64,K_v::Int64,K_w::Int64,
+                  FHT::FiniteHilbertTransform.FHTtype,
+                  Kv::Int64,Kw::Int64,
                   basis::AstroBasis.Basis_type,
                   lharmonic::Int64,
                   n1max::Int64,
-                  nradial::Int64,
                   Ω0::Float64,
                   modelname::String,dfname::String,
                   rb::Float64,
                   rmin::Float64,rmax::Float64;
                   VERBOSE::Int64=0)
 
-    # bring in the defined parameters
-    #LoadConfiguration(inputfile)
-
     # get basis parameters
     ndim = basis.dimension
+    nradial = basis.nmax
 
     # Check directory names
     checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
@@ -154,20 +138,14 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         return 0
     end
 
-    # prep for Legendre integration
-    tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(K_u)
-    tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
+    # Integration points
+    tabu, Ku = FHT.tabu, FHT.Ku
 
-    # make a function for the circular frequency relationship:
-    #  only needs to happen once, redefinition might kill us
-    #  could this move completely outside the function to help the compiler?
-    βc(alphac::Float64)::Float64 = OrbitalElements.βcirc(alphac,dψ,d2ψ,Ω0,rmin=rmin,rmax=rmax)
+    # Resonance vectors
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
 
-    # compute the number of resonance vectors
-    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
-
-    # fill in the array of resonance vectors (n1,n2)
-    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+    # Frequency cuts associated to [rmin,rmax]
+    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω₀)
 
     println("CallAResponse.GFunc.RunGfunc: Considering $nbResVec resonances.")
 
@@ -176,13 +154,18 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
         # load a value of tabWmat, plus (a,e) values
-        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,nradial,rb,K_u,K_v,K_w)
-        file = h5open(filename,"r")
+        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,,rb,K_u,K_v,K_w)
+        file = h5open(filename,"r"
         Wtab = read(file,"wmat")
-        atab = read(file,"amat")
-        etab = read(file,"emat")
+        Ω1Ω2tab = read(file,"Omgmat")
+        AEtab = read(file,"AEmat")
         Jtab = read(file,"jELABmat")
+        vminmaxtab = read(file,"tabvminmax")
+        ωminmax = read(file,"omgminmax")
         close(file)
+
+        # Extremal n.Ω
+        ωmin, ωmax = ωminmax[1], ωminmax[2]
 
         # print the size of the found files if the first processor
         if i==0
@@ -193,18 +176,6 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         if isfile(outputfilename)
             println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2).")
             continue
-        end
-
-        # Frequency cuts associated to [rmin,rmax]
-        # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
-        αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω0)
-        # compute the frequency scaling factors for this resonance
-        ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,Ω₀=Ω0,rmin=rmin,rmax=rmax)
-
-        # loop through once and design a v array for min, max
-        vminarr,vmaxarr = zeros(K_u),zeros(K_u)
-        for uval = 1:K_u
-           vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmax(tabuGLquad[uval],n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω0,rmin=rmin,rmax=rmax)
         end
 
         # need to loop through all combos of np and nq to make the full matrix.
@@ -218,37 +189,24 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
                     if (np==1) & (nq==1)
                         @time tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
                                               ndFdJ,n1,n2,np,nq,
-                                              Wtab,atab,etab,Jtab,
-                                              tabuGLquad,K_v,nradial,
+                                              Wtab,Ω1Ω2tab,AEtab,Jtab,
+                                              tabu,Kv,nradial,
                                               ωmin,ωmax,
-                                              vminarr,vmaxarr,
-                                              lharmonic,ndim=ndim,Ω0=Ω0)
+                                              vminmaxtab,
+                                              lharmonic,ndim=ndim,Ω₀=Ω₀)
                     else
                         tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
                                         ndFdJ,n1,n2,np,nq,
-                                        Wtab,atab,etab,Jtab,
-                                        tabuGLquad,K_v,nradial,
+                                        Wtab,Ω1Ω2tab,AEtab,Jtab,
+                                        tabu,Kv,nradial,
                                         ωmin,ωmax,
-                                        vminarr,vmaxarr,
-                                        lharmonic,ndim=ndim,Ω0=Ω0)
+                                        vminmaxtab,
+                                        lharmonic,ndim=ndim,Ω₀=Ω₀)
                     end
 
-                    #
-
-                    #=
-                    sumG = sum(tabGXi)
-                    if (np>-100) & (nq>-100)
-                        if isnan(sumG)
-                            println("Gfunc.jl: NaN for n1=$n1, n2=$n2.")
-                        else
-                            println("GFunc.jl: np=$np, nq=$nq, sumG=$sumG.")
-                        end
-                    end
-                    =#
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
                 end
             end
         end
     end
-
 end
