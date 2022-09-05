@@ -6,6 +6,10 @@ import AstroBasis
 import FiniteHilbertTransform
 using HDF5
 
+# Default values
+const defaultΩ₀ = 1.
+const defaultrmin = 1.0e-6
+const defaultrmax = 1.0e4
 
 # helper functions for constructing basis list, resonance list, prefactors (3d), writing utilities, and frequency tables
 include("Utils/Basis.jl")

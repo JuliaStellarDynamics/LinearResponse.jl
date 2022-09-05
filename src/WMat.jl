@@ -1,102 +1,103 @@
 
 
-"""MakeWmatUV(ψ,dψ,d2ψ,d3ψ,n1,n2,K_u,K_v,lharmonic,basis[,Ω0,K_w])
+"""
+    MakeWmatUV(ψ,dψ,d2ψ,d3ψ,n1,n2,tabu,Kv,lharmonic,basis[,Ω₀,rmin,rmax,K_w])
 
-@IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
-@IMPROVE: parallelise by launching from both -1 and 1?
-@IMPROVE: adaptively check for NaN values?
-
-@WARNING: when parallelising, basis will need to be copies so it can overwrite tabUl
-
-@NOTE: AstroBasis provides the Basis_type data type.
+@TO DESCRIBE
 """
 function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                     n1::Int64,n2::Int64,
-                    Kuvals::Matrix{Float64},
-                    K_v::Int64,
+                    tabu::Array{Float64},
+                    Kv::Int64,
                     lharmonic::Int64,
                     basis::AstroBasis.Basis_type;
-                    Ω0::Float64=1.,
-                    rmin::Float64=1.0e-6,
-                    rmax::Float64=1.0e4,
-                    K_w::Int64=50,
+                    Ω₀::Float64=defaultΩ₀,
+                    rmin::Float64=defaultrmin,
+                    rmax::Float64=defaultrmax,
+                    Kw::Int64=50,
                     EDGE::Float64=0.01,
                     VERBOSE::Int64=0,
                     NINT::Int64=32)
 
+    """
+    @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
+    @IMPROVE: parallelise by launching from both -1 and 1?
+    @IMPROVE: adaptively check for NaN values?
+
+    @WARNING: when parallelising, basis will need to be copies so it can overwrite tabUl
+
+    @NOTE: AstroBasis provides the Basis_type data type.
+    """
+
     # get the number of u samples from the input vector of u vals
-    K_u = length(Kuvals)
+    Ku = length(tabu)
 
     # Frequency cuts associated to [rmin,rmax]
     # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
-    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω0)
+    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω₀)
     # compute the frequency scaling factors for this resonance
-    ωmin,ωmax = OrbitalElements.FindWminWmax(n1,n2,dψ,d2ψ,Ω₀=Ω0,rmin=rmin,rmax=rmax)
+    ωmin,ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
+
+    ωminmax = [ωmin,ωmax]
 
     # define a function for beta_c
-    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Ω0,rmin=rmin,rmax=rmax)
+    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Ω₀,rmin=rmin,rmax=rmax)
 
     # allocate the results matrices
-    tabWMat = zeros(basis.nmax,K_u,K_v)
-    tabaMat = zeros(K_u,K_v)
-    tabeMat = zeros(K_u,K_v)
-    tabJMat = zeros(K_u,K_v)
+    tabWMat = zeros(basis.nmax,Ku,Kv)
+    tabΩ1Ω2Mat = zeros(Ku,Kv,2)
+    tabAEMat = zeros(Ku,Kv,2)
+    tabJMat = zeros(Ku,Kv)
+    tabvminmax = zeros(Ku,2)
 
     # set the matrix step size
-    duWMat = (2.0)/(K_w)
+    duWMat = (2.0)/(Kw)
 
     # start the loop
-    for kuval in 1:K_u
+    for kuval in 1:Ku
 
         # get the current u value
-        uval = Kuvals[kuval]
+        uval = tabu[kuval]
 
         if VERBOSE > 2
-            println("\nCallAResponse.WMat.MakeWMat: on step $kuval of $K_u: u=$uval.")
+            println("\nCallAResponse.WMat.MakeWMat: on step $kuval of $Ku: u=$uval.")
         end
 
         # get the corresponding v boundary values
-        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω0,rmin=rmin,rmax=rmax)
+        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
+
+        # saving them 
+        tabvminmax[kuval,1], tabvminmax[kuval,2] = vmin, vmax
 
         # determine the step size in v
-        deltav = (vmax - vmin)/(K_v)
+        deltav = (vmax - vmin)/(Kv)
 
-        for kvval in 1:K_v
+        for kvval in 1:Kv
 
             # get the current v value
             vval = vmin + deltav*(kvval-0.5)
 
-            # big step: convert input (u,v) to (rp,ra)
-            # now we need (rp,ra) that corresponds to (u,v)
-            α,β = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,ωmin,ωmax)
-
-            Ω1,Ω2 = α*Ω0,α*β*Ω0
+            ####
+            # (u,v) -> (a,e)
+            ####
+            # (u,v) -> (α,β)
+            α,β = OrbitalElements.αβFromUV(uval,vval,n1,n2,ωmin,ωmax)
+            # (α,β) -> (Ω1,Ω2)
+            Ω1,Ω2 = α*Ω₀,α*β*Ω₀
+            # (Ω1,Ω2) -> (a,e)
+            a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=NINT,EDGE=EDGE,VERBOSE=VERBOSE)
 
             if VERBOSE > 2
                 print("v=$kvval,o1=$Ω1,o2=$Ω2;")
             end
 
-            # convert from Ω1,Ω2 to (a,e)
-            # need to crank the tolerance here, and also check that ecc < 0.
-            # put a guard in place for frequency calculations!!
-            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,Ω1,Ω2)
-
-            # new, iterative brute force procedure
-            #a1,e1 = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,Ω1,Ω2,1*10^(-12),1)
-            #maxestep = 0.005
-            #sma,ecc = OrbitalElements.compute_ae_from_frequencies(ψ,dψ,d2ψ,Ω1,Ω2,1*10^(-12),1000,0.001,0.0001,max(0.0001,0.001a1),min(max(0.0001,0.1a1*e1),maxestep),0)
-            a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=NINT,EDGE=EDGE,VERBOSE=VERBOSE)
-
-            #if VERBOSE > 2
-            #    print("a=$sma,ecc=$ecc")
-            #end
-
+            # save (Ω1,Ω2) values for later
+            tabΩ1Ω2Mat[kuval,kvval,1], tabΩ1Ω2Mat[kuval,kvval,2] = Ω1, Ω2
             # save (a,e) values for later
-            tabaMat[kuval,kvval] = a
-            tabeMat[kuval,kvval] = e
+            tabAEMat[kuval,kvval,1], tabAEMat[kuval,kvval,2] = a, e
 
             # compute the Jacobian (E,L)->(alpha,beta) here. a little more expensive, but savings in the long run
-            tabJMat[kuval,kvval] = OrbitalElements.JacELToAlphaBetaAE(a,e,ψ,dψ,d2ψ,Ω0)
+            tabJMat[kuval,kvval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Ω₀)
 
             # need angular momentum
             Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e)
@@ -104,11 +105,10 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             # Initialise the state vectors: u, theta1, (theta2-psi)
             u, theta1, theta2 = -1.0, 0.0, 0.0
 
-            # launch the integration from the left boundary by finding ThetaRpRa(u=-1.)
-            #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
-            gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
+            # launch the integration from the left boundary
+            gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
 
-            # Current location of the radius, r=r(u): isn't this exactly rp?
+            # Current location of the radius, r=r(u)
             rval = OrbitalElements.ru(u,a,e)
 
             # the velocity for integration
@@ -119,8 +119,11 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
             # start the integration loop now that we are initialised
             # at each step, we are performing an RK4-like calculation
-            for istep=1:K_w
+            for istep=1:Kw
 
+                ####
+                # RK4 Step 1
+                ####
                 # compute the first prefactor
                 pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
 
@@ -133,7 +136,9 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                 k1_1 = duWMat*dt1du
                 k2_1 = duWMat*dt2du
 
-                # Begin RK4 Step 2
+                ####
+                # RK4 Step 2
+                ####
                 # Update the time by half a timestep
                 u += 0.5*duWMat
 
@@ -141,8 +146,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                 rval = OrbitalElements.ru(u,a,e)
 
                 # get the corresponding value of Theta(u): could use (a,e) function here as well
-                #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
-                gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
+                gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
 
                 # Current value of dtheta1/du and dtheta2/du
                 dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
@@ -155,16 +159,13 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                 # the factor (1.0/3.0) comes from RK4
                 pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1))
 
-                # Loop over the radial indices to sum basis contributions
-                #for np=1:basis.nmax
-                #    tabWMat[np,kuval,kvval] += pref2*basis.tabUl[np]
-                #end
-
                 # update velocities at end of step 2
                 k1_2 = duWMat*dt1du
                 k2_2 = duWMat*dt2du
-
-                # Begin step 3 of RK4
+                
+                ####
+                # RK4 step 3
+                ####
                 # The time, u, is not updated for this step
                 # For this step, no need to re-compute the basis elements, as r has not been updated
                 # Common prefactor for all the increments
@@ -173,22 +174,24 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                 pref3 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_2) + n2*(theta2+0.5*k2_2))
 
                 # Loop over the radial indices to sum basis contributions
+                # Contribution of steps 2 and 3 together
                 for np=1:basis.nmax
-                    #tabWMat[np,kuval,kvval] += pref3*basis.tabUl[np]
                     tabWMat[np,kuval,kvval] += (pref2+pref3)*basis.tabUl[np]
                 end
 
                 k1_3 = k1_2 # Does not need to be updated
                 k2_3 = k2_2 # Does not need to be updated
-
-                # Begin step 4 of RK4
+                
+                ####
+                # RK4 step 4
+                ####
                 u += 0.5*duWMat # Updating the time by half a timestep: we are now at the next u value
                 # Current location of the radius, r=r(u)
                 rval = OrbitalElements.ru(u,a,e)
 
                 # current value of dtheta1/du and dtheta2/du
                 #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
-                gval = OrbitalElements.ThetaAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
+                gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
 
                 dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
 
@@ -217,29 +220,28 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             end # RK4 integration
         end
     end
-    return tabWMat,tabaMat,tabeMat,tabJMat
+    return tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax
 end
 
 
 """
-    RunWmat()
+    RunWmat(ψ,dψ,d2ψ,d3ψ,wmatdir,Ku,Kv,Kw,basis,lharmonic,n1max,nradial,Ω₀,modelname,rb,rmin,rmax[,VERBOSE])
 
+@TO DESCRIBE
 """
 function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                  wmatdir::String,
-                 K_u::Int64,K_v::Int64,K_w::Int64,
+                 FHT::FiniteHilbertTransform.FHTtype,
+                 Kv::Int64,Kw::Int64,
                  basis::AstroBasis.Basis_type,
                  lharmonic::Int64,
                  n1max::Int64,
-                 nradial::Int64,
-                 Ω0::Float64,
+                 Ω₀::Float64,
                  modelname::String,
                  rb::Float64,
                  rmin::Float64,rmax::Float64;
-                 VERBOSE::Int64=0)
-
-    # load model parameters
-    #include(inputfile)
+                 VERBOSE::Int64=0,
+                 OVERWRITE::Bool=false)
 
     # check wmat directory before proceeding (save time if not.)
     checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir)
@@ -248,28 +250,17 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     end
 
     # get basis parameters
-    ndim = basis.dimension
-    nradialmax = basis.nmax
-
-    # check if we can cover the specified radial orders
-    if nradialmax > nradial
-        println("CallAResponse.WMat.RunWmat: the input basis does not have sufficient nradial ($nradialmax) for the requested value ($nradial).")
-        return 0
-    end
+    ndim, nradial = basis.dimension, basis.nmax 
 
     # bases prep.
     AstroBasis.fill_prefactors!(basis)
     bases=[deepcopy(basis) for k=1:Threads.nthreads()]
 
-    # Legendre integration prep.
-    tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(K_u)
-    tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
+    # Integration points
+    tabu, Ku = FHT.tabu, FHT.Ku
 
-    # number of resonance vectors
-    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
-
-    # fill in the array of resonance vectors (n1,n2)
-    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+    # Resonance vectors
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
 
     # print the length of the list of resonance vectors
     if VERBOSE>0
@@ -284,34 +275,47 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
         end
 
-        if isfile(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,nradial,rb,K_u,K_v,K_w))
-            if VERBOSE > 0
-                println("CallAResponse.WMatIsochrone.RunWmatIsochrone: ($n1,$n2) resonanance WMat file already exists.")
+        # If it has been already computed
+        if isfile(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw))
+            file = h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "r")
+            oldnradial = read(file,"nradial")
+            if (nradial <= oldnradial) && (OVERWRITE == false)
+                if VERBOSE > 0
+                    println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
+                end
+                continue
+            else
+                if VERBOSE > 0
+                    println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
+                end
             end
-            continue
+            close(file)
         end
 
         # compute the W matrices in UV space: timing optional
         if VERBOSE>1
-            @time tabWMat,tabaMat,tabeMat,tabJMat = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
-                                                               n1,n2,
-                                                               tabuGLquad,K_v,lharmonic,bases[k],
-                                                               Ω0=Ω0,rmin=rmin,rmax=rmax,K_w=K_w,VERBOSE=VERBOSE)
+            @time tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
+                                                                                    n1,n2,
+                                                                                    tabu,Kv,lharmonic,bases[k],
+                                                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
         else
-            tabWMat,tabaMat,tabeMat,tabJMat = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
-                                                         n1,n2,
-                                                         tabuGLquad,K_v,lharmonic,bases[k],
-                                                         Ω0=Ω0,rmin=rmin,rmax=rmax,K_w=K_w,VERBOSE=VERBOSE)
+            tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
+                                                                            n1,n2,
+                                                                            tabu,Kv,lharmonic,bases[k],
+                                                                            Ω₀=Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
         end
 
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.
-        h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,nradial,rb,K_u,K_v,K_w), "w") do file
+        h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "w") do file
+            write(file, "nradial",nradial)
             write(file, "wmat",tabWMat)
-            write(file, "amat",tabaMat)
-            write(file, "emat",tabeMat)
+            write(file, "Omgmat",tabΩ1Ω2Mat)
+            write(file, "AEmat",tabAEMat)
             write(file, "jELABmat",tabJMat)
+            write(file, "tabvminmax",tabvminmax)
+            write(file, "omgminmax",ωminmax)
         end
 
     end

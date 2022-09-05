@@ -11,21 +11,21 @@ println(tabResVec)
 """
 
 
-function get_nbResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
+function GetNbResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
     if ndim == 2
-        return get_nbResVec_2d(lharmonic,n1max)
+        return GetNbResVec2d(lharmonic,n1max)
     elseif ndim == 3
-        return get_nbResVec_3d(lharmonic,n1max)
+        return GetNbResVec3d(lharmonic,n1max)
     else
-        error("Unknow dimension in get_nbResVec")
+        error("Unknow dimension in GetNbResVec")
     end
 end
 
-function maketabResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
+function MakeTabResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
     if ndim == 2
-        return maketabResVec_2d(lharmonic,n1max)
+        return MakeTabResVec2d(lharmonic,n1max)
     elseif ndim == 3
-        return maketabResVec_3d(lharmonic,n1max)
+        return MakeTabResVec3d(lharmonic,n1max)
     else
         error("Unknow dimension in get_nbResVec")
     end
@@ -43,7 +43,7 @@ end
 # + (n1,n2) = (0,0) does not contribute
 # ATTENTION, the (n1,n2) are determined for l=lharmonic
 """
-function get_nbResVec_3d(lharmonic::Int64,n1max::Int64)
+function GetNbResVec3d(lharmonic::Int64,n1max::Int64)
     count = 0 # Initialisation of the counter
     #####
     for n2=lharmonic:-2:0 # Loop over the index n2. ATTENTION, we go by step of 2, and only consider positive values
@@ -71,10 +71,10 @@ Function that fills in the array of resonance vectors (n1,n2)
 ATTENTION, the (n1,n2) are determined for l=lharmonic
 @IMPROVE it would be best to use the same code as in get_nbResVec()
 """
-function maketabResVec_3d(lharmonic::Int64,n1max::Int64)
+function MakeTabResVec3d(lharmonic::Int64,n1max::Int64)
 
     # calculate the number
-    nbResVec = get_nbResVec(lharmonic,n1max)
+    nbResVec = GetNbResVec(lharmonic,n1max,3)
 
     tabResVec = zeros(Int64,2,nbResVec)
     count = 1 # Initialisation of the counter
@@ -97,7 +97,7 @@ function maketabResVec_3d(lharmonic::Int64,n1max::Int64)
             count += 1 # Updating the counter
         end
     end
-    return tabResVec
+    return nbResVec, tabResVec
 end
 
 
@@ -111,7 +111,7 @@ end
 # + (n1,n2) = (0,0) does not contribute
 # ATTENTION, the (n1,n2) are determined for l=lharmonic
 """
-function get_nbResVec_2d(lharmonic::Int64,n1max::Int64)
+function GetNbResVec2d(lharmonic::Int64,n1max::Int64)
     count = 0 # Initialisation of the counter
     #####
     n2=lharmonic # 2d constraint
@@ -138,9 +138,9 @@ Function that fills in the array of resonance vectors (n1,n2)
 ATTENTION, the (n1,n2) are determined for l=lharmonic
 @IMPROVE it would be best to use the same code as in get_nbResVec()
 """
-function maketabResVec_2d(lharmonic::Int64,n1max::Int64)
+function MakeTabResVec2d(lharmonic::Int64,n1max::Int64)
     # calculate the number
-    nbResVec = get_nbResVec_2d(lharmonic,n1max)
+    nbResVec = GetNbResVec(lharmonic,n1max,2)
 
     tabResVec = zeros(Int64,2,nbResVec)
     count = 1 # Initialisation of the counter
@@ -165,5 +165,5 @@ function maketabResVec_2d(lharmonic::Int64,n1max::Int64)
         end
     end
 
-    return tabResVec
+    return nbResVec, tabResVec
 end
