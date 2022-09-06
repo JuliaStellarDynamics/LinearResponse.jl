@@ -66,7 +66,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         # get the corresponding v boundary values
         vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
 
-        # saving them 
+        # saving them
         tabvminmax[kuval,1], tabvminmax[kuval,2] = vmin, vmax
 
         # determine the step size in v
@@ -162,7 +162,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                 # update velocities at end of step 2
                 k1_2 = duWMat*dt1du
                 k2_2 = duWMat*dt2du
-                
+
                 ####
                 # RK4 step 3
                 ####
@@ -181,7 +181,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
                 k1_3 = k1_2 # Does not need to be updated
                 k2_3 = k2_2 # Does not need to be updated
-                
+
                 ####
                 # RK4 step 4
                 ####

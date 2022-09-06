@@ -43,7 +43,7 @@ dψ(r::Float64)::Float64  = OrbitalElements.dψPlummer(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψPlummer(r,bc,M,G)
 d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψPlummer(r,bc,M,G)
 d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψPlummer(r,bc,M,G)
-Ω0 = OrbitalElements.Ω₀Plummer(bc,M,G)
+Ω₀ = OrbitalElements.Ω₀Plummer(bc,M,G)
 
 rmin = 1.e-8
 rmax = 10000.
@@ -60,7 +60,7 @@ dfname = "roi0.75"
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,
                ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.9)
+               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.0)
 
     return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
 
@@ -68,9 +68,13 @@ end
 
 
 # integration parameters
-K_u = 200    # number of Legendre integration sample points
-K_v = 200    # number of allocations is directly proportional to this
-K_w = 200    # number of allocations is insensitive to this (also time, largely?
+Ku = 200    # number of Legendre integration sample points
+Kv = 200    # number of allocations is directly proportional to this
+Kw = 200    # number of allocations is insensitive to this (also time, largely?
+
+# define the helper for the Finite Hilbert Transform
+FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
+
 
 lharmonic = 2
 n1max     = 1 # maximum number of radial resonances to consider

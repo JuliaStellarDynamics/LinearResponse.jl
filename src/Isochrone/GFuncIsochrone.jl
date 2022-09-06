@@ -9,31 +9,30 @@ function MakeGuIsochrone(ndFdJ::Function,
                          n1::Int64,n2::Int64,
                          np::Int64,nq::Int64,
                          tabWMat::Array{Float64},
-                         tabaMat::Array{Float64},
-                         tabeMat::Array{Float64},
                          Kuvals::Matrix{Float64},
-                         K_v::Int64,nradial::Int64,
+                         Kv::Int64,nradial::Int64,
                          ωmin::Float64,ωmax::Float64,
                          vminarr::Array{Float64},vmaxarr::Array{Float64},
                          lharmonic::Int64;
                          ndim::Int64,
-                         Ω0::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
+                         Ω₀::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
         pref = (2pi)^2
     else
+        # this is averaging over the sphere already
         CMatrix = getCMatrix(lharmonic)
         pref    = -2.0*(2pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2lharmonic+1)
     end
 
     # get basic parameters
-    K_u     = length(Kuvals)
+    Ku     = length(Kuvals)
 
     # set up a blank array
-    tabGXi  = zeros(K_u)
+    tabGXi  = zeros(Ku)
 
-    for kuval in 1:K_u
+    for kuval in 1:Ku
 
         # retrieve integration values
         uval = Kuvals[kuval]
@@ -41,19 +40,19 @@ function MakeGuIsochrone(ndFdJ::Function,
         vmax = vmaxarr[kuval]
 
         # determine the step size in v
-        deltav = (vmax - vmin)/(K_v)
+        deltav = (vmax - vmin)/(Kv)
 
         # initialise the result
         res = 0.0
 
-        for kvval in 1:K_v
+        for kvval in 1:Kv
             vval = vmin + deltav*(kvval-0.5)
 
             # big step: convert input (u,v) to (rp,ra)
             # now we need (rp,ra) that corresponds to (u,v)
-            alpha,beta = OrbitalElements.AlphaBetaFromUV(uval,vval,n1,n2,ωmin,ωmax)
+            α,β = OrbitalElements.αβFromUV(uval,vval,n1,n2,ωmin,ωmax)
 
-            omega1,omega2 = alpha*Ω0,alpha*beta*Ω0
+            omega1,omega2 = α*Ω₀,α*β*Ω₀
 
             # convert from omega1,omega2 to (a,e) using isochrone exact version
             sma,ecc = OrbitalElements.IsochroneAEFromOmega1Omega2(omega1,omega2,bc,M,G)
@@ -62,20 +61,20 @@ function MakeGuIsochrone(ndFdJ::Function,
             rp,ra = OrbitalElements.RpRafromAE(sma,ecc)
 
             # need (E,L), use isochrone exact version
-            Eval,Lval = OrbitalElements.isochrone_EL_from_rpra(rp,ra,bc,M,G)
+            Eval,Lval = OrbitalElements.isochroneELfromrpra(rp,ra,bc,M,G)
 
             # compute Jacobians
-            #(alpha,beta) -> (u,v)
-            Jacalphabeta = OrbitalElements.JacAlphaBetaToUV(n1,n2,ωmin,ωmax,vval)
+            #(α,β) -> (u,v)
+            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,ωmin,ωmax,vval)
 
-            #(E,L) -> (alpha,beta): Isochrone analytic
-            JacEL        = OrbitalElements.IsochroneJacELtoAlphaBeta(alpha,beta,bc,M,G)
+            #(E,L) -> (α,β): Isochrone analytic
+            JacEL        = OrbitalElements.IsochroneJacELtoαβ(α,β,bc,M,G)
 
             #(J) -> (E,L)
             JacJ         = (1/omega1)
 
             # remove dimensionality
-            dimensionl   = (1/Ω0)
+            dimensionl   = (1/Ω₀)
 
 
             # get the resonance vector
@@ -90,11 +89,11 @@ function MakeGuIsochrone(ndFdJ::Function,
 
             if ndim==2
                 # Local increment in the location (u,v)
-                res += pref*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq
+                res += pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq
 
             else
                 # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
-                res += pref*Lval*(dimensionl*Jacalphabeta*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                res += pref*Lval*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
             end
 
         end
@@ -116,12 +115,12 @@ end
 """
 function RunGfuncIsochrone(ndFdJ::Function,
                            wmatdir::String,gfuncdir::String,
-                           K_u::Int64,K_v::Int64,K_w::Int64,
+                           Ku::Int64,Kv::Int64,Kw::Int64,
                            basis::AstroBasis.Basis_type,
                            lharmonic::Int64,
                            n1max::Int64,
                            nradial::Int64,
-                           Ω0::Float64,
+                           Ω₀::Float64,
                            modelname::String,dfname::String,
                            rb::Float64;
                            bc::Float64=1.0,G::Float64=1.0,M::Float64=1.0,
@@ -138,17 +137,15 @@ function RunGfuncIsochrone(ndFdJ::Function,
     ndim = basis.dimension
 
     # legendre integration prep
-    tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(K_u)
-    tabuGLquad = reshape(tabuGLquadtmp,K_u,1)
+    tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(Ku)
+    tabuGLquad = reshape(tabuGLquadtmp,Ku,1)
 
-    # number of resonance vectors
-    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
+    # Resonance vectors
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
+
     if VERBOSE > 0
         println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Considering $nbResVec resonances.")
     end
-
-    # fill in the array of resonance vectors (n1,n2)
-    tabResVec = maketabResVec(lharmonic,n1max,ndim)
 
 
     Threads.@threads for i = 1:nbResVec
@@ -165,29 +162,27 @@ function RunGfuncIsochrone(ndFdJ::Function,
             println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: ωmin=$ωmin,ωmax=$ωmax")
         end
 
-        # for some threading reason, make sure K_u is defined here
-        K_u = length(tabwGLquad)
+        # for some threading reason, make sure Ku is defined here
+        Ku = length(tabwGLquad)
 
         # loop through once and design a v array for min, max
-        vminarr,vmaxarr = zeros(K_u),zeros(K_u)
-        for uval = 1:K_u
+        vminarr,vmaxarr = zeros(Ku),zeros(Ku)
+        for uval = 1:Ku
            vminarr[uval],vmaxarr[uval] = OrbitalElements.FindVminVmaxIsochrone(n1,n2,tabuGLquad[uval])
         end
 
         # load a value of tabWmat, plus (a,e) values
-        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,basis.nmax,rb,K_u,K_v,K_w)
+        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw)
         file = h5open(filename,"r")
         Wtab = read(file,"wmat")
-        atab = read(file,"amat")
-        etab = read(file,"emat")
-        nradial,K_u,K_v = size(Wtab)
+        nradial,Ku,Kv = size(Wtab)
 
         # print the size of the found files if the first processor
         if (i==0) & (VERBOSE > 0)
-            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Found nradial=$nradial,K_u=$K_u,K_v=$K_v")
+            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Found nradial=$nradial,Ku=$Ku,Kv=$Kv")
         end
 
-        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,K_u,rb)
+        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
         if isfile(outputfilename)
             println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $i of $nbResVec, ($n1,$n2).")
             continue
@@ -204,21 +199,21 @@ function RunGfuncIsochrone(ndFdJ::Function,
                     if (np==1) & (nq==2) # get a sense of the timing. not the first one, that has compilation time too
                         @time tabGXi = MakeGuIsochrone(ndFdJ,
                                                        n1,n2,np,nq,
-                                                       Wtab,atab,etab,
-                                                       tabuGLquad,K_v,nradial,
+                                                       Wtab,
+                                                       tabuGLquad,Kv,nradial,
                                                        ωmin,ωmax,
                                                        vminarr,vmaxarr,
                                                        lharmonic,
-                                                       ndim=ndim,Ω0=Ω0)
+                                                       ndim=ndim,Ω₀=Ω₀)
                     else
                         tabGXi = MakeGuIsochrone(ndFdJ,
                                                  n1,n2,np,nq,
-                                                 Wtab,atab,etab,
-                                                 tabuGLquad,K_v,nradial,
+                                                 Wtab,
+                                                 tabuGLquad,Kv,nradial,
                                                  ωmin,ωmax,
                                                  vminarr,vmaxarr,
                                                  lharmonic,
-                                                 ndim=ndim,Ω0=Ω0)
+                                                 ndim=ndim,Ω₀=Ω₀)
                     end
 
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)

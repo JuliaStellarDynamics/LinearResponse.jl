@@ -30,6 +30,9 @@ include("Xi.jl")
 # code to compute the shape of the mode
 include("Mode.jl")
 
+# code to find poles
+include("FindPole.jl")
+
 # include code to compute isochrone-specific quantities:
 # the isochrone mode is a specific case that we have pre-defined
 include("Isochrone/WMatIsochrone.jl")

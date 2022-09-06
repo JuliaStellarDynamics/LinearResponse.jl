@@ -9,29 +9,54 @@ using HDF5
 # call the function to construct W matrices
 CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
                       wmatdir,
-                      K_u,K_v,K_w,
+                      FHT,
+                      Kv,Kw,
                       basis,
                       lharmonic,
                       n1max,
-                      nradial,
-                      Ω0,
+                      Ω₀,
                       modelname,
-                      rb,
                       rmin,rmax,
                       VERBOSE=2)
+
+for aval=1:7
+
+     raval = (aval)*0.1 + 1.0
+     dfnamein = "roi"*string(raval)
+
+     println("running on $dfnamein")
+
+     ndFdJin(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64) = ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,bc=bc,M=M,astronomicalG=G,Ra=raval)
+
+     # call the function to compute G(u) functions
+     CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,
+                            ndFdJin,
+                            wmatdir,gfuncdir,
+                            FHT,
+                            Kv,Kw,
+                            basis,
+                            lharmonic,
+                            n1max,
+                            Ω₀,
+                            modelname,dfnamein,
+                            rmin,rmax,
+                            VERBOSE=1)
+
+end
+
+
 
 # call the function to compute G(u) functions
 CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,
                        ndFdJ,
                        wmatdir,gfuncdir,
-                       K_u,K_v,K_w,
+                       FHT,
+                       Kv,Kw,
                        basis,
                        lharmonic,
                        n1max,
-                       nradial,
-                       Ω0,
+                       Ω₀,
                        modelname,dfname,
-                       rb,
                        rmin,rmax,
                        VERBOSE=1)
 
@@ -43,15 +68,13 @@ tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 tabdet = CallAResponse.RunM(tabomega,
                             dψ,d2ψ,
                             gfuncdir,modedir,
-                            K_u,K_v,K_w,
-                            basis,
                             FHT,
+                            Kv,Kw,
+                            basis,
                             lharmonic,
                             n1max,
-                            nradial,
-                            Ω0,
+                            Ω₀,
                             modelname,dfname,
-                            rb,
                             rmin,rmax,
                             VERBOSE=1)
 
@@ -65,7 +88,7 @@ bestomg = CallAResponse.FindZeroCrossing(0.00,0.03,dψ,d2ψ,
                                          lharmonic,
                                          n1max,
                                          nradial,
-                                         Ω0,
+                                         Ω₀,
                                          modelname,dfname,
                                          rb,
                                          rmin,rmax,NITER=16,VERBOSE=1)
@@ -81,7 +104,7 @@ EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,dψ,d2ψ,
                                          lharmonic,
                                          n1max,
                                          nradial,
-                                         Ω0,
+                                         Ω₀,
                                          modelname,dfname,
                                          rb,
                                          VERBOSE=1)

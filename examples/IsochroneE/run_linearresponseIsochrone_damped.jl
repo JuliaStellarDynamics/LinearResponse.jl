@@ -8,48 +8,44 @@ using HDF5
 # call the function to construct W matrices
 CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
                       wmatdir,
-                      K_u,K_v,K_w,
+                      FHT,
+                      Kv,Kw,
                       basis,
                       lharmonic,
                       n1max,
-                      nradial,
-                      Ω0,
+                      Ω₀,
                       modelname,
-                      rb,
                       rmin,rmax,
                       VERBOSE=2)
 
 
 # call the function to compute G(u) functions
 CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,
-                       ndFdJ,
-                       wmatdir,gfuncdir,
-                       K_u,K_v,K_w,
-                       basis,
-                       lharmonic,
-                       n1max,
-                       nradial,
-                       Ω0,
-                       modelname,dfname,
-                       rb,
-                       rmin,rmax,
-                       VERBOSE=1)
-
+                     ndFdJ,
+                     wmatdir,gfuncdir,
+                     FHT,
+                     Kv,Kw,
+                     basis,
+                     lharmonic,
+                     n1max,
+                     Ω₀,
+                     modelname,dfname,
+                     rmin,rmax,
+                     VERBOSE=1)
 
 # compute the matrix response at each location
 tabdet = CallAResponse.RunM(tabomega,
-                           dψ,d2ψ,
-                           gfuncdir,modedir,
-                           K_u,K_v,K_w,
-                           basis,
-                           lharmonic,
-                           n1max,
-                           nradial,
-                           Ω0,
-                           modelname,dfname,
-                           rb,
-                           rmin,rmax,
-                           VERBOSE=1)
+                         dψ,d2ψ,
+                         gfuncdir,modedir,
+                         FHT,
+                         Kv,Kw,
+                         basis,
+                         lharmonic,
+                         n1max,
+                         Ω₀,
+                         modelname,dfname,
+                         rmin,rmax,
+                         VERBOSE=1)
 
 
 # compute the determinants with a gradient descent: only along a given axis right now!
@@ -60,7 +56,7 @@ bestomg = CallAResponse.FindZeroCrossing(0.00,0.03,dψ,d2ψ,
                                         lharmonic,
                                         n1max,
                                         nradial,
-                                        Ω0,
+                                        Ω₀,
                                         modelname,dfname,
                                         rb,
                                         rmin,rmax,NITER=16,VERBOSE=1)
@@ -76,7 +72,7 @@ EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,dψ,d2ψ,
                                            lharmonic,
                                            n1max,
                                            nradial,
-                                           Ω0,
+                                           Ω₀,
                                            modelname,dfname,
                                            rb,
                                            VERBOSE=1)
