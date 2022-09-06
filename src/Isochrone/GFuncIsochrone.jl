@@ -184,7 +184,11 @@ function RunGfuncIsochrone(ndFdJ::Function,
 
         outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
         if isfile(outputfilename)
-            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $i of $nbResVec, ($n1,$n2).")
+
+            if VERBOSE > 0
+                println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $i of $nbResVec, ($n1,$n2).")
+            end
+
             continue
         end
 

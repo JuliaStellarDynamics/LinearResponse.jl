@@ -133,7 +133,9 @@ function FindPole(startingomg::Complex{Float64},
                                   nradial,
                                   dψ,d2ψ,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
 
-    println("Best O for n1max=$n1max,nradial=$nradial == $bestomg")
+    if VERBOSE >= 0
+        println("Best O for n1max=$n1max,nradial=$nradial == $bestomg")
+    end
 
     return bestomg
 

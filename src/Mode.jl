@@ -8,15 +8,15 @@ for a single omega, compute the shape of the mode
 """
 function ComputeModeTables(omgval::Complex{Float64},
                            dψ::Function,d2ψ::Function,
+                           FHT::FiniteHilbertTransform.FHTtype,
                            gfuncdir::String,modedir::String,
-                           K_u::Int64,K_v::Int64,K_w::Int64,
+                           Kv::Int64,
                            basis::AstroBasis.Basis_type,
                            lharmonic::Int64,
                            n1max::Int64,
-                           nradial::Int64,
-                           Ω0::Float64,
-                           modelname::String,dfname::String,
-                           rb::Float64,
+                           Ω₀::Float64,
+                           rmin::Float64,rmax::Float64,
+                           modelname::String,dfname::String;
                            VERBOSE::Int64=0)
 
     # Check directory names
@@ -25,29 +25,27 @@ function ComputeModeTables(omgval::Complex{Float64},
         return 0
     end
 
-    # Construct the table of needed resonance vectors
-    # Number of resonance vectors
-    nbResVec = get_nbResVec(lharmonic,n1max,ndim)
+    # get needed parameters from structures
+    Ku      = FHT.Ku
+    nradial = basis.nmax
+    rb      = basis.rb
+    ndim    = basis.dimension
 
-    # fill in the array of resonance vectors (n1,n2)
-    tabResVec = maketabResVec(lharmonic,n1max,ndim)
-
-    # get all Legendre weights
-    tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
+    # Resonance vectors
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
 
     # make the (np,nq) vectors that we need to evaluate
-    tab_npnq = makeTabnpnq(nradial)
+    tabnpnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    #MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,rb=rb)
-    MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,rb=rb)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
-    println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+    tabaMcoef = StageaMcoef(tabResVec,tabnpnq,FHT.Ku,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
 
-    # struct for D_k(omega) computation
-    struct_tabLeglist = FiniteHilbertTransform.struct_tabLeg_create(K_u)
+    if VERBOSE>0
+        println("CallAResponse.Xi.ComputeModeTables: tabaMcoef loaded.")
+    end
 
     # memory for the response matrices M and identity matrices
     MMat = zeros(Complex{Float64},nradial,nradial)
@@ -57,16 +55,17 @@ function ComputeModeTables(omgval::Complex{Float64},
     tabdetXi = zeros(Float64,nomg) # real part of the determinant
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    tabM!(omgval,tabMlist,tabaMcoef,
-          tabResVec,tab_npnq,
-          struct_tabLeglist,
-          dψ,d2ψ,nradial,Ω0,rmin,rmax)
-    println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
+    tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+
+    if VERBOSE>0
+        println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
+    end
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
     EV,EF,EM = mevXi(MMat)
 
     return EV,EF,EM
+
 end
 
 
@@ -125,9 +124,15 @@ Function that computes the radial shape of a given mode
 """
 function GetModeShape(basis::AstroBasis.Basis_type,
                       lharmonic::Int64,
+                      nradial::Int64,
+                      n1max::Int64,
                       Rmin::Float64,Rmax::Float64,
                       nRMode::Int64,
-                      EigenMode::Array{Float64};
+                      EigenMode::Array{Float64},
+                      modedir::String,
+                      modelname::String,
+                      dfname::String,
+                      Ku::Int64;
                       VERBOSE::Int64=0)
 
     # prep the basis
@@ -164,11 +169,13 @@ function GetModeShape(basis::AstroBasis.Basis_type,
 
         end
 
-        # log contribution in table
-        tabShapeMode[irad] = pval
+        # log contribution in tables
+        ModePotentialShape[irad] = pval
+        ModeDensityShape[irad] = dval
+
     end
 
-    h5open(mode_filename(modedir,modelname,lharmonic,n1max,K_u), "w") do file
+    h5open(ModeFilename(modedir,modelname,dfname,lharmonic,n1max,Ku), "w") do file
         write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
         write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
         write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file

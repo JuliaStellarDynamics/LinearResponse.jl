@@ -11,8 +11,8 @@ VERBOSE flag rules
 using LinearAlgebra
 
 
-"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,structtabLeg,Ω0)
-Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω0.
+"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,structtabLeg,Ω₀)
+Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω₀.
 
 @IMPROVE: The shape of the array could maybe be improved
 
@@ -25,7 +25,7 @@ function tabMIsochrone!(omg::Complex{Float64},
                         tabnpnq::Matrix{Int64},
                         FHT::FiniteHilbertTransform.FHTtype,
                         nradial::Int64,
-                        Ω0::Float64=1.0)
+                        Ω₀::Float64=1.0)
 
     # get dimensions from the relevant tables
     nbnpnq  = size(tabnpnq)[2]
@@ -44,7 +44,7 @@ function tabMIsochrone!(omg::Complex{Float64},
         n1, n2 = tabResVec[1,nResVec], tabResVec[2,nResVec]
 
         # Rescale to get dimensionless frequency
-        omgnodim = omg/Ω0
+        omgnodim = omg/Ω₀
 
         # get the rescaled frequency
         ϖ = OrbitalElements.GetϖIsochrone(omgnodim,n1,n2)
@@ -53,7 +53,7 @@ function tabMIsochrone!(omg::Complex{Float64},
         FiniteHilbertTransform.GettabD!(ϖ,FHT)
 
         # mame of the array where the Dk(w) are stored
-        tabDLeg = structtabLeg.tabDLeg
+        tabDLeg = FHT.tabDLeg
 
         # loop over the basis indices to consider
         for inpnq=1:nbnpnq
@@ -103,7 +103,7 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
                        lharmonic::Int64,
                        n1max::Int64,
                        nradial::Int64,
-                       Ω0::Float64,
+                       Ω₀::Float64,
                        modelname::String,dfname::String,
                        rb::Float64;
                        VERBOSE::Int64=0)
@@ -155,9 +155,9 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
         k = Threads.threadid()
 
         if i==1
-            @time tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,structtabLeglist[k],nradial,Ω0)
+            @time tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,structtabLeglist[k],nradial,Ω₀)
         else
-            tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,structtabLeglist[k],nradial,Ω0)
+            tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,structtabLeglist[k],nradial,Ω₀)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
@@ -220,8 +220,8 @@ function ComputeModeTablesIsochrone(inputfile,
     tabdetXi = zeros(Float64,nomg) # real part of the determinant
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    #tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,structtabLeglist,dψ,d2ψ,nradial,Ω0)
-    tabMIsochrone!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,structtabLeglist,nradial,Ω0)
+    #tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,structtabLeglist,dψ,d2ψ,nradial,Ω₀)
+    tabMIsochrone!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,structtabLeglist,nradial,Ω₀)
     println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
@@ -242,7 +242,7 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
                                    lharmonic::Int64,
                                    n1max::Int64,
                                    nradial::Int64,
-                                   Ω0::Float64,
+                                   Ω₀::Float64,
                                    modelname::String,dfname::String,
                                    rb::Float64;
                                    NITER::Int64=32,
@@ -301,14 +301,14 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
         tabMIsochrone!(omgval,tabMlist,tabaMcoef,
               tabResVec,tabnpnq,
               structtabLeglist,
-              nradial,Ω0,rmin,rmax)
+              nradial,Ω₀,rmin,rmax)
 
         centralvalue = detXi(IMat,tabMlist)
 
         tabMIsochrone!(omgvaloff,tabMlist,tabaMcoef,
               tabResVec,tabnpnq,
               structtabLeglist,
-              nradial,Ω0,rmin,rmax)
+              nradial,Ω₀,rmin,rmax)
 
         offsetvalue = detXi(IMat,tabMlist)
 
@@ -353,7 +353,7 @@ function ComputeModeTablesIsochrone(omgval::Complex{Float64},
                                     lharmonic::Int64,
                                     n1max::Int64,
                                     nradial::Int64,
-                                    Ω0::Float64,
+                                    Ω₀::Float64,
                                     modelname::String,dfname::String,
                                     rb::Float64,
                                     VERBOSE::Int64=0)
