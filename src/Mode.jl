@@ -142,11 +142,12 @@ function GetModeShape(basis::AstroBasis.Basis_type,
     deltaRMode = (Rmax - Rmin)/(nRMode - 1)
 
     # table of R for which the mode is computed
-    ModeRadius = collect(Rmin:deltaRMode:Rmax)
+    radiusvals = LinRange(Rmin,Rmax,nRMode)
 
     # table containing the radial shape of the mode
+    ModeRadius         = zeros(Float64,nRMode)
     ModePotentialShape = zeros(Float64,nRMode)
-    ModeDensityShape = zeros(Float64,nRMode)
+    ModeDensityShape   = zeros(Float64,nRMode)
 
     println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
 
@@ -154,7 +155,7 @@ function GetModeShape(basis::AstroBasis.Basis_type,
     for irad=1:nRMode
 
         # current value of R
-        R = ModeRadius[irad]
+        R = radiusvals[irad]
 
         # initialise the values
         pval = 0.0
@@ -170,6 +171,7 @@ function GetModeShape(basis::AstroBasis.Basis_type,
         end
 
         # log contribution in tables
+        ModeRadius[irad] = R
         ModePotentialShape[irad] = pval
         ModeDensityShape[irad] = dval
 

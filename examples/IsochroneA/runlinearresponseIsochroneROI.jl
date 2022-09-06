@@ -50,7 +50,7 @@ tabdet = CallAResponse.RunMIsochrone(tabomega,
                                      VERBOSE=1)
 
 =#
-startingomg = 0.0 + 0.0002im;
+startingomg = 0.0 + 0.0003im;
 bestomg = CallAResponse.FindPole(startingomg,FHT,lharmonic,n1max,nradial,ndim,dψ,d2ψ,Ω₀,rmin,rmax,modedir,modelname,dfname,rb,VERBOSE=0)
 
 
