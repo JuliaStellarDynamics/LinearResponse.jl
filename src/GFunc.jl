@@ -153,15 +153,15 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
 
         outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
         if isfile(outputfilename)
-            if (OVERWRITE == false)
+            if OVERWRITE
+                if VERBOSE > 0
+                    println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): recomputing and overwritting.")
+                end
+            else
                 if VERBOSE > 0
                     println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): no computation.")
                 end
                 continue
-            else
-                if VERBOSE > 0
-                    println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): recomputing and overwritting.")
-                end
             end
         end
 
