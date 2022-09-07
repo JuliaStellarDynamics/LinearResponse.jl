@@ -187,3 +187,76 @@ function GetModeShape(basis::AstroBasis.Basis_type,
     return ModeRadius,ModePotentialShape,ModeDensityShape
 
 end
+
+"""
+    GetModeShapeComplex(basis,l,Rmin,Rmax,nR,EigenModeC)
+Function that computes the radial and azimuthal shape of a given mode
+-see Eq. (72) of Hamilton+ (2018)
+"""
+function GetModeShapeComplex(basis::AstroBasis.Basis_type,
+                            lharmonic::Int64,
+                            n1max::Int64,
+                            Rmin::Float64,Rmax::Float64,
+                            nRMode::Int64,
+                            EigenMode::Array{Complex{Float64}},
+                            modedir::String,
+                            modelname::String,
+                            dfname::String,
+                            Ku::Int64;
+                            VERBOSE::Int64=0)
+
+    # prep the basis
+    AstroBasis.fill_prefactors!(basis)
+
+    # Basis parameters
+    nradial = basis.nmax
+
+    # get the step distance of the array in RMode
+    deltaRMode = (Rmax - Rmin)/(nRMode - 1)
+
+    # table of R for which the mode is computed
+    radiusvals = LinRange(Rmin,Rmax,nRMode)
+
+    # table containing the radial shape of the mode
+    ModeRadius         = zeros(Float64,nRMode)
+    ModePotentialShape = zeros(Complex{Float64},nRMode)
+    ModeDensityShape   = zeros(Complex{Float64},nRMode)
+
+    println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
+
+    # at each radius, compute the shape of the mode response
+    for irad=1:nRMode
+
+        # current value of R
+        R = radiusvals[irad]
+
+        # initialise the values
+        pval = 0.0
+        dval = 0.0
+
+        # for each basis element, add the coefficient contribution
+        for np=1:nradial
+
+            # add the contribution from the basis elements.
+            pval += EigenMode[np]*AstroBasis.getUln(basis,lharmonic,np-1,R)
+            dval += EigenMode[np]*AstroBasis.getDln(basis,lharmonic,np-1,R)
+
+        end
+
+        # log contribution in tables
+        ModeRadius[irad] = R
+        ModePotentialShape[irad] = pval
+        ModeDensityShape[irad] = dval
+
+    end
+
+    h5open(ModeFilename(modedir,modelname,dfname,lharmonic,n1max,Ku), "w") do file
+        write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
+        write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
+        write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file
+    end
+
+    # return just in case we want to do something else
+    return ModeRadius,ModePotentialShape,ModeDensityShape
+
+end

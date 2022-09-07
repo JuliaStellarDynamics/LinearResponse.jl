@@ -401,7 +401,8 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
                           NITER::Int64=32,
                           eta::Bool=true,
                           ACCURACY::Float64=1.0e-10,
-                          VERBOSE::Int64=0)
+                          VERBOSE::Int64=0,
+                          OVERWRITE::Bool=false)
 
     #####
     # Check directories names
@@ -425,7 +426,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     tabnpnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
 
     # load aXi values
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,
