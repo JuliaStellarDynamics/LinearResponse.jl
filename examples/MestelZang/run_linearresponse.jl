@@ -7,36 +7,35 @@ all steps combined into one: could pause and restart if this was too much.
 
 import CallAResponse
 
-inputfile = "FouvryInstable.jl"
-
-# CallAResponse.RunWmat(inputfile)
-
-# CallAResponse.RunGfunc(inputfile)
-
-# for example, to compute at zero pattern speed on the imaginary axis:
+inputfile = "MestelUnstable.jl"
 include(inputfile)
-nbEta = 100                               # Number of eta for which the matrix is computed
-Etamin = 0.5                   # Minimum eta value for which the ROI matrix is computed
-Etamax = 1.3               # Maximum eta value for which the ROI matrix is computed
-deltaEta = (Etamax-Etamin)/(nbEta-1)     # Getting the step distance of the array in eta
-tabEta = collect(Etamin:deltaEta:Etamax) # Table of eta for which the response matrix is computed
-tabOmg = tabEta .+ 0.2 .* im               # Table of eta for which the response matrix is computed
-tabdetXi = zeros(Float64,nbEta)          # Table to store the value of det[I-Xi].
 
-tabdet,tabmev = CallAResponse.RunM(inputfile,tabOmg)
+const verbose = 1
+const overwrite = false
+# call the function to construct W matrices
+CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,wmatdir,FHT,Kv,Kw,basis,lharmonic,n1max,Ω₀,modelname,rmin,rmax,VERBOSE=verbose)
 
-for iEta=1:nbEta
-    println(tabOmg[iEta]," -- ",tabdet[iEta])
-end
-# # for iEta=1:nbEta
-#     println(tabOmg[iEta]," -- ",tabmev[iEta])
-# end
+# # call the function to compute G(u) functions
+CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,wmatdir,gfuncdir,FHT,Kv,Kw,basis,lharmonic,n1max,Ω₀,modelname,dfname,rmin,rmax,VERBOSE=verbose,OVERWRITE=overwrite)
 
-# # save the values...
+# # construct a grid of frequencies to probe
+# nbω0 = 200                 # Number of ω0 for which the matrix is computed
+# ω0min, ω0max = 0.0, 2.5     # Minimum and maximum ω0
+# nbη = 201                   # Number of ω0 for which the matrix is computed
+# ηmin, ηmax = -0.1, 2.0      # Minimum and maximum ω0
+# tabomega = CallAResponse.gridomega(ω0min,ω0max,nbω0,ηmin,ηmax,nbη)
+# # compute the matrix response at each location
+# tabdet = CallAResponse.RunM(tabomega,dψ,d2ψ,gfuncdir,modedir,FHT,Kv,Kw,basis,lharmonic,n1max,Ω₀,modelname,dfname,rmin,rmax,VERBOSE=1,OVERWRITE=overwrite)
 
-# # for the minimum, go back and compute the mode shape: replace with the minimum adaptively found
-# # returns largest eigenvalue (EV), corresponding eigenvector (EF), basis projection (EM)
-# #
-# EV,EF,EM = CallAResponse.RunShape(inputfile,0 + 0.026im)
+# Mode Finding
+Ωguess = 0.9
+ηguess = 0.2
+ωguess = Ωguess + im*ηguess
+nradial, ndim, rb = basis.nmax, basis.dimension, basis.rb
+CallAResponse.RunM([ωguess],dψ,d2ψ,gfuncdir,modedir,FHT,Kv,Kw,basis,lharmonic,n1max,Ω₀,modelname,dfname,rmin,rmax,VERBOSE=1,OVERWRITE=overwrite)
+ωMode = CallAResponse.FindPole(ωguess,FHT,lharmonic,n1max,nradial,ndim,dψ,d2ψ,Ω₀,rmin,rmax,modedir,modelname,dfname,rb,VERBOSE=verbose)
+println("ωMode = ",ωMode)
 
-# ModeR,ModeShape = CallAResponse.tabShapeMode(inputfile,0.01,15.,100,EM)
+# # Mode Shape
+# EV,EF,EM = CallAResponse.ComputeModeTables(ωMode,dψ,d2ψ,FHT,gfuncdir,modedir,Kv,basis,lharmonic,n1max,Ω₀,rmin,rmax,modelname,dfname,VERBOSE=verbose)
+# ModeRadius,ModePotentialShape,ModeDensityShape = CallAResponse.GetModeShapeComplex(basis,lharmonic,n1max,0.1,20.,1000,EF,modedir,modelname,dfname,Ku,VERBOSE=1)

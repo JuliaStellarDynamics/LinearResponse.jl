@@ -20,68 +20,81 @@ import PerturbPlasma
 using HDF5
 
 
-#####
+##############################
 # Basis
-#####
+##############################
 G  = 1.
-rb = 1.
-lmax,nmax = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
-basis = AstroBasis.CB72Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
+
+# Clutton-Brock (1972) basis
+basisname = "CluttonBrock"
+rb = 14.
+lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
+basis = AstroBasis.CB72Basis_create(lmax=lmax,nmax=nmax,G=G,rb=rb) 
+
+# # Kalnajs (1976) basis
+# basisname = "Kalnajs"
+# rb, kKA = 5., 7
+# lmax,nmax = 2,7
+# basis = AstroBasis.K76Basis_create(lmax=lmax,nmax=nmax,G=G,rb=rb,kKA=kKA)
+
 ndim = basis.dimension
 nradial = basis.nmax
 
-#####
+##############################
 # Model Potential
-#####
-modelname = "MestelZ"
+##############################
+const modelname = "newMestel"
 
-R0, V0 = 20., 1.
-eps0 = 0.001
-potential(r::Float64)::Float64   = OrbitalElements.mestel_psi(r,R0,V0,eps0)
-dpotential(r::Float64)::Float64  = OrbitalElements.mestel_dpsi_dr(r,R0,V0,eps0)
-ddpotential(r::Float64)::Float64 = OrbitalElements.mestel_ddpsi_ddr(r,R0,V0,eps0)
-Omega0 = OrbitalElements.mestel_Omega0(R0,V0,eps0)
+const R0, V0 = 20., 1.
+const neps=3
+const eps0 = 10.0^(-neps)
+const ψ(r::Float64)::Float64   = OrbitalElements.ψMestel(r,R0,V0,eps0)
+const dψ(r::Float64)::Float64  = OrbitalElements.dψMestel(r,R0,V0,eps0)
+const d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψMestel(r,R0,V0,eps0)
+const d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψMestel(r,R0,V0,eps0)
+const d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψMestel(r,R0,V0,eps0)
+const Ω0 = OrbitalElements.Ω0Mestel(R0,V0,eps0)
+println("Ω0 = ",Ω0)
 
-#####
+##############################
+# Outputs directories
+##############################
+const wmatdir="wmat/"*basisname*"/eps"*string(neps)*"/"
+const gfuncdir="gfunc/"*basisname*"/eps"*string(neps)*"/"
+const modedir = "xifunc/"*basisname*"/eps"*string(neps)*"/"
+
+##############################
 # Model DF
-#####
-q0 = 11.44
-sigma0 = OrbitalElements.sigmar_Mestel_DF(R0,V0,q0)
-C0 = OrbitalElements.normC_Mestel_DF(R0,V0,q0)
+##############################
+const dfname = "Sellwood"
+const q0 = 11.44
+const σ0 = OrbitalElements.sigmar_Mestel_DF(R0,V0,q0)
+const C0 = OrbitalElements.normC_Mestel_DF(G,R0,V0,q0)
 
-Rin, Rout, Rmax = 1., 11.5, 20. # Tapering radii
-xi=0.5                          # Self-gravity fraction
-nu, mu = 4, 5                   # Tapering exponants
+const Rin, Rout, Rmax = 1., 11.5, 20. # Tapering radii
+const xi=0.5                          # Self-gravity fraction
+const nu, mu = 4, 5                   # Tapering exponants
 
-ndFdJ(n1::Int64,n2::Int64,
+const ndFdJ(n1::Int64,n2::Int64,
         E::Float64,L::Float64,
         ndotOmega::Float64)::Float64   = OrbitalElements.mestel_Zang_ndDFdJ(n1,n2,E,L,ndotOmega;
                                                                             R0=R0,Rin=Rin,Rmax=Rmax,
                                                                             V0=V0,
                                                                             xi=xi,C=C0,
-                                                                            q=q0,sigma=sigma0,
+                                                                            q=q0,sigma=σ0,
                                                                             nu=nu,mu=mu)
+
 
 #####
 # Parameters
 #####
-K_u = 150           # number of Legendre integration sample points
-K_v = 100    # number of allocations is directly proportional to this
-K_w = 50    # number of allocations is insensitive to this (also time, largely?
+# Radii for frequency truncations
+const rmin = 0.15
+const rmax = 13.5
 
-lharmonic = 2
-n1max = 4  # maximum number of radial resonances to consider
+const K_u = 150           # number of Legendre integration sample points
+const K_v = 100    # number of allocations is directly proportional to this
+const K_w = 200    # number of allocations is insensitive to this (also time, largely?
 
-# Mode of response matrix computation
-LINEAR = "damped"
-
-
-#####
-# Outputs directories
-#####
-wmatdir="wmat/"
-gfuncdir="gfunc/"
-modedir = "xifunc/"
-
-
-# WARNING : / at the end to check !
+const lharmonic = 2
+const n1max = 4  # maximum number of radial resonances to consider

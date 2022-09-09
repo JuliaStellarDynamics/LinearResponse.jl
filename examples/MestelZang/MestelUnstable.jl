@@ -16,90 +16,83 @@ Must include:
 
 import OrbitalElements
 import AstroBasis
-import PerturbPlasma
+import FiniteHilbertTransform
 using HDF5
 
 
-#####
+##############################
 # Basis
-#####
-G  = 1.
-rb = 1.
-lmax,nmax = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
-basis = AstroBasis.CB72Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
-ndim = basis.dimension
-nradial = basis.nmax
+##############################
+const G  = 1.
 
-#####
+# Clutton-Brock (1972) basis
+const basisname = "CluttonBrock"
+const rb = 2.0
+const lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
+const basis = AstroBasis.CB72Basis_create(lmax=lmax,nmax=nmax,G=G,rb=rb) 
+
+# # Kalnajs (1976) basis
+# basisname = "Kalnajs"
+# rb, kKA = 5., 7
+# lmax,nmax = 2,2
+# basis = AstroBasis.K76Basis_create(lmax=lmax,nmax=nmax,G=G,rb=rb,kKA=kKA)
+
+##############################
 # Model Potential
-#####
-modelname = "MestelUnstable"
+##############################
+const modelname = "Mestel"
 
-R0, V0 = 20., 1.
-eps0 = 1e-3
-potential(r::Float64)::Float64   = OrbitalElements.mestel_psi(r,R0,V0,eps0)
-dpotential(r::Float64)::Float64  = OrbitalElements.mestel_dpsi_dr(r,R0,V0,eps0)
-ddpotential(r::Float64)::Float64 = OrbitalElements.mestel_ddpsi_ddr(r,R0,V0,eps0)
-Omega0 = OrbitalElements.mestel_Omega0(R0,V0,eps0)
+const R0, V0 = 20., 1.
+const ψ(r::Float64)::Float64   = OrbitalElements.ψMestel(r,R0,V0)
+const dψ(r::Float64)::Float64  = OrbitalElements.dψMestel(r,R0,V0)
+const d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψMestel(r,R0,V0)
+const d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψMestel(r,R0,V0)
+const d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψMestel(r,R0,V0)
+const Ω₀ = OrbitalElements.Ω₀Mestel(R0,V0)
+println("Ω₀ = ",Ω₀)
 
-#####
+##############################
+# Outputs directories
+##############################
+const wmatdir="wmat/"*basisname*"/"
+const gfuncdir="gfunc/"*basisname*"/"
+const modedir = "xifunc/"*basisname*"/"
+
+##############################
 # Model DF
-#####
-q0 = 6
-sigma0 = OrbitalElements.sigmar_Mestel_DF(R0,V0,q0)
-C0 = OrbitalElements.normC_Mestel_DF(G,R0,V0,q0)
+##############################
+const q0 = 6
+const σ0 = OrbitalElements.sigmar_Mestel_DF(R0,V0,q0)
+const C0 = OrbitalElements.normC_Mestel_DF(G,R0,V0,q0)
 
-Rin, Rout, Rmax = 1., 11.5, 20. # Tapering radii
-xi=1.0                          # Self-gravity fraction
-nu, mu = 6, 5                   # Tapering exponants
+const Rin, Rout, Rmax = 1., 11.5, 20. # Tapering radii
+const xi=1.0                         # Self-gravity fraction
+const nu, mu = 6, 5                   # Tapering exponants
 
-DF(E::Float64,L::Float64)::Float64   = OrbitalElements.mestel_Zang_DF(E,L;
-                                                                        R0=R0,Rin=Rin,Rmax=Rmax,
-                                                                        V0=V0,
-                                                                        xi=xi,C=C0,
-                                                                        q=q0,sigma=sigma0,
-                                                                        nu=nu,mu=mu)
+const dfname = "Zang_q_"*string(q0)*"_xi_"*string(xi)*"_mu_"*string(mu)*"_nu_"*string(nu)
 
-dDFdE(E::Float64,L::Float64)::Float64   = OrbitalElements.mestel_Zang_dDFdE(E,L;
-                                                                        R0=R0,Rin=Rin,Rmax=Rmax,
-                                                                        V0=V0,
-                                                                        xi=xi,C=C0,
-                                                                        q=q0,sigma=sigma0,
-                                                                        nu=nu,mu=mu)
-
-dDFdL(E::Float64,L::Float64)::Float64   = OrbitalElements.mestel_Zang_dDFdL(E,L;
-                                                                        R0=R0,Rin=Rin,Rmax=Rmax,
-                                                                        V0=V0,
-                                                                        xi=xi,C=C0,
-                                                                        q=q0,sigma=sigma0,
-                                                                        nu=nu,mu=mu)
-
-ndFdJ(n1::Int64,n2::Int64,
+const ndFdJ(n1::Int64,n2::Int64,
         E::Float64,L::Float64,
         ndotOmega::Float64)::Float64   = OrbitalElements.mestel_Zang_ndDFdJ(n1,n2,E,L,ndotOmega;
                                                                             R0=R0,Rin=Rin,Rmax=Rmax,
                                                                             V0=V0,
                                                                             xi=xi,C=C0,
-                                                                            q=q0,sigma=sigma0,
+                                                                            q=q0,sigma=σ0,
                                                                             nu=nu,mu=mu)
 
-#####
-# Parameters
-#####
-K_u = 150           # number of Legendre integration sample points
-K_v = 100    # number of allocations is directly proportional to this
-K_w = 50    # number of allocations is insensitive to this (also time, largely?
+##############################
+# Legendre / Integration parameters
+##############################
+# Radii for frequency truncations
+const rmin = 0.1
+const rmax = 20.0
 
-lharmonic = 2
-n1max = 5  # maximum number of radial resonances to consider
-
-# Mode of response matrix computation
-LINEAR = "unstable"
+const Ku = 100           # number of Legendre integration sample points
+const FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 
-#####
-# Outputs directories
-#####
-wmatdir="wmat/"
-gfuncdir="gfunc/"
-modedir = "xifunc/"
+const Kv = 100    # number of allocations is directly proportional to this
+const Kw = 200    # number of allocations is insensitive to this (also time, largely?
+
+const lharmonic = 2
+const n1max = 10  # maximum number of radial resonances to consider
