@@ -37,31 +37,26 @@ basis = AstroBasis.CB72Basis_create(lmax=lmax,nmax=nmax,G=G,rb=rb)
 # lmax,nmax = 2,7
 # basis = AstroBasis.K76Basis_create(lmax=lmax,nmax=nmax,G=G,rb=rb,kKA=kKA)
 
-ndim = basis.dimension
-nradial = basis.nmax
-
 ##############################
 # Model Potential
 ##############################
-const modelname = "newMestel"
+const modelname = "Mestel"
 
 const R0, V0 = 20., 1.
-const neps=3
-const eps0 = 10.0^(-neps)
-const ψ(r::Float64)::Float64   = OrbitalElements.ψMestel(r,R0,V0,eps0)
-const dψ(r::Float64)::Float64  = OrbitalElements.dψMestel(r,R0,V0,eps0)
-const d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψMestel(r,R0,V0,eps0)
-const d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψMestel(r,R0,V0,eps0)
-const d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψMestel(r,R0,V0,eps0)
-const Ω0 = OrbitalElements.Ω0Mestel(R0,V0,eps0)
-println("Ω0 = ",Ω0)
+const ψ(r::Float64)::Float64   = OrbitalElements.ψMestel(r,R0,V0)
+const dψ(r::Float64)::Float64  = OrbitalElements.dψMestel(r,R0,V0)
+const d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψMestel(r,R0,V0)
+const d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψMestel(r,R0,V0)
+const d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψMestel(r,R0,V0)
+const Ω₀ = OrbitalElements.Ω₀Mestel(R0,V0)
+println("Ω₀ = ",Ω₀)
 
 ##############################
 # Outputs directories
 ##############################
-const wmatdir="wmat/"*basisname*"/eps"*string(neps)*"/"
-const gfuncdir="gfunc/"*basisname*"/eps"*string(neps)*"/"
-const modedir = "xifunc/"*basisname*"/eps"*string(neps)*"/"
+const wmatdir="wmat/"*basisname*"/"
+const gfuncdir="gfunc/"*basisname*"/"
+const modedir = "xifunc/"*basisname*"/"
 
 ##############################
 # Model DF
@@ -92,9 +87,11 @@ const ndFdJ(n1::Int64,n2::Int64,
 const rmin = 0.15
 const rmax = 13.5
 
-const K_u = 150           # number of Legendre integration sample points
-const K_v = 100    # number of allocations is directly proportional to this
-const K_w = 200    # number of allocations is insensitive to this (also time, largely?
+const Ku = 100           # number of u integration sample points
+const FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
+
+const Kv = 100    # number of allocations is directly proportional to this
+const Kw = 200    # number of allocations is insensitive to this (also time, largely?
 
 const lharmonic = 2
 const n1max = 4  # maximum number of radial resonances to consider
