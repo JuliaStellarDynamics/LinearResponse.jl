@@ -145,11 +145,16 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
     # Frequency cuts associated to [rmin,rmax]
     αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω₀)
 
-    println("CallAResponse.GFunc.RunGfunc: Considering $nbResVec resonances.")
+    if VERBOSE >= 0
+        println("CallAResponse.GFunc.RunGfunc: Considering $nbResVec resonances.")
+    end
 
     Threads.@threads for i = 1:nbResVec
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
-        println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
+
+        if VERBOSE > 0
+            println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
+        end
 
         outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
         if isfile(outputfilename)

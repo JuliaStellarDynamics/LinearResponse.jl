@@ -94,8 +94,8 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
             for k=1:Ku
 
-                if warnflag[k] > 0
-                    println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k")
+                if warnflag[k] > 2
+                    println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf (warnflag=$(warnflag[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(res[k]).")
                 end
 
                 # populate the symmetric matrix
@@ -366,7 +366,7 @@ function RunM(ωlist::Array{Complex{Float64}},
 
         k = Threads.threadid()
 
-        if i==2 # skip the first in case there is compile time built in
+        if (i==2) & (VERBOSE>0) # skip the first in case there is compile time built in
             @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
         else
             tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
