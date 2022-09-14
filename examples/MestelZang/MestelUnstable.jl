@@ -27,7 +27,7 @@ const G  = 1.
 
 # Clutton-Brock (1972) basis
 const basisname = "CluttonBrock"
-const rb = 2.0
+const rb = 20.0
 const lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
 const basis = AstroBasis.CB72Basis_create(lmax=lmax,nmax=nmax,G=G,rb=rb) 
 
@@ -87,12 +87,11 @@ const ndFdJ(n1::Int64,n2::Int64,
 const rmin = 0.1
 const rmax = 20.0
 
-const Ku = 100           # number of Legendre integration sample points
+const Ku = 100           # number of u integration sample points
 const FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
-
 
 const Kv = 100    # number of allocations is directly proportional to this
 const Kw = 200    # number of allocations is insensitive to this (also time, largely?
 
 const lharmonic = 2
-const n1max = 10  # maximum number of radial resonances to consider
+const n1max = 1  # maximum number of radial resonances to consider
