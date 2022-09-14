@@ -1,9 +1,9 @@
 #!/bin/bash
 #PBS -S /bin/sh
 #PBS -N MestelUnstable_1.0
-#PBS -o ./../../log/MestelUnstable_1.0.log
-#PBS -e ./../../log/MestelUnstable_1.0.err
-#PBS -l nodes=1:ppn=128,mem=1000g,walltime=1:00:00
+#PBS -o ./log/MestelUnstable_1.0.log
+#PBS -e ./log/MestelUnstable_1.0.err
+#PBS -l nodes=1:ppn=128,mem=1000g,walltime=10:00:00
 
 module purge
 module load julia/1.7.2
@@ -64,4 +64,4 @@ verbose=1
 overwrite=false
 
 
-${JULIA} --project=${PROJECT} --threads $JULIA_NUM_THREADS ${CODE} --G $G --basisname $basisname --rb $rb --kKA $kKA --lharmonic $lharmonic --nmax $nmax --modelname $modelname --R0 $R0 --V0 $V0 --DFname $dfname --q0 $q0 --Rin $Rin --Rout $Rout --Rmax $Rmax --xi $xi --mu $mu --nu $nu --rmin $rmin --rmax $rmax --Ku $Ku --Kv $Kv --Kw $Kw --n1max $n1max --omgmin $omgmin --omgmax $omgmax --etamin $etamin --etamax $etamax --nomg $nomg --neta $neta --verbose $verbose --overwrite $overwrite
+${JULIA} --project=${PROJECT} --threads $JULIA_NUM_THREADS ${CODE} # --G $G --basisname $basisname --rb $rb --kKA $kKA --lharmonic $lharmonic --nmax $nmax --modelname $modelname --R0 $R0 --V0 $V0 --DFname $dfname --q0 $q0 --Rin $Rin --Rout $Rout --Rmax $Rmax --xi $xi --mu $mu --nu $nu --rmin $rmin --rmax $rmax --Ku $Ku --Kv $Kv --Kw $Kw --n1max $n1max --omgmin $omgmin --omgmax $omgmax --etamin $etamin --etamax $etamax --nomg $nomg --neta $neta --verbose $verbose --overwrite $overwrite

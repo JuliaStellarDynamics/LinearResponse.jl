@@ -56,9 +56,9 @@ tabargs = ArgParseSettings()
     arg_type = String
     default = "Zang"
     "--q0"
-    help = "Characteristic length"
-    arg_type = Union{Int64,Float64}
-    default = 6
+    help = "Characteristic temperature"
+    arg_type = Float64
+    default = 6.
     "--Rin"
     help = "Inner tapering radius"
     arg_type = Float64
@@ -202,18 +202,17 @@ const modedir = "xifunc/"*basisname*"/"
 ##############################
 # Model DF
 ##############################
-const q0 = parsed_args["q0"]
+const q0 = try convert(Int64,parsed_args["q0"]) catch; parsed_args["q0] end
 const σ0 = OrbitalElements.sigmar_Mestel_DF(R0,V0,q0)
 const C0 = OrbitalElements.normC_Mestel_DF(G,R0,V0,q0)
 
 # Tapering radii
-const Rin, Rout, Rmax = parsed_args["Rin"], parsed_args["Rout"], parsed_args["Rmax"] 
+const Rin, Rout, Rmax  = parsed_args["Rin"], parsed_args["Rout"], parsed_args["Rmax"] 
 # Self-gravity fraction
 const xi = parsed_args["xi"]
 # Tapering exponants                
 const mu, nu = parsed_args["mu"], parsed_args["nu"]
 
-const 
 const dfname = parsed_args["DFname"]*"_q_"*string(q0)*"_xi_"*string(xi)*"_mu_"*string(mu)*"_nu_"*string(nu)
 
 const ndFdJ(n1::Int64,n2::Int64,
@@ -236,7 +235,6 @@ const FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 const lharmonic = lmax
 const n1max = parsed_args["n1max"]
-
 
 ##################################################
 #
