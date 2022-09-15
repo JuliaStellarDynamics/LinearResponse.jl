@@ -5,7 +5,7 @@ function SetupDeterminantZero(FHT::FiniteHilbertTransform.FHTtype,
                               n1max::Int64,nradial::Int64,
                               modedir::String,modelname::String,
                               dfname::String,
-                              rb::Float64;
+                              rb::Float64,Kv::Int64;
                               VERBOSE::Int64=0)
 
     # Resonance vectors
@@ -15,7 +15,7 @@ function SetupDeterminantZero(FHT::FiniteHilbertTransform.FHTtype,
     tabnpnq = makeTabnpnq(nradial)
 
     # read the decomposition coefficients a_k (must be created elsewhere)
-    tabaMcoef = StageaMcoef(tabResVec,tabnpnq,FHT.Ku,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    tabaMcoef = StageaMcoef(tabResVec,tabnpnq,FHT.Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
 
     # allocate arrays for constructing the determinant
     MMat = zeros(Complex{Float64},nradial,nradial)
@@ -33,7 +33,9 @@ function GoStep(omgval::Complex{Float64},
                 tabResVec::Matrix{Int64},tabnpnq::Matrix{Int64},
                 nradial::Int64,dψ::Function,
                 d2ψ::Function,Ω₀::Float64,
-                rmin::Float64,rmax::Float64;VERBOSE::Int64=0)
+                rmin::Float64,rmax::Float64;
+                VERBOSE::Int64=0,
+                KuTruncation::Int64=10000)
 
     nomg = 1
 
@@ -41,7 +43,7 @@ function GoStep(omgval::Complex{Float64},
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
     # fill the M matrix
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+    tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
 
     # compute the determinant of I-M
     detXival = detXi(IMat,MMat)
@@ -50,10 +52,10 @@ function GoStep(omgval::Complex{Float64},
     riomgval = omgval + 1.e-5
     upomgval = omgval + 1.e-5im
 
-    tabM!(riomgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+    tabM!(riomgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
     detXivalri = detXi(IMat,MMat)
 
-    tabM!(upomgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+    tabM!(upomgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
     detXivalup = detXi(IMat,MMat)
 
     dXirir = real(detXivalri-detXival)/1.e-5
@@ -86,7 +88,8 @@ function FindDeterminantZero(startingomg::Complex{Float64},
                              nradial::Int64,dψ::Function,
                              d2ψ::Function,Ω₀::Float64,
                              rmin::Float64,rmax::Float64;
-                             TOL::Float64=1.0e-16,VERBOSE::Int64=0)
+                             TOL::Float64=1.0e-16,VERBOSE::Int64=0,
+                             KuTruncation::Int64=10000)
 
     # initial values
     detXival = 1.0
@@ -94,7 +97,7 @@ function FindDeterminantZero(startingomg::Complex{Float64},
 
     while abs(detXival)^2 > TOL
 
-        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,tabResVec,tabnpnq,nradial,dψ,d2ψ,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,tabResVec,tabnpnq,nradial,dψ,d2ψ,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
 
         if abs(detXival) > 1.0
             break
@@ -117,12 +120,14 @@ function FindPole(startingomg::Complex{Float64},
                   d2ψ::Function,Ω₀::Float64,
                   rmin::Float64,rmax::Float64,
                   modedir::String,modelname::String,dfname::String,
-                  rb::Float64;
-                  TOL::Float64=1.0e-16,VERBOSE::Int64=0)
+                  rb::Float64,Kv::Int64;
+                  TOL::Float64=1.0e-16,
+                  VERBOSE::Int64=0,
+                  KuTruncation::Int64=10000)
 
     IMat,MMat,tabaMcoef,tabResVec,tabnpnq = SetupDeterminantZero(FHT,ndim,lharmonic,
                                                                  n1max,nradial,modedir,modelname,dfname,
-                                                                 rb,VERBOSE=VERBOSE)
+                                                                 rb,Kv,VERBOSE=VERBOSE)
 
 
     bestomg = FindDeterminantZero(startingomg,
@@ -131,7 +136,7 @@ function FindPole(startingomg::Complex{Float64},
                                   tabaMcoef,
                                   tabResVec,tabnpnq,
                                   nradial,
-                                  dψ,d2ψ,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+                                  dψ,d2ψ,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
 
     if VERBOSE >= 0
         println("Best O for n1max=$n1max,nradial=$nradial == $bestomg")

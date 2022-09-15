@@ -28,13 +28,14 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                             dfname::String,
                             lharmonic::Int64,
                             nradial::Int64,
-                            rb::Float64;
+                            rb::Float64,
+                            Kv::Int64;
                             VERBOSE::Int64=0,
                             OVERWRITE::Bool=false)
 
     # get relevant sizes
     Ku       = FHT.Ku
-    nbnpnq  = size(tabnpnq)[2]
+    nbnpnq   = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
     if VERBOSE > 2
@@ -52,7 +53,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         n1,n2 = tabResVec[1,nres],tabResVec[2,nres]
 
         # don't do this loop if the file calculation already exists (unless asked)
-        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
+        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
         if isfile(outputfilename)
 
             # log if requested
@@ -74,7 +75,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         end
 
         # open the resonance file
-        filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
+        filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
         inputfile = h5open(filename,"r")
 
         if VERBOSE > 0
@@ -127,7 +128,7 @@ end
 """put all aXi values into memory"""
 function StageaMcoef(tabResVec::Matrix{Int64},
                      tabnpnq::Matrix{Int64},
-                     Ku::Int64,
+                     Ku::Int64,Kv::Int64,
                      nradial::Int64;
                      modedir::String="",
                      modelname::String="",
@@ -149,7 +150,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres] # Current resonance (n1,n2)
 
         # retrieve the correct M table
-        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
+        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
         inputfile = h5open(filename,"r")
 
         # Loop over the basis indices to consider
@@ -198,12 +199,20 @@ function tabM!(ω::Complex{Float64},
                nradial::Int64,
                Ω₀::Float64,
                rmin::Float64,rmax::Float64;
-               VERBOSE::Int64=0)
+               VERBOSE::Int64=0,
+               KuTruncation::Int64=10000)
 
     # get dimensions from the relevant tables
     nbnpnq      = size(tabnpnq)[2]
     nbResVec    = size(tabResVec)[2]
     Ku          = FHT.Ku
+
+    if KuTruncation < Ku
+        Ku = KuTruncation
+        if VERBOSE > 2
+            println("CallAResponse.Xi.tabM!: truncating Ku series from $(FHT.Ku) to $Ku.")
+        end
+    end
 
     # initialise the array to 0.
     fill!(tabM,0.0 + 0.0*im)
@@ -304,7 +313,8 @@ function RunM(ωlist::Array{Complex{Float64}},
               modelname::String,dfname::String,
               rmin::Float64,rmax::Float64;
               VERBOSE::Int64=0,
-              OVERWRITE::Bool=false)
+              OVERWRITE::Bool=false,
+              KuTruncation::Int64=10000)
 
     # Check directory names
     checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
@@ -329,7 +339,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     end
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
 
     # allocate memory for FHT structs
     FHTlist = [deepcopy(FHT) for k=1:Threads.nthreads()]
@@ -351,7 +361,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     end
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
 
     if VERBOSE >= 0
         println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
@@ -367,9 +377,9 @@ function RunM(ωlist::Array{Complex{Float64}},
         k = Threads.threadid()
 
         if (i==2) & (VERBOSE>0) # skip the first in case there is compile time built in
-            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
         else
-            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
@@ -426,10 +436,10 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     tabnpnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,Ku,Kv,nradial,
                                           modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
     println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 

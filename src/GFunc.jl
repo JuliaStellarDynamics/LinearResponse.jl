@@ -11,6 +11,7 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
                 tabWMat::Array{Float64,3},
                 tabΩ1Ω2Mat::Array{Float64,3},
                 tabAEMat::Array{Float64,3},
+                tabELMat::Array{Float64,3},
                 tabJMat::Array{Float64,2},
                 tabu::Array{Float64},
                 Kv::Int64,
@@ -18,7 +19,8 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
                 ωmin::Float64,ωmax::Float64,
                 tabvminmax::Array{Float64,2},
                 lharmonic::Int64;
-                Ω₀::Float64=1.)
+                Ω₀::Float64=1.,
+                VERBOSE::Int64=0.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if ndim==2
@@ -40,6 +42,10 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
 
     for kuval in 1:Ku
 
+        #if (VERBOSE>2)
+        #    println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
+        #end
+
         uval = tabu[kuval]
         vmin, vmax = tabvminmax[kuval,:]
 
@@ -57,11 +63,12 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
             ####
             # (u,v) -> (Ω1,Ω2)
             Ω1,Ω2 = tabΩ1Ω2Mat[kuval,kvval,:]
+
             # (Ω1,Ω2) -> (a,e)
-            a,e = tabAEMat[kuval,kvval,:]
+            #a,e = tabAEMat[kuval,kvval,:]
 
             # need (E,L): this has some relatively expensive switches
-            Eval,Lval = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=0.001)
+            Eval,Lval = tabELMat[kuval,kvval,1],tabELMat[kuval,kvval,2]#OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=0.001)
 
             # compute Jacobians
             #(α,β) -> (u,v).
@@ -156,7 +163,7 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
             println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
         end
 
-        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,rb)
+        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
         if isfile(outputfilename)
             if OVERWRITE
                 if VERBOSE > 0
@@ -171,15 +178,26 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         end
 
         # load a value of tabWmat, plus (a,e) values
-        filename = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw)
-        file = h5open(filename,"r")
-        Wtab = read(file,"wmat")
-        Ω1Ω2tab = read(file,"Omgmat")
-        AEtab = read(file,"AEmat")
-        Jtab = read(file,"jELABmat")
+        filename   = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw)
+        file       = h5open(filename,"r")
+        Wtab       = read(file,"wmat")
+        Ω1Ω2tab    = read(file,"Omgmat")
+        AEtab      = read(file,"AEmat")
+        Jtab       = read(file,"jELABmat")
         vminmaxtab = read(file,"tabvminmax")
-        ωminmax = read(file,"omgminmax")
+        ωminmax    = read(file,"omgminmax")
         close(file)
+
+        # create the (E,L) table in advance: this does not change for (np,nq)
+        ELtab = zeros(Ku,Kv,2)
+        for kuval in 1:Ku
+            for kvval in 1:Kv
+                a,e = AEtab[kuval,kvval,:]
+
+                # need (E,L): this has some relatively expensive switches
+                ELtab[kuval,kvval,1],ELtab[kuval,kvval,2] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=0.001)
+            end
+        end
 
         # Extremal n.Ω
         ωmin, ωmax = ωminmax[1], ωminmax[2]
@@ -200,19 +218,19 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
                     if (np==1) & (nq==1)
                         @time tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
                                               ndFdJ,n1,n2,np,nq,
-                                              Wtab,Ω1Ω2tab,AEtab,Jtab,
+                                              Wtab,Ω1Ω2tab,AEtab,ELtab,Jtab,
                                               tabu,Kv,ndim,nradial,
                                               ωmin,ωmax,
                                               vminmaxtab,
-                                              lharmonic,Ω₀=Ω₀)
+                                              lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
                     else
                         tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
                                         ndFdJ,n1,n2,np,nq,
-                                        Wtab,Ω1Ω2tab,AEtab,Jtab,
+                                        Wtab,Ω1Ω2tab,AEtab,ELtab,Jtab,
                                         tabu,Kv,ndim,nradial,
                                         ωmin,ωmax,
                                         vminmaxtab,
-                                        lharmonic,Ω₀=Ω₀)
+                                        lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
                     end
 
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)

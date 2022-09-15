@@ -38,10 +38,10 @@ function ComputeModeTables(omgval::Complex{Float64},
     tabnpnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE)
 
     # load aXi values
-    tabaMcoef = StageaMcoef(tabResVec,tabnpnq,FHT.Ku,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    tabaMcoef = StageaMcoef(tabResVec,tabnpnq,FHT.Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
 
     if VERBOSE>0
         println("CallAResponse.Xi.ComputeModeTables: tabaMcoef loaded.")
