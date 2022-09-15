@@ -8,6 +8,9 @@ examples/*/wmat
 examples/*/gfunc
 examples/*/xifunc
 
+# log on cluster
+examples/*/log
+
 examples/wmat
 examples/gfunc
 examples/xifunc
