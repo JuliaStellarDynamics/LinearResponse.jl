@@ -202,7 +202,7 @@ const modedir = "xifunc/"*basisname*"/"
 ##############################
 # Model DF
 ##############################
-const q0 = try convert(Int64,parsed_args["q0"]) catch; parsed_args["q0] end
+const q0 = try convert(Int64,parsed_args["q0"]) catch; parsed_args["q0"] end
 const σ0 = OrbitalElements.sigmar_Mestel_DF(R0,V0,q0)
 const C0 = OrbitalElements.normC_Mestel_DF(G,R0,V0,q0)
 
