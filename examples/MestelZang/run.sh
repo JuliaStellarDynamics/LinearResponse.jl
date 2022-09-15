@@ -1,9 +1,9 @@
 #!/bin/bash
 #PBS -S /bin/sh
-#PBS -N MestelUnstable_1.0
-#PBS -o ./../../log/MestelUnstable_1.0.log
-#PBS -e ./../../log/MestelUnstable_1.0.err
-#PBS -l nodes=1:ppn=128,mem=1000g,walltime=1:00:00
+#PBS -N n1max_1
+#PBS -o ./log/n1max_1.log
+#PBS -e ./log/n1max_1.err
+#PBS -l nodes=1:ppn=128,mem=1000g,walltime=10:00:00
 
 module purge
 module load julia/1.7.2
@@ -48,8 +48,8 @@ rmin=0.1
 rmax=20.0
 Ku=100
 Kv=100
-kw=200
-n1max=50
+Kw=200
+n1max=1
 
 # Frequency computations
 omgmin=0.5
