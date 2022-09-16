@@ -133,7 +133,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
                      modedir::String="",
                      modelname::String="",
                      dfname::String="",
-                     lharmonic::Int64="",
+                     lharmonic::Int64=1,
                      rb::Float64=1.0)
 
 

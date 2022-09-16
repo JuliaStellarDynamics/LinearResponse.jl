@@ -4,18 +4,16 @@
 
 function to compute G(u)
 """
-function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
-                ndFdJ::Function,
+function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
                 np::Int64,nq::Int64,
                 tabWMat::Array{Float64,3},
                 tabΩ1Ω2Mat::Array{Float64,3},
-                tabAEMat::Array{Float64,3},
                 tabELMat::Array{Float64,3},
                 tabJMat::Array{Float64,2},
                 tabu::Array{Float64},
                 Kv::Int64,
-                ndim::Int64,nradial::Int64,
+                ndim::Int64,
                 ωmin::Float64,ωmax::Float64,
                 tabvminmax::Array{Float64,2},
                 lharmonic::Int64;
@@ -64,11 +62,8 @@ function MakeGu(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::F
             # (u,v) -> (Ω1,Ω2)
             Ω1,Ω2 = tabΩ1Ω2Mat[kuval,kvval,:]
 
-            # (Ω1,Ω2) -> (a,e)
-            #a,e = tabAEMat[kuval,kvval,:]
-
             # need (E,L): this has some relatively expensive switches
-            Eval,Lval = tabELMat[kuval,kvval,1],tabELMat[kuval,kvval,2]#OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=0.001)
+            Eval,Lval = tabELMat[kuval,kvval,1],tabELMat[kuval,kvval,2]
 
             # compute Jacobians
             #(α,β) -> (u,v).
@@ -216,18 +211,16 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
                 for nq = 1:nradial
 
                     if (np==1) & (nq==1)
-                        @time tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
-                                              ndFdJ,n1,n2,np,nq,
-                                              Wtab,Ω1Ω2tab,AEtab,ELtab,Jtab,
-                                              tabu,Kv,ndim,nradial,
+                        @time tabGXi = MakeGu(ndFdJ,n1,n2,np,nq,
+                                              Wtab,Ω1Ω2tab,ELtab,Jtab,
+                                              tabu,Kv,ndim,
                                               ωmin,ωmax,
                                               vminmaxtab,
                                               lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
                     else
-                        tabGXi = MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,
-                                        ndFdJ,n1,n2,np,nq,
-                                        Wtab,Ω1Ω2tab,AEtab,ELtab,Jtab,
-                                        tabu,Kv,ndim,nradial,
+                        tabGXi = MakeGu(ndFdJ,n1,n2,np,nq,
+                                        Wtab,Ω1Ω2tab,ELtab,Jtab,
+                                        tabu,Kv,ndim,
                                         ωmin,ωmax,
                                         vminmaxtab,
                                         lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
