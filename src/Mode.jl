@@ -177,7 +177,7 @@ function GetModeShape(basis::AstroBasis.Basis_type,
 
     end
 
-    h5open(ModeFilename(modedir,modelname,dfname,lharmonic,n1max,Ku), "w") do file
+    h5open(ModeFilename(modedir,modelname,dfname,lharmonic,n1max,basis.rb,Ku,Kv), "w") do file
         write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
         write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
         write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file
@@ -250,7 +250,7 @@ function GetModeShapeComplex(basis::AstroBasis.Basis_type,
 
     end
 
-    h5open(ModeFilename(modedir,modelname,dfname,lharmonic,n1max,Ku), "w") do file
+    h5open(ModeFilename(modedir,modelname,dfname,lharmonic,n1max,basis.rb,Ku,Kv), "w") do file
         write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
         write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
         write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file

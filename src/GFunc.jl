@@ -158,7 +158,7 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
             println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
         end
 
-        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
+        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         if isfile(outputfilename)
             if OVERWRITE
                 if VERBOSE > 0

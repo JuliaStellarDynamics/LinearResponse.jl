@@ -53,7 +53,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         n1,n2 = tabResVec[1,nres],tabResVec[2,nres]
 
         # don't do this loop if the file calculation already exists (unless asked)
-        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
+        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         if isfile(outputfilename)
 
             # log if requested
@@ -75,7 +75,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         end
 
         # open the resonance file
-        filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
+        filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         inputfile = h5open(filename,"r")
 
         if VERBOSE > 0
@@ -150,7 +150,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres] # Current resonance (n1,n2)
 
         # retrieve the correct M table
-        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
+        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         inputfile = h5open(filename,"r")
 
         # Loop over the basis indices to consider
@@ -386,7 +386,7 @@ function RunM(ωlist::Array{Complex{Float64}},
 
     end
 
-    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,Ku,rb),ωlist,tabdetXi)
+    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,rb,Ku,Kv),ωlist,tabdetXi)
 
     return tabdetXi
 end

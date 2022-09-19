@@ -73,10 +73,10 @@ filename for a given wmat result
 function WMatFilename(wmatdir::String,
                       modelname::String,
                       lharmonic::Int64,n1::Int64,n2::Int64,
-                      rb::Float64,
-                      K_u::Int64,K_v::Int64,K_w::Int64)
+                      rbasis::Float64,
+                      Ku::Int64,Kv::Int64,Kw::Int64)
 
-    return wmatdir*"wmat_"*modelname*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rb)*"_Ku_"*string(K_u)*"_Kv_"*string(K_v)*"_Kw_"*string(K_w)*".h5"
+    return wmatdir*"wmat_"*modelname*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rbasis)*"_Ku_"*string(Ku)*"_Kv_"*string(Kv)*"_Kw_"*string(Kw)*".h5"
 end
 
 """
@@ -88,8 +88,8 @@ function GFuncFilename(gfuncdir::String,
                         modelname::String,
                         dfname::String,
                         lharmonic::Int64,n1::Int64,n2::Int64,
-                        Ku::Int64,Kv::Int64,
-                        rbasis::Float64)
+                        rbasis::Float64,
+                        Ku::Int64,Kv::Int64)
 
     return gfuncdir*"Gfunc_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rbasis)*"_Ku_"*string(Ku)*"_Kv_"*string(Kv)*".h5"
 end
@@ -101,10 +101,11 @@ end
 function ModeFilename(modedir::String,
                        modelname::String,
                        dfname::String,
-                       lharmonic::Int64,
-                       n1max::Int64,K_u::Int64)
+                       lharmonic::Int64,n1max::Int64,
+                       rbasis::Float64,
+                       Ku::Int64,Kv::Int64)
 
-    return modedir*"ModeShape_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"_n1_"*string(n1max)*"."*string(K_u)*".h5"
+    return modedir*"ModeShape_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"_n1_"*string(n1max)*"_rb_"*string(rbasis)*"_Ku_"*string(Ku)*"_Kv_"*string(Kv)*".h5"
 end
 
 
@@ -115,10 +116,11 @@ end
 function DetFilename(modedir::String,
                       modelname::String,
                       dfname::String,
-                      lharmonic::Int64,
-                      n1max::Int64,K_u::Int64,rbasis::Float64)
+                      lharmonic::Int64,n1max::Int64,
+                      rbasis::Float64,
+                      Ku::Int64,Kv::Int64)
 
-    return modedir*"Determinant_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"_n1_"*string(n1max)*"_rb_"*string(rbasis)*"."*string(K_u)*".h5"
+    return modedir*"Determinant_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"_n1_"*string(n1max)*"_rb_"*string(rbasis)*"_Ku_"*string(Ku)*"_Kv_"*string(Kv)*".h5"
 end
 
 """
@@ -145,8 +147,8 @@ function AxiFilename(modedir::String,
                      dfname::String,
                      lharmonic::Int64,
                      n1::Int64,n2::Int64,
-                     Ku::Int64,Kv::Int64,
-                     rbasis::Float64)
+                     rbasis::Float64,
+                     Ku::Int64,Kv::Int64)
 
     return modedir*"TabAXi_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rbasis)*"_Ku_"*string(Ku)*"_Kv_"*string(Kv)*".h5"
 end
@@ -160,8 +162,9 @@ function MFilename(modedir::String,
                    modelname::String,
                    dfname::String,
                    lharmonic::Int64,
-                   K_u::Int64)
+                   rbasis::Float64,
+                   Ku::Int64,Kv::Int64)
 
-    return modedir*"TabM_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"."*string(K_u)*".h5"
+    return modedir*"TabM_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"_rb_"*string(rbasis)*"_Ku_"*string(Ku)*"_Kv_"*string(Kv)*".h5"
 
 end
