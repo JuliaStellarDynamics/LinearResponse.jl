@@ -132,7 +132,7 @@ function GetModeShape(basis::AstroBasis.Basis_type,
                       modedir::String,
                       modelname::String,
                       dfname::String,
-                      Ku::Int64;
+                      Ku::Int64,Kv::Int64;
                       VERBOSE::Int64=0)
 
     # prep the basis
@@ -202,7 +202,7 @@ function GetModeShapeComplex(basis::AstroBasis.Basis_type,
                             modedir::String,
                             modelname::String,
                             dfname::String,
-                            Ku::Int64;
+                            Ku::Int64,Kv::Int64;
                             VERBOSE::Int64=0)
 
     # prep the basis
