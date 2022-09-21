@@ -1,6 +1,6 @@
 
 # this input file is set up to mimic the Fouvry & Prunet (2022) damped mode result exactly
-inputfile = "ModelParamIsochrone_damped.jl"
+inputfile = "ModelParamIsochroneISO.jl"
 
 # need this to get the parameters...
 include(inputfile)
@@ -12,7 +12,7 @@ using HDF5
 
 # compute the Fourier-transformed basis elements
 CallAResponse.RunWmatIsochrone(wmatdir,
-                               K_u,K_v,K_w,
+                               Ku,Kv,Kw,
                                basis,
                                lharmonic,
                                n1max,
@@ -20,13 +20,14 @@ CallAResponse.RunWmatIsochrone(wmatdir,
                                Ω₀,
                                modelname,
                                rb,
-                               bc=bc,G=G,M=M
-                               VERBOSE=2)
+                               VERBOSE=-2)
+
+
 
 # compute the G(u) functions
 CallAResponse.RunGfuncIsochrone(ndFdJ,
                                 wmatdir,gfuncdir,
-                                K_u,K_v,K_w,
+                                Ku,Kv,Kw,
                                 basis,
                                 lharmonic,
                                 n1max,
@@ -34,13 +35,16 @@ CallAResponse.RunGfuncIsochrone(ndFdJ,
                                 Ω₀,
                                 modelname,dfname,
                                 rb,
-                                bc=bc,G=G,M=M,
-                                VERBOSE=1)
+                                VERBOSE=-1)
 
+
+
+# make a grid of omegas to test
+tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 
 tabdet = CallAResponse.RunMIsochrone(tabomega,
                                      gfuncdir,modedir,
-                                     K_u,K_v,K_w,
+                                     Ku,Kv,Kw,
                                      basis,
                                      FHT,
                                      lharmonic,
@@ -49,7 +53,6 @@ tabdet = CallAResponse.RunMIsochrone(tabomega,
                                      Ω₀,
                                      modelname,dfname,
                                      rb,
-                                     rmin,rmax,
                                      VERBOSE=1)
 
  # for the minimum, go back and compute the mode shape
@@ -61,7 +64,7 @@ tabdet = CallAResponse.RunMIsochrone(tabomega,
  # for the minimum, go back and compute the mode shape
  EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,ψ,dψ,d2ψ,
                                             gfuncdir,modedir,
-                                            K_u,K_v,K_w,
+                                            Ku,Kv,Kw,
                                             basis,
                                             lharmonic,
                                             n1max,

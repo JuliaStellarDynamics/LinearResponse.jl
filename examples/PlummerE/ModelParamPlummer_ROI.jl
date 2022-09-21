@@ -45,8 +45,8 @@ d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψPlummer(r,bc,M,G)
 d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψPlummer(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Plummer(bc,M,G)
 
-rmin = 1.e-8
-rmax = 10000.
+rmin = 1.0e-5
+rmax = 1.0e5
 
 
 dfname = "roi1.0"
@@ -77,7 +77,7 @@ FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 
 lharmonic = 2
-n1max     = 1 # maximum number of radial resonances to consider
+n1max     = 10 # maximum number of radial resonances to consider
 
 # output directories
 wmatdir  = "wmat/"
@@ -101,7 +101,7 @@ Omegamin = -0.02
 Omegamax = 0.02
 nEta     = 50
 Etamin   = -0.005
-Etamax   = -0.0001
+Etamax   = -0.00001
 
 
 

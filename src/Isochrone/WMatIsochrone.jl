@@ -67,14 +67,14 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
 
             # big step: convert input (u,v) to (rp,ra)
             # convert from omega1,omega2 to (a,e) using exact Isochrone inversion
-            sma,ecc = OrbitalElements.IsochroneAEFromOmega1Omega2(omega1,omega2,bc,M,G)
+            a,e = OrbitalElements.IsochroneAEFromOmega1Omega2(omega1,omega2,bc,M,G)
 
             # save (a,e) values for later
-            tabaMat[kuval,kvval] = sma
-            tabeMat[kuval,kvval] = ecc
+            tabaMat[kuval,kvval] = a
+            tabeMat[kuval,kvval] = e
 
             # get (rp,ra)
-            rp,ra = OrbitalElements.RpRafromAE(sma,ecc)
+            rp,ra = OrbitalElements.RpRafromAE(a,e)
 
             # need angular momentum
             Lval = OrbitalElements.isochroneLfromrpra(rp,ra,bc,M,G)
@@ -89,7 +89,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
             Sigma, Delta = (ra+rp)*0.5, (ra-rp)*0.5
 
             # Current location of the radius, r=r(u): isn't this exactly rp?
-            rval = Sigma + Delta*OrbitalElements.henonf(u)
+            rval = OrbitalElements.ru(u,a,e)
 
             # the velocity for integration
             dt1du, dt2du = omega1*gval, (omega2 - Lval/(rval^(2)))*gval
@@ -119,7 +119,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                 u += 0.5*duWMat
 
                 # Current location of the radius, r=r(u)
-                rval = Sigma + Delta*OrbitalElements.henonf(u)
+                rval = OrbitalElements.ru(u,a,e)
 
                 # current value of Theta
                 gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω₀=Ω₀)
@@ -168,7 +168,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                 u += 0.5*duWMat
 
                 # current location of the radius, r=r(u)
-                rval = Sigma + Delta*OrbitalElements.henonf(u)
+                rval = OrbitalElements.ru(u,a,e)
 
                 # current value of Theta
                 gval = OrbitalElements.ThetaRpRaIsochrone(rp,ra,u,bc=bc,Ω₀=Ω₀)
@@ -562,7 +562,11 @@ function RunWmatIsochrone(wmatdir::String,
 
         # currently defaulting to timed version:
         # could make this a flag (timing optional)
-        @time tabWMat,tabaMat,tabeMat = MakeWmatUVIsochrone(n1,n2,tabuGLquad,Kv,lharmonic,bases[k],Ω₀,Kw,bc=bc,M=M,G=G)
+        if VERBOSE > 1
+            @time tabWMat,tabaMat,tabeMat = MakeWmatUVIsochrone(n1,n2,tabuGLquad,Kv,lharmonic,bases[k],Ω₀,Kw,bc=bc,M=M,G=G)
+        else
+            tabWMat,tabaMat,tabeMat = MakeWmatUVIsochrone(n1,n2,tabuGLquad,Kv,lharmonic,bases[k],Ω₀,Kw,bc=bc,M=M,G=G)
+        end
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.

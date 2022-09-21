@@ -127,7 +127,7 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
     tabnpnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients ak
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE,OVERWRITE=false)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=false)
 
     # allocate structs for Dk(omega) computation
     structtabLeglist = [deepcopy(FHT) for k=1:Threads.nthreads()]
@@ -144,7 +144,7 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
     tabdetXi = zeros(Complex{Float64},nomg)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
     println("CallAResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
 
     println("CallAResponse.Xi.RunMIsochrone: computing $nomglist frequency values.")
