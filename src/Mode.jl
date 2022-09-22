@@ -20,10 +20,7 @@ function ComputeModeTables(omgval::Complex{Float64},
                            VERBOSE::Int64=0)
 
     # Check directory names
-    checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
-    if checkdirs < 0
-        return 0
-    end
+    CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
 
     # get needed parameters from structures
     Ku      = FHT.Ku

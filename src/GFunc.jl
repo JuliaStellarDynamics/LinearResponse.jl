@@ -133,10 +133,7 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
     ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
 
     # Check directory names
-    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
-    if checkdirs < 0
-        return 0
-    end
+    CheckConfigurationDirectories([wmatdir,gfuncdir]) || (return 0)
 
     # Integration points
     tabu, Ku = FHT.tabu, FHT.Ku

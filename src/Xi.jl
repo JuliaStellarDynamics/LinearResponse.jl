@@ -417,9 +417,8 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     #####
     # Check directories names
     #####
-    if !(isdir(gfuncdir) && isdir(modedir))
-        error("CallAResponse.Xi.jl: gfuncdir or modedir not found.")
-    end
+    # Check directory names
+    CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
 
     # get basis parameters
     ndim, nradial = basis.dimension, basis.nmax

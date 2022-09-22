@@ -270,7 +270,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             WBasisFT(a,e,Ω1,Ω2,n1,n2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,view(tabWMat,:,kuval,kvval),Kw=Kw,EDGE=EDGE,VERBOSE=VERBOSE)
         end
     end
-    
+
     return tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax
 end
 
@@ -294,7 +294,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                  OVERWRITE::Bool=false)
 
     # check wmat directory before proceeding (save time if not.)
-    CheckConfigurationDirectories(wmatdir=wmatdir) || (return 0)
+    CheckConfigurationDirectories([wmatdir]) || (return 0)
 
     # get basis parameters
     ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb

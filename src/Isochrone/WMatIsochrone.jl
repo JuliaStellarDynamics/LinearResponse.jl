@@ -506,10 +506,7 @@ function RunWmatIsochrone(wmatdir::String,
                           OVERWRITE::Bool=false)
 
     # check wmat directory before proceeding (save time if not.)
-    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir)
-    if checkdirs < 0
-        return 0
-    end
+    CheckConfigurationDirectories([wmatdir]) || (return 0)
 
     # get basis parameters
     ndim = basis.dimension

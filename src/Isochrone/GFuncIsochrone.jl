@@ -128,10 +128,7 @@ function RunGfuncIsochrone(ndFdJ::Function,
 
 
     # Check directory names
-    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir,gfuncdir=gfuncdir)
-    if checkdirs < 0
-        return 0
-    end
+    CheckConfigurationDirectories([wmatdir,gfuncdir]) || (return 0)
 
     # get basis parameters
     ndim = basis.dimension

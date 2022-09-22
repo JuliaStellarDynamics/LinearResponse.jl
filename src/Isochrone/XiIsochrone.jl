@@ -111,10 +111,7 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
     nomglist = length(omglist)
 
     # Check directory names
-    checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
-    if checkdirs < 0
-        return 0
-    end
+    CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
 
     # get basis parameters
     ndim = basis.dimension
