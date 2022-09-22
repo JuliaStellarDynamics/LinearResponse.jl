@@ -10,6 +10,9 @@ import CallAResponse
 using HDF5
 
 
+"""
+
+
 # compute the Fourier-transformed basis elements
 CallAResponse.RunWmatIsochrone(wmatdir,
                                Ku,Kv,Kw,
@@ -53,7 +56,7 @@ tabdet = CallAResponse.RunMIsochrone(tabomega,
                                      Ω₀,
                                      modelname,dfname,
                                      rb,
-                                     VERBOSE=1)
+                                     VERBOSE=1,KuTruncation=30)
 
  # for the minimum, go back and compute the mode shape
  #bestomg = 0.0143 - 0.00141im # for n1max = 10
@@ -76,3 +79,5 @@ tabdet = CallAResponse.RunMIsochrone(tabomega,
 
  ModeRadius,ModePotentialShape,ModeDensityShape = CallAResponse.GetModeShape(basis,lharmonic,
                                                                              0.01,15.,100,EM,VERBOSE=1)
+
+"""

@@ -1,21 +1,22 @@
 
 # bring in all parameters from the input file
-inputfile = "ModelParamIsochrone_roi.jl"
+inputfile = "ModelParamIsochroneROI.jl"
 include(inputfile)
 
 import CallAResponse
 using HDF5
 
+
+
 # call the function to construct W matrices
-CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
+#CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
+CallAResponse.RunWmat(ψModel,
                       wmatdir,
                       FHT,
                       Kv,Kw,
                       basis,
                       lharmonic,
                       n1max,
-                      Ω₀,
-                      modelname,
                       rmin,rmax,
                       VERBOSE=2)
 

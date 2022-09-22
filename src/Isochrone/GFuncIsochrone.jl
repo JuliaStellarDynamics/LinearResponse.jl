@@ -84,7 +84,7 @@ function MakeGuIsochrone(ndFdJ::Function,
             # compute dF/dJ: call out for value
             valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotOmega)
 
-            
+
 
             # get tabulated W values for different basis functions np,nq
             Wp = tabWMat[np,kuval,kvval]
@@ -295,7 +295,7 @@ function RunGfuncIsochrone(ndFdJ::Function,
             println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Found nradial=$nradial,Ku=$Ku,Kv=$Kv")
         end
 
-        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,Ku,Kv,rb)
+        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         if isfile(outputfilename)
 
             if VERBOSE > 0

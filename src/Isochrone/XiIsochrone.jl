@@ -25,12 +25,21 @@ function tabMIsochrone!(omg::Complex{Float64},
                         tabnpnq::Matrix{Int64},
                         FHT::FiniteHilbertTransform.FHTtype,
                         nradial::Int64,
-                        Ω₀::Float64=1.0)
+                        Ω₀::Float64=1.0;
+                        VERBOSE::Int64=0,
+                        KuTruncation::Int64=10000)
 
     # get dimensions from the relevant tables
     nbnpnq  = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
     Ku      = FHT.Ku
+
+    if KuTruncation < Ku
+        Ku = KuTruncation
+        if VERBOSE > 2
+            println("CallAResponse.XiIsochrone.tabMIsochrone!: truncating Ku series from $(FHT.Ku) to $Ku.")
+        end
+    end
 
     # initialise the array to 0.
     fill!(tabM,0.0 + 0.0*im)
@@ -106,7 +115,8 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
                        Ω₀::Float64,
                        modelname::String,dfname::String,
                        rb::Float64;
-                       VERBOSE::Int64=0)
+                       VERBOSE::Int64=0,
+                       KuTruncation::Int64=10000)
 
     nomglist = length(omglist)
 
@@ -155,16 +165,16 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
         k = Threads.threadid()
 
         if i==1
-            @time tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,structtabLeglist[k],nradial,Ω₀)
+            @time tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,structtabLeglist[k],nradial,Ω₀,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
         else
-            tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,structtabLeglist[k],nradial,Ω₀)
+            tabMIsochrone!(omglist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,structtabLeglist[k],nradial,Ω₀,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
 
     end
 
-    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,Ku,rb),omglist,tabdetXi)
+    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,rb,Ku,Kv),omglist,tabdetXi)
 
     return tabdetXi
 end
