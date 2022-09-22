@@ -1,6 +1,173 @@
 
 
 """
+    Wintegrand(u,a,e)
+
+Integrand computation/update for FT of basis elements
+"""
+function Wintegrand(w::Float64,
+                    a::Float64,e::Float64,L::Float64,
+                    Ω1::Float64,Ω2::Float64,
+                    lharmonic::Int64,
+                    basis::AstroBasis.Basis_type,
+                    ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function;
+                    EDGE::Float64=0.01,
+                    VERBOSE::Int64=0)
+
+    
+    # Current location of the radius, r=r(w)
+    rval = OrbitalElements.ru(w,a,e)
+    
+    # Current value of the radial frequency integrand (almost dθ/dw)
+    gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,w,a,e,EDGE=EDGE)
+
+    # collect the basis elements (in place!)
+    AstroBasis.tabUl!(basis,lharmonic,rval)
+
+    # the velocity for integration (dθ1dw, dθ2dw)
+    return Ω1*gval, (Ω2 - L/(rval^(2)))*gval 
+end
+
+"""
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,)
+
+Fourier Transform of basis elements using RK4 scheme
+result store in place
+"""
+function WBasisFT(a::Float64,e::Float64,
+                  Ω1::Float64,Ω2::Float64,
+                  n1::Int64,n2::Int64,
+                  lharmonic::Int64,
+                  basis::AstroBasis.Basis_type,
+                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                  restab::Union{Array{Float64},SubArray{Float64}};
+                  Kw::Int64=50,
+                  EDGE::Float64=0.01,
+                  VERBOSE::Int64=0)
+
+    @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: Result array not of the same size as the basis"
+
+    # Integration step
+    dw = (2.0)/(Kw)
+
+    # need angular momentum
+    Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e)
+
+    # Initialise the state vectors: w, θ1, (θ2-psi)
+    w, θ1, θ2 = -1.0, 0.0, 0.0
+
+    # Initialize integrand
+    dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,EDGE=EDGE,VERBOSE=VERBOSE)
+
+    # start the integration loop now that we are initialised
+    # at each step, we are performing an RK4-like calculation
+    for istep=1:Kw
+
+        ####
+        # RK4 Step 1
+        ####
+        # compute the first prefactor
+        pref1 = (1.0/6.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*θ1 + n2*θ2)
+
+        # Loop over the radial indices to sum basis contributions
+        for np=1:basis.nmax
+            @inbounds restab[np] += pref1*basis.tabUl[np]
+        end
+
+        # update velocities at end of step 1
+        dθ1_1 = dw*dθ1dw
+        dθ2_1 = dw*dθ2dw
+
+        ####
+        # RK4 Step 2
+        ####
+        # Update the time by half a timestep
+        w += 0.5*dw
+
+        # Update integrand
+        dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,EDGE=EDGE,VERBOSE=VERBOSE)
+
+        # common prefactor for all the increments
+        # depends on the updated (θ1+0.5*dθ1_1,θ2+0.5*dθ2_1)
+        # the factor (1.0/3.0) comes from RK4
+        pref2 = (1.0/3.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*(θ1+0.5*dθ1_1) + n2*(θ2+0.5*dθ2_1))
+
+        # update velocities at end of step 2
+        dθ1_2 = dw*dθ1dw
+        dθ2_2 = dw*dθ2dw
+
+        ####
+        # RK4 step 3
+        ####
+        # The time, u, is not updated for this step
+        # For this step, no need to re-compute the basis elements, as r has not been updated
+        # Common prefactor for all the increments
+        # Depends on the updated (θ1+0.5*dθ1_2,θ2+0.5*dθ2_2)
+        # the factor (1.0/3.0) comes from RK4
+        pref3 = (1.0/3.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*(θ1+0.5*dθ1_2) + n2*(θ2+0.5*dθ2_2))
+
+        # Loop over the radial indices to sum basis contributions
+        # Contribution of steps 2 and 3 together
+        for np=1:basis.nmax
+            @inbounds restab[np] += (pref2+pref3)*basis.tabUl[np]
+        end
+
+        dθ1_3 = dθ1_2 # Does not need to be updated
+        dθ2_3 = dθ2_2 # Does not need to be updated
+
+        ####
+        # RK4 step 4
+        ####
+        w += 0.5*dw # Updating the time by half a timestep: we are now at the next u value
+        
+        # Update integrand
+        dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,EDGE=EDGE,VERBOSE=VERBOSE)
+
+        # Common prefactor for all the increments
+        # Depends on the updated (θ1+dθ1_3,θ2+dθ2_3)
+        # The factor (1.0/6.0) comes from RK4
+        pref4 = (1.0/6.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*(θ1+dθ1_3) + n2*(θ2+dθ2_3))
+
+        # Loop over the radial indices to sum basis contributions
+        for np=1:basis.nmax
+            @inbounds restab[np] += pref4*basis.tabUl[np]
+        end
+
+        dθ1_4 = dw*dθ1dw # Current velocity for θ1
+        dθ2_4 = dw*dθ2dw # Current velocity for θ2
+
+        # Update the positions using RK4-like sum (Simpson's 1/3 rule)
+        θ1 += (dθ1_1 + 2.0*dθ1_2 + 2.0*dθ1_3 + dθ1_4)/(6.0)
+        θ2 += (dθ2_1 + 2.0*dθ2_2 + 2.0*dθ2_3 + dθ2_4)/(6.0)
+
+        # clean or check nans?
+
+    end # RK4 integration
+end
+
+"""
+without Ω1, Ω2
+"""
+function WBasisFT(a::Float64,e::Float64,
+                  n1::Int64,n2::Int64,
+                  lharmonic::Int64,
+                  basis::AstroBasis.Basis_type,
+                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                  restab::Union{Array{Float64},SubArray{Float64}};
+                  Kw::Int64=50,
+                  EDGE::Float64=0.01,
+                  TOLECC::Float64=0.001,
+                  NINT::Int64=32,
+                  VERBOSE::Int64=0)
+
+    # Frequencies
+    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e;action=action,TOLECC=TOLECC,VERBOSE=VERBOSE,NINT=NINT,EDGE=EDGE)
+    # Basis FT
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,restab,Ω₀=Ω₀,Kw=Kw,EDGE=EDGE,VERBOSE=VERBOSE)
+end
+
+
+"""
     MakeWmatUV(ψ,dψ,d2ψ,d3ψ,n1,n2,tabu,Kv,lharmonic,basis[,Ω₀,rmin,rmax,K_w])
 
 @TO DESCRIBE
@@ -99,127 +266,11 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             # compute the Jacobian (E,L)->(alpha,beta) here. a little more expensive, but savings in the long run
             tabJMat[kuval,kvval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Ω₀)
 
-            # need angular momentum
-            Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e)
-
-            # Initialise the state vectors: u, theta1, (theta2-psi)
-            u, theta1, theta2 = -1.0, 0.0, 0.0
-
-            # launch the integration from the left boundary
-            gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
-
-            # Current location of the radius, r=r(u)
-            rval = OrbitalElements.ru(u,a,e)
-
-            # the velocity for integration
-            dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
-
-            # collect the basis elements (in place!)
-            AstroBasis.tabUl!(basis,lharmonic,rval)
-
-            # start the integration loop now that we are initialised
-            # at each step, we are performing an RK4-like calculation
-            for istep=1:Kw
-
-                ####
-                # RK4 Step 1
-                ####
-                # compute the first prefactor
-                pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
-
-                # Loop over the radial indices to sum basis contributions
-                for np=1:basis.nmax
-                    tabWMat[np,kuval,kvval] += pref1*basis.tabUl[np]
-                end
-
-                # update velocities at end of step 1
-                k1_1 = duWMat*dt1du
-                k2_1 = duWMat*dt2du
-
-                ####
-                # RK4 Step 2
-                ####
-                # Update the time by half a timestep
-                u += 0.5*duWMat
-
-                # Current location of the radius, r=r(u)
-                rval = OrbitalElements.ru(u,a,e)
-
-                # get the corresponding value of Theta(u): could use (a,e) function here as well
-                gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
-
-                # Current value of dtheta1/du and dtheta2/du
-                dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
-
-                # recompute the basis functions for the changed radius value
-                AstroBasis.tabUl!(basis,lharmonic,rval)
-
-                # common prefactor for all the increments
-                # depends on the updated (theta1+0.5*k1_1,theta2+0.5*k2_1)
-                # the factor (1.0/3.0) comes from RK4
-                pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_1) + n2*(theta2+0.5*k2_1))
-
-                # update velocities at end of step 2
-                k1_2 = duWMat*dt1du
-                k2_2 = duWMat*dt2du
-
-                ####
-                # RK4 step 3
-                ####
-                # The time, u, is not updated for this step
-                # For this step, no need to re-compute the basis elements, as r has not been updated
-                # Common prefactor for all the increments
-                # Depends on the updated (theta1+0.5*k1_2,theta2+0.5*k2_2)
-                # the factor (1.0/3.0) comes from RK4
-                pref3 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k1_2) + n2*(theta2+0.5*k2_2))
-
-                # Loop over the radial indices to sum basis contributions
-                # Contribution of steps 2 and 3 together
-                for np=1:basis.nmax
-                    tabWMat[np,kuval,kvval] += (pref2+pref3)*basis.tabUl[np]
-                end
-
-                k1_3 = k1_2 # Does not need to be updated
-                k2_3 = k2_2 # Does not need to be updated
-
-                ####
-                # RK4 step 4
-                ####
-                u += 0.5*duWMat # Updating the time by half a timestep: we are now at the next u value
-                # Current location of the radius, r=r(u)
-                rval = OrbitalElements.ru(u,a,e)
-
-                # current value of dtheta1/du and dtheta2/du
-                #gval = OrbitalElements.ThetaRpRa(ψ,dψ,d2ψ,u,rp,ra,EDGE=EDGE)
-                gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,u,a,e,EDGE=EDGE)
-
-                dt1du, dt2du = Ω1*gval, (Ω2 - Lval/(rval^(2)))*gval
-
-                # updated basis elements for new rval
-                AstroBasis.tabUl!(basis,lharmonic,rval)
-
-                # Common prefactor for all the increments
-                # Depends on the updated (theta1+k1_3,theta2+k2_3)
-                # The factor (1.0/6.0) comes from RK4
-                pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k1_3) + n2*(theta2+k2_3))
-
-                # Loop over the radial indices to sum basis contributions
-                for np=1:basis.nmax
-                    tabWMat[np,kuval,kvval] += pref4*basis.tabUl[np]
-                end
-
-                k1_4 = duWMat*dt1du # Current velocity for theta1
-                k2_4 = duWMat*dt2du # Current velocity for theta2
-
-                # Update the positions using RK4-like sum
-                theta1 += (k1_1 + 2.0*k1_2 + 2.0*k1_3 + k1_4)/(6.0)
-                theta2 += (k2_1 + 2.0*k2_2 + 2.0*k2_3 + k2_4)/(6.0)
-
-                # clean or check nans?
-
-            end # RK4 integration
+            # Compute W(u,v) for every basis element using RK4 scheme
+            WBasisFT(a,e,Ω1,Ω2,n1,n2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,view(tabWMat,:,kuval,kvval),Kw=Kw,EDGE=EDGE,VERBOSE=VERBOSE)
         end
     end
+    
     return tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax
 end
 
@@ -243,10 +294,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                  OVERWRITE::Bool=false)
 
     # check wmat directory before proceeding (save time if not.)
-    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir)
-    if checkdirs < 0
-        return 0
-    end
+    CheckConfigurationDirectories(wmatdir=wmatdir) || (return 0)
 
     # get basis parameters
     ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
@@ -262,31 +310,23 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
 
     # print the length of the list of resonance vectors
-    if VERBOSE>0
-        println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $nbResVec")
-    end
+    (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $nbResVec")
 
     Threads.@threads for i = 1:nbResVec
         k = Threads.threadid()
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
 
-        if VERBOSE>0
-            println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
-        end
+        (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
 
         # If it has been already computed
         if isfile(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw))
             file = h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "r")
             oldnradial = read(file,"nradial")
             if (OVERWRITE == false) && (nradial <= oldnradial)
-                if VERBOSE > 0
-                    println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
-                end
+                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
                 continue
             else
-                if VERBOSE > 0
-                    println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
-                end
+                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
             end
             close(file)
         end
