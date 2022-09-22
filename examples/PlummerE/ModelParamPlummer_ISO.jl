@@ -29,8 +29,8 @@ basis   = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim    = basis.dimension
 nradial = basis.nmax
 
-rmin = 1.e-8
-rmax = 10000.
+rmin = 1.0e-5
+rmax = 1.0e5
 
 
 # model Potential

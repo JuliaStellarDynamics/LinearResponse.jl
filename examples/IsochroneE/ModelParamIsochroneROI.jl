@@ -42,8 +42,11 @@ d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
 d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
 
-rmin = 0.0
-rmax = 10000.0
+ψModel = CallAResponse.structPotentialcreate(modelname="IsochroneE",G=G,M=M,bc=bc,ψ=ψ,dψ=dψ,d2ψ=d2ψ,d3ψ=d3ψ,d4ψ=d4ψ,Ω₀=Ω₀)
+
+
+rmin = 1.0e-5
+rmax = 1.0e5
 
 
 dfname = "roi1.0"
@@ -78,7 +81,7 @@ Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 lharmonic = 2
-n1max = 2  # maximum number of radial resonances to consider
+n1max = 3  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe

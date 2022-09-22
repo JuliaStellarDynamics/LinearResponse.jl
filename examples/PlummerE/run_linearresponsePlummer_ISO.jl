@@ -24,15 +24,32 @@ CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
 
 # call the function to compute G(u) functions
 CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,
-                       ndFdJ,
-                       wmatdir,gfuncdir,
-                       K_u,K_v,K_w,
-                       basis,
-                       lharmonic,
-                       n1max,
-                       nradial,
-                       Ω₀,
-                       modelname,dfname,
-                       rb,
-                       rmin,rmax,
-                       VERBOSE=1)
+                     ndFdJ,
+                     wmatdir,gfuncdir,
+                     FHT,
+                     Kv,Kw,
+                     basis,
+                     lharmonic,
+                     n1max,
+                     Ω₀,
+                     modelname,dfname,
+                     rmin,rmax,
+                     VERBOSE=1)
+
+
+# construct a grid of frequencies to probe
+tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
+
+# compute the matrix response at each location
+tabdet = CallAResponse.RunM(tabomega,
+                         dψ,d2ψ,
+                         gfuncdir,modedir,
+                         FHT,
+                         Kv,Kw,
+                         basis,
+                         lharmonic,
+                         n1max,
+                         Ω₀,
+                         modelname,dfname,
+                         rmin,rmax,
+                         VERBOSE=1)
