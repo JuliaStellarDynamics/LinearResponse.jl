@@ -40,9 +40,7 @@ function MakeGu(ndFdJ::Function,
 
     for kuval in 1:Ku
 
-        #if (VERBOSE>2)
-        #    println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
-        #end
+        #(VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
 
         uval = tabu[kuval]
         vmin, vmax = tabvminmax[kuval,:]
@@ -144,27 +142,19 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
     # Frequency cuts associated to [rmin,rmax]
     αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω₀)
 
-    if VERBOSE >= 0
-        println("CallAResponse.GFunc.RunGfunc: Considering $nbResVec resonances.")
-    end
+    (VERBOSE >= 0) && println("CallAResponse.GFunc.RunGfunc: Considering $nbResVec resonances.")
 
     Threads.@threads for i = 1:nbResVec
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
 
-        if VERBOSE > 0
-            println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
-        end
+        (VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
         outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         if isfile(outputfilename)
             if OVERWRITE
-                if VERBOSE > 0
-                    println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): recomputing and overwritting.")
-                end
+                (VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): recomputing and overwritting.")
             else
-                if VERBOSE > 0
-                    println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): no computation.")
-                end
+                (VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): no computation.")
                 continue
             end
         end

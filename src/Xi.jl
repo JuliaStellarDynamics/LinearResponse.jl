@@ -38,9 +38,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
     nbnpnq   = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
-    if VERBOSE > 2
-        println("CallAResponse.Xi.MakeaMCoefficients: Check params: K_u=$K_u, nb_npnq=$nb_npnq, nbResVec=$nbResVec.")
-    end
+    (VERBOSE > 2) && println("CallAResponse.Xi.MakeaMCoefficients: Check params: K_u=$K_u, nb_npnq=$nb_npnq, nbResVec=$nbResVec.")
 
     # allocate the workspace
     tabaMcoef = zeros(Float64,nradial,nradial,Ku)
@@ -57,30 +55,19 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         if isfile(outputfilename)
 
             # log if requested
-            if VERBOSE>0
-                println("CallAResponse.Xi.MakeaMCoefficients: file already exists for step $nres of $nbResVec, ($n1,$n2).")
-            end
+            (VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: file already exists for step $nres of $nbResVec, ($n1,$n2).")
 
             # decide if we want to overwrite anyway
-            if OVERWRITE
-                println("...recomputing anyway.")
-            else
-                continue
-            end
-
+            OVERWRITE ? println("...recomputing anyway.") : continue
         end
 
-        if VERBOSE > 0
-            println("CallAResponse.Xi.MakeaMCoefficients: on step $nres of $nbResVec: ($n1,$n2).")
-        end
+        (VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: on step $nres of $nbResVec: ($n1,$n2).")
 
         # open the resonance file
         filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         inputfile = h5open(filename,"r")
 
-        if VERBOSE > 0
-            println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
-        end
+        (VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
 
         # Loop over the basis indices to consider
         for i_npnq=1:nbnpnq
@@ -209,9 +196,7 @@ function tabM!(ω::Complex{Float64},
 
     if KuTruncation < Ku
         Ku = KuTruncation
-        if VERBOSE > 2
-            println("CallAResponse.Xi.tabM!: truncating Ku series from $(FHT.Ku) to $Ku.")
-        end
+        (VERBOSE > 2) && println("CallAResponse.Xi.tabM!: truncating Ku series from $(FHT.Ku) to $Ku.")
     end
 
     # initialise the array to 0.
@@ -252,9 +237,7 @@ function tabM!(ω::Complex{Float64},
                 if !isnan(val)
                     res += val
                 else
-                    if (k==1) & (VERBOSE>1)
-                        println("CallAResponse.Xi.tabM!: NaN found for n=($n1,$n2), npnq=($np,$nq), k=$k")
-                    end
+                    (k==1) && (VERBOSE>1) && println("CallAResponse.Xi.tabM!: NaN found for n=($n1,$n2), npnq=($np,$nq), k=$k")
                 end
 
             end
@@ -334,9 +317,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     # make the (np,nq) vectors that we need to evaluate
     tabnpnq = makeTabnpnq(nradial)
 
-    if VERBOSE >= 0
-        println("CallAResponse.Xi.RunM: Constructing M coefficients.")
-    end
+    (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Constructing M coefficients.")
 
     # make the decomposition coefficients a_k
     MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
@@ -356,27 +337,21 @@ function RunM(ωlist::Array{Complex{Float64}},
     # allocate containers for determinant and min eigenvalue
     tabdetXi = zeros(Complex{Float64},nω)
 
-    if VERBOSE >= 0
-        println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
-    end
+    (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
 
     # load aXi values
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
 
-    if VERBOSE >= 0
-        println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
-    end
+    (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
-    if VERBOSE > 0
-        println("CallAResponse.Xi.RunM: computing $nω frequency values.")
-    end
+    (VERBOSE > 0) && println("CallAResponse.Xi.RunM: computing $nω frequency values.")
 
     # loop through all frequencies
     Threads.@threads for i = 1:nω
 
         k = Threads.threadid()
 
-        if (i==2) & (VERBOSE>0) # skip the first in case there is compile time built in
+        if (i==2) && (VERBOSE>0) # skip the first in case there is compile time built in
             @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
         else
             tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
@@ -493,9 +468,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
     end
 
-    if VERBOSE > 0
-        println("CallAResponse.Xi.FindZeroCrossing: zero found in $completediterations steps.")
-    end
+    (VERBOSE > 0) && println("CallAResponse.Xi.FindZeroCrossing: zero found in $completediterations steps.")
 
     return omgval
 
