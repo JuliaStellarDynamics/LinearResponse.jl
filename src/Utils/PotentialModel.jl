@@ -4,16 +4,16 @@
 struct structPotentialtype
 
     modelname::String         # potential name (default "potential")
-    G::Float64
-    M::Float64
-    bc::Float64
-    Ω₀::Float64
+    G::Float64                # gravitational constant (default 1.0)
+    M::Float64                # model mass (default 1.0)
+    bc::Float64               # model scale (default 1.0)
+    Ω₀::Float64               # model frequency scale (default 1.0)
 
-    ψ::Function
-    dψ::Function
-    d2ψ::Function
-    d3ψ::Function
-    d4ψ::Function
+    ψ::Function               # model potential, to be queried at r::Float64 (default returns 0.0)
+    dψ::Function              # model first derivative potential, to be queried at r::Float64 (default returns 0.0)
+    d2ψ::Function             # model second derivative potential, to be queried at r::Float64 (default returns 0.0)
+    d3ψ::Function             # model third derivative potential, to be queried at r::Float64 (default returns 0.0)
+    d4ψ::Function             # model fourth derivative potential, to be queried at r::Float64 (default returns 0.0)
 
 end
 

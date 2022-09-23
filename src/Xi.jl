@@ -368,7 +368,8 @@ end
 
 
 
-"""
+"""FindZeroCrossing(Ωguess,ηguess,dψ,d2ψ,gfuncdir,modedir,FHT,Kv,Kw,basis,lharmonic,n1max,Ω₀,modelname,dfname,rb,rmin::Float64,rmax[,NITER,eta,ACCURACY=1.0e-10,VERBOSE=0,OVERWRITE=false])
+
 Newton-Raphson descent to find the zero crossing
 """
 function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
@@ -389,9 +390,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
                           VERBOSE::Int64=0,
                           OVERWRITE::Bool=false)
 
-    #####
-    # Check directories names
-    #####
+
     # Check directory names
     CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
 
@@ -415,7 +414,8 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     # load aXi values
     tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,Ku,Kv,nradial,
                                           modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
-    println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+
+    (VERBOSE >= 0) && println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # memory for the response matrices M and identity matrices
     tabMlist = zeros(Complex{Float64},nradial,nradial)
@@ -433,7 +433,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
         # calculate the new off omega value
         omgvaloff = omgval + im*domega
 
-        println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
+        (VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
 
         tabM!(omgval,tabMlist,tabaMcoef,
               tabResVec,tabnpnq,
@@ -456,7 +456,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
         stepsize = real(centralvalue)/derivative
         omgval  = omgval - im*stepsize
 
-        println("Newomg=$omgval, cval=$centralvalue, oval=$offsetvalue")
+        (VERBOSE > 1) && println("Newomg=$omgval, cval=$centralvalue, oval=$offsetvalue")
 
         # record iteration number
         completediterations += 1
