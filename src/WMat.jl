@@ -14,10 +14,10 @@ function Wintegrand(w::Float64,
                     EDGE::Float64=0.01,
                     VERBOSE::Int64=0)
 
-    
+
     # Current location of the radius, r=r(w)
     rval = OrbitalElements.ru(w,a,e)
-    
+
     # Current value of the radial frequency integrand (almost dθ/dw)
     gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,w,a,e,EDGE=EDGE)
 
@@ -25,7 +25,7 @@ function Wintegrand(w::Float64,
     AstroBasis.tabUl!(basis,lharmonic,rval)
 
     # the velocity for integration (dθ1dw, dθ2dw)
-    return Ω1*gval, (Ω2 - L/(rval^(2)))*gval 
+    return Ω1*gval, (Ω2 - L/(rval^(2)))*gval
 end
 
 """
@@ -119,7 +119,7 @@ function WBasisFT(a::Float64,e::Float64,
         # RK4 step 4
         ####
         w += 0.5*dw # Updating the time by half a timestep: we are now at the next u value
-        
+
         # Update integrand
         dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,EDGE=EDGE,VERBOSE=VERBOSE)
 
@@ -226,9 +226,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         # get the current u value
         uval = tabu[kuval]
 
-        if VERBOSE > 2
-            println("\nCallAResponse.WMat.MakeWMat: on step $kuval of $Ku: u=$uval.")
-        end
+        (VERBOSE > 2) && println("CallAResponse.WMat.MakeWMat: on step $kuval of $Ku: u=$uval.")
 
         # get the corresponding v boundary values
         vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
@@ -254,9 +252,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             # (Ω1,Ω2) -> (a,e)
             a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=NINT,EDGE=EDGE,VERBOSE=VERBOSE)
 
-            if VERBOSE > 2
-                print("v=$kvval,o1=$Ω1,o2=$Ω2;")
-            end
+            (VERBOSE > 2) && print("v=$kvval,o1=$Ω1,o2=$Ω2;")
 
             # save (Ω1,Ω2) values for later
             tabΩ1Ω2Mat[kuval,kvval,1], tabΩ1Ω2Mat[kuval,kvval,2] = Ω1, Ω2
@@ -398,30 +394,24 @@ function RunWmat(ψModel::structPotentialtype,
     nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
 
     # print the length of the list of resonance vectors
-    if VERBOSE>0
-        println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $nbResVec")
-    end
+    (VERBOSE>0) && println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $nbResVec")
 
     Threads.@threads for i = 1:nbResVec
         k = Threads.threadid()
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
 
-        if VERBOSE>0
-            println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
-        end
+        (VERBOSE>0) && println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
 
         # If it has been already computed
         if isfile(WMatFilename(wmatdir,ψModel.modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw))
             file = h5open(WMatFilename(wmatdir,ψModel.modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "r")
             oldnradial = read(file,"nradial")
             if (OVERWRITE == false) && (nradial <= oldnradial)
-                if VERBOSE > 0
-                    println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
+                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
                 end
                 continue
             else
-                if VERBOSE > 0
-                    println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
+                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
                 end
             end
             close(file)

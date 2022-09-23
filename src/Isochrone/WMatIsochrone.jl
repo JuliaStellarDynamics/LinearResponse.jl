@@ -536,22 +536,16 @@ function RunWmatIsochrone(wmatdir::String,
         k = Threads.threadid()
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
 
-        if VERBOSE > 0
-            println("CallAResponse.WMatIsochrone.RunWmatIsochrone: Computing W for the ($n1,$n2) resonance.")
-        end
+        (VERBOSE > 0) && println("CallAResponse.WMatIsochrone.RunWmatIsochrone: Computing W for the ($n1,$n2) resonance.")
 
         if isfile(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw))
             file = h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "r")
             oldnradial = read(file,"nradial")
             if (OVERWRITE == false) && (nradial <= oldnradial)
-                if VERBOSE > 0
-                    println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
-                end
+                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
                 continue
             else
-                if VERBOSE > 0
-                    println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
-                end
+                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
             end
             close(file)
         end
