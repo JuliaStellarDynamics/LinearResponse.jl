@@ -374,10 +374,7 @@ function RunWmat(ψModel::structPotentialtype,
                  OVERWRITE::Bool=false)
 
     # check wmat directory before proceeding (save time if not.)
-    checkdirs = CheckConfigurationDirectories(wmatdir=wmatdir)
-    if checkdirs < 0
-        return 0
-    end
+    CheckConfigurationDirectories([wmatdir]) || (return 0)
 
     # get basis parameters
     ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
@@ -407,11 +404,9 @@ function RunWmat(ψModel::structPotentialtype,
             oldnradial = read(file,"nradial")
             if (OVERWRITE == false) && (nradial <= oldnradial)
                 (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
-                end
                 continue
             else
                 (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
-                end
             end
             close(file)
         end
