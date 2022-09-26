@@ -300,10 +300,7 @@ function RunM(ωlist::Array{Complex{Float64}},
               KuTruncation::Int64=10000)
 
     # Check directory names
-    checkdirs = CheckConfigurationDirectories(gfuncdir=gfuncdir,modedir=modedir)
-    if checkdirs < 0
-        return 0
-    end
+    CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
 
     # get basis parameters
     ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
