@@ -41,7 +41,7 @@ struct ResponseParameters
     VERBOSE::Int64
     EDGE::Float64
     ELTOLECC::Float64
-    OVERWRITE::Boolean
+    OVERWRITE::Bool
 
 end
 
