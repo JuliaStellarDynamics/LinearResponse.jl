@@ -17,7 +17,7 @@ include("Utils/Resonances.jl")
 include("Utils/CMatrix.jl")
 include("Utils/IO.jl")
 include("Utils/OmegaGrid.jl")
-include("Utils/PotentialModel.jl")
+include("Utils/ParameterStructure.jl")
 
 # code to compute the Fourier transform basis functions
 include("WMat.jl")

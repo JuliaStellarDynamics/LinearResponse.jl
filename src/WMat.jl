@@ -1,3 +1,27 @@
+"""
+
+TODO:
+1. Finish WMatStruct
+2. Add basis type that has arrays for Fourier-Transformed basis elements
+
+"""
+
+struct WMatStruct
+
+    filename::String
+    #WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "w") do file
+    #    write(file, "nradial",nradial)
+    #    write(file, "wmat",tabWMat)
+    #    write(file, "Omgmat",tabΩ1Ω2Mat)
+    #    write(file, "AEmat",tabAEMat)
+    #    write(file, "jELABmat",tabJMat)
+    #    write(file, "tabvminmax",tabvminmax)
+    #    write(file, "omgminmax",ωminmax)
+
+
+end
+
+
 
 
 """
@@ -344,90 +368,6 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.
         h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "w") do file
-            write(file, "nradial",nradial)
-            write(file, "wmat",tabWMat)
-            write(file, "Omgmat",tabΩ1Ω2Mat)
-            write(file, "AEmat",tabAEMat)
-            write(file, "jELABmat",tabJMat)
-            write(file, "tabvminmax",tabvminmax)
-            write(file, "omgminmax",ωminmax)
-        end
-
-    end
-
-end
-
-
-"""RunWmat(ψModel,wmatdir,Ku,Kv,Kw,basis,lharmonic,n1max,nradial,Ω₀,modelname,rb,rmin,rmax[,VERBOSE,OVERWRITE])
-
-@TO DESCRIBE
-"""
-function RunWmat(ψModel::structPotentialtype,
-                 wmatdir::String,
-                 FHT::FiniteHilbertTransform.FHTtype,
-                 Kv::Int64,Kw::Int64,
-                 basis::AstroBasis.Basis_type,
-                 lharmonic::Int64,
-                 n1max::Int64,
-                 rmin::Float64,rmax::Float64;
-                 VERBOSE::Int64=0,
-                 OVERWRITE::Bool=false)
-
-    # check wmat directory before proceeding (save time if not.)
-    CheckConfigurationDirectories([wmatdir]) || (return 0)
-
-    # get basis parameters
-    ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
-
-    # bases prep.
-    AstroBasis.fill_prefactors!(basis)
-    bases=[deepcopy(basis) for k=1:Threads.nthreads()]
-
-    # Integration points
-    tabu, Ku = FHT.tabu, FHT.Ku
-
-    # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
-
-    # print the length of the list of resonance vectors
-    (VERBOSE>0) && println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $nbResVec")
-
-    Threads.@threads for i = 1:nbResVec
-        k = Threads.threadid()
-        n1,n2 = tabResVec[1,i],tabResVec[2,i]
-
-        (VERBOSE>0) && println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
-
-        # If it has been already computed
-        if isfile(WMatFilename(wmatdir,ψModel.modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw))
-            file = h5open(WMatFilename(wmatdir,ψModel.modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "r")
-            oldnradial = read(file,"nradial")
-            if (OVERWRITE == false) && (nradial <= oldnradial)
-                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
-                continue
-            else
-                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
-            end
-            close(file)
-        end
-
-        # compute the W matrices in UV space: timing optional
-        if VERBOSE>1
-            @time tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax = MakeWmatUV(ψModel.ψ,ψModel.dψ,ψModel.d2ψ,ψModel.d3ψ,
-                                                                                    n1,n2,
-                                                                                    tabu,Kv,lharmonic,bases[k],
-                                                                                    Ω₀=ψModel.Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
-        else
-            tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax = MakeWmatUV(ψModel.ψ,ψModel.dψ,ψModel.d2ψ,ψModel.d3ψ,
-                                                                            n1,n2,
-                                                                            tabu,Kv,lharmonic,bases[k],
-                                                                            Ω₀=ψModel.Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
-        end
-
-
-        # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
-        # could consider saving other quantities as well to check mappings.
-        h5open(WMatFilename(wmatdir,ψModel.modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "w") do file
             write(file, "nradial",nradial)
             write(file, "wmat",tabWMat)
             write(file, "Omgmat",tabΩ1Ω2Mat)
