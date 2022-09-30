@@ -1,16 +1,29 @@
 
 
 """
+structure to store Fourier Transform values of basis elements
+"""
+struct BasisFT_type
+    basis::AstroBasis.Basis_type
+    UFT::Array{Float64}
+end
+
+function BasisFT_create(basis::AstroBasis.Basis_type)
+
+    return BasisFT_type(basis,zeros(Float64,basis.nmax))
+end
+
+"""
     Wintegrand(u,a,e)
 
 Integrand computation/update for FT of basis elements
 """
-function Wintegrand(w::Float64,
+function Wintegrand(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                    w::Float64,
                     a::Float64,e::Float64,L::Float64,
                     Ω1::Float64,Ω2::Float64,
                     lharmonic::Int64,
-                    basis::AstroBasis.Basis_type,
-                    ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function;
+                    basis::AstroBasis.Basis_type;
                     EDGE::Float64=0.01,
                     VERBOSE::Int64=0)
 
@@ -32,20 +45,17 @@ end
     WBasisFT(a,e,Ω1,Ω2,n1,n2,)
 
 Fourier Transform of basis elements using RK4 scheme
-result store in place
+result stored in place
 """
-function WBasisFT(a::Float64,e::Float64,
+function WBasisFT(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                  a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
                   lharmonic::Int64,
-                  basis::AstroBasis.Basis_type,
-                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                  restab::Union{Array{Float64},SubArray{Float64}};
+                  basisFT::BasisFT_type;
                   Kw::Int64=50,
                   EDGE::Float64=0.01,
                   VERBOSE::Int64=0)
-
-    @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: Result array not of the same size as the basis"
 
     # Integration step
     dw = (2.0)/(Kw)
@@ -57,7 +67,13 @@ function WBasisFT(a::Float64,e::Float64,
     w, θ1, θ2 = -1.0, 0.0, 0.0
 
     # Initialize integrand
-    dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,EDGE=EDGE,VERBOSE=VERBOSE)
+    basis = basisFT.basis
+    dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,lharmonic,basis,EDGE=EDGE,VERBOSE=VERBOSE)
+
+    # Initialize container
+    restab = basisFT.UFT
+    fill!(restab,0.0)
+    @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: FT array not of the same size as the basis"
 
     # start the integration loop now that we are initialised
     # at each step, we are performing an RK4-like calculation
@@ -85,7 +101,7 @@ function WBasisFT(a::Float64,e::Float64,
         w += 0.5*dw
 
         # Update integrand
-        dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,EDGE=EDGE,VERBOSE=VERBOSE)
+        dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,lharmonic,basis,EDGE=EDGE,VERBOSE=VERBOSE)
 
         # common prefactor for all the increments
         # depends on the updated (θ1+0.5*dθ1_1,θ2+0.5*dθ2_1)
@@ -121,7 +137,7 @@ function WBasisFT(a::Float64,e::Float64,
         w += 0.5*dw # Updating the time by half a timestep: we are now at the next u value
 
         # Update integrand
-        dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,EDGE=EDGE,VERBOSE=VERBOSE)
+        dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,lharmonic,basis,EDGE=EDGE,VERBOSE=VERBOSE)
 
         # Common prefactor for all the increments
         # Depends on the updated (θ1+dθ1_3,θ2+dθ2_3)
@@ -145,15 +161,15 @@ function WBasisFT(a::Float64,e::Float64,
     end # RK4 integration
 end
 
+
 """
 without Ω1, Ω2
 """
 function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   lharmonic::Int64,
-                  basis::AstroBasis.Basis_type,
-                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                  restab::Union{Array{Float64},SubArray{Float64}};
+                  basisFT::BasisFT_type,
+                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function;
                   Kw::Int64=50,
                   EDGE::Float64=0.01,
                   TOLECC::Float64=0.001,
@@ -161,23 +177,61 @@ function WBasisFT(a::Float64,e::Float64,
                   VERBOSE::Int64=0)
 
     # Frequencies
-    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e;action=action,TOLECC=TOLECC,VERBOSE=VERBOSE,NINT=NINT,EDGE=EDGE)
+    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e;TOLECC=TOLECC,VERBOSE=VERBOSE,NINT=NINT,EDGE=EDGE)
     # Basis FT
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,restab,Ω₀=Ω₀,Kw=Kw,EDGE=EDGE,VERBOSE=VERBOSE)
+    WBasisFT(ψ,dψ,d2ψ,d3ψ,a,e,Ω1,Ω2,n1,n2,lharmonic,basisFT,Ω₀=Ω₀,Kw=Kw,EDGE=EDGE,VERBOSE=VERBOSE)
 end
 
+"""
+structure to store the W matrix computation results
+"""
+struct WMatdata_type
+    tabW::Array{Float64,3}
+    tabUV::Array{Float64,3}
+    tabΩ1Ω2::Array{Float64,3}
+    tabAE::Array{Float64,3}
+    tabEL::Array{Float64,3}
+    tabJ::Array{Float64,2}
+    ωminmax::Vector{Float64}
+    tabvminmax::Array{Float64,2}
+end
+
+"""
+@TO DESCRIBE
+"""
+function WMatdata_create(nmax::Int64,Ku::Int64,Kv::Int64)
+
+    return WMatdata_type(zeros(Float64,nmax,Ku,Kv),
+                         zeros(Float64,Ku,Kv,2),zeros(Float64,Ku,Kv,2),zeros(Float64,Ku,Kv,2),zeros(Float64,Ku,Kv,2), # Orbital mappings
+                         zeros(Float64,Ku,Kv),
+                         zeros(Float64,2),zeros(Float64,Ku,2))
+end
+
+"""
+@TO DESCRIBE: from known data
+"""
+function WMatdata_create(tabW::Array{Float64,3},
+                         tabUV::Array{Float64,3},tabΩ1Ω2::Array{Float64,3},tabAE::Array{Float64,3},tabEL::Array{Float64,3},
+                         tabJ::Array{Float64,2},
+                         ωminmax::Vector{Float64},tabvminmax::Array{Float64,2})
+
+    return WMatdata_type(tabW,
+                         tabUV,tabΩ1Ω2,tabAE,tabEL,
+                         tabJ,
+                         ωminmax,tabvminmax)
+end
 
 """
     MakeWmatUV(ψ,dψ,d2ψ,d3ψ,n1,n2,tabu,Kv,lharmonic,basis[,Ω₀,rmin,rmax,K_w])
 
 @TO DESCRIBE
 """
-function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc::Function,
                     n1::Int64,n2::Int64,
-                    tabu::Array{Float64},
+                    tabu::Vector{Float64},
                     Kv::Int64,
                     lharmonic::Int64,
-                    basis::AstroBasis.Basis_type;
+                    basisFT::BasisFT_type;
                     Ω₀::Float64=defaultΩ₀,
                     rmin::Float64=defaultrmin,
                     rmax::Float64=defaultrmax,
@@ -192,33 +246,20 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     @IMPROVE: adaptively check for NaN values?
 
     @WARNING: when parallelising, basis will need to be copies so it can overwrite tabUl
-
-    @NOTE: AstroBasis provides the Basis_type data type.
     """
 
     # get the number of u samples from the input vector of u vals
     Ku = length(tabu)
+
+    # allocate the results matrices
+    Wdata = WMatdata_create(basisFT.basis.nmax,Ku,Kv)
 
     # Frequency cuts associated to [rmin,rmax]
     # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
     αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω₀)
     # compute the frequency scaling factors for this resonance
     ωmin,ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
-
-    ωminmax = [ωmin,ωmax]
-
-    # define a function for beta_c
-    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Ω₀,rmin=rmin,rmax=rmax)
-
-    # allocate the results matrices
-    tabWMat = zeros(basis.nmax,Ku,Kv)
-    tabΩ1Ω2Mat = zeros(Ku,Kv,2)
-    tabAEMat = zeros(Ku,Kv,2)
-    tabJMat = zeros(Ku,Kv)
-    tabvminmax = zeros(Ku,2)
-
-    # set the matrix step size
-    duWMat = (2.0)/(Kw)
+    Wdata.ωminmax[1], Wdata.ωminmax[2] = ωmin, ωmax
 
     # start the loop
     for kuval in 1:Ku
@@ -232,7 +273,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
 
         # saving them
-        tabvminmax[kuval,1], tabvminmax[kuval,2] = vmin, vmax
+        Wdata.tabvminmax[kuval,1], Wdata.tabvminmax[kuval,2] = vmin, vmax
 
         # determine the step size in v
         deltav = (vmax - vmin)/(Kv)
@@ -254,20 +295,25 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
             (VERBOSE > 2) && print("v=$kvval,o1=$Ω1,o2=$Ω2;")
 
+            # save (u,v) values for later
+            Wdata.tabUV[kuval,kvval,1], Wdata.tabUV[kuval,kvval,2] = uval, vval
             # save (Ω1,Ω2) values for later
-            tabΩ1Ω2Mat[kuval,kvval,1], tabΩ1Ω2Mat[kuval,kvval,2] = Ω1, Ω2
+            Wdata.tabΩ1Ω2[kuval,kvval,1], Wdata.tabΩ1Ω2[kuval,kvval,2] = Ω1, Ω2
             # save (a,e) values for later
-            tabAEMat[kuval,kvval,1], tabAEMat[kuval,kvval,2] = a, e
+            Wdata.tabAE[kuval,kvval,1], Wdata.tabAE[kuval,kvval,2] = a, e
 
             # compute the Jacobian (E,L)->(alpha,beta) here. a little more expensive, but savings in the long run
-            tabJMat[kuval,kvval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Ω₀)
+            Wdata.tabJ[kuval,kvval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Ω₀)
 
             # Compute W(u,v) for every basis element using RK4 scheme
-            WBasisFT(a,e,Ω1,Ω2,n1,n2,lharmonic,basis,ψ,dψ,d2ψ,d3ψ,view(tabWMat,:,kuval,kvval),Kw=Kw,EDGE=EDGE,VERBOSE=VERBOSE)
+            WBasisFT(ψ,dψ,d2ψ,d3ψ,a,e,Ω1,Ω2,n1,n2,lharmonic,basisFT,Kw=Kw,EDGE=EDGE,VERBOSE=VERBOSE)
+            for np = 1:basisFT.basis.nmax
+                Wdata.tabW[np,kuval,kvval] = basisFT.UFT[np]
+            end
         end
     end
 
-    return tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax
+    return Wdata
 end
 
 
@@ -297,7 +343,11 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
     # bases prep.
     AstroBasis.fill_prefactors!(basis)
-    bases=[deepcopy(basis) for k=1:Threads.nthreads()]
+    basisFT = BasisFT_create(basis)
+    basesFT=[deepcopy(basisFT) for k=1:Threads.nthreads()]
+
+    # define a function for βcircular
+    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Ω₀,rmin=rmin,rmax=rmax)
 
     # Integration points
     tabu, Ku = FHT.tabu, FHT.Ku
@@ -329,114 +379,27 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
         # compute the W matrices in UV space: timing optional
         if VERBOSE>1
-            @time tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
-                                                                                    n1,n2,
-                                                                                    tabu,Kv,lharmonic,bases[k],
-                                                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
+            @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,βc,
+                                     n1,n2,
+                                     tabu,Kv,lharmonic,basesFT[k],
+                                     Ω₀=Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
         else
-            tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,
-                                                                            n1,n2,
-                                                                            tabu,Kv,lharmonic,bases[k],
-                                                                            Ω₀=Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
+            Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,βc,
+                               n1,n2,
+                               tabu,Kv,lharmonic,basesFT[k],
+                               Ω₀=Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
         end
-
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.
         h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "w") do file
             write(file, "nradial",nradial)
-            write(file, "wmat",tabWMat)
-            write(file, "Omgmat",tabΩ1Ω2Mat)
-            write(file, "AEmat",tabAEMat)
-            write(file, "jELABmat",tabJMat)
-            write(file, "tabvminmax",tabvminmax)
-            write(file, "omgminmax",ωminmax)
+            write(file, "wmat",Wdata.tabW)
+            write(file, "Omgmat",Wdata.tabΩ1Ω2)
+            write(file, "AEmat",Wdata.tabAE)
+            write(file, "jELABmat",Wdata.tabJ)
+            write(file, "tabvminmax",Wdata.tabvminmax)
+            write(file, "omgminmax",Wdata.ωminmax)
         end
-
     end
-
-end
-
-
-"""RunWmat(ψModel,wmatdir,Ku,Kv,Kw,basis,lharmonic,n1max,nradial,Ω₀,modelname,rb,rmin,rmax[,VERBOSE,OVERWRITE])
-
-@TO DESCRIBE
-"""
-function RunWmat(ψModel::structPotentialtype,
-                 wmatdir::String,
-                 FHT::FiniteHilbertTransform.FHTtype,
-                 Kv::Int64,Kw::Int64,
-                 basis::AstroBasis.Basis_type,
-                 lharmonic::Int64,
-                 n1max::Int64,
-                 rmin::Float64,rmax::Float64;
-                 VERBOSE::Int64=0,
-                 OVERWRITE::Bool=false)
-
-    # check wmat directory before proceeding (save time if not.)
-    CheckConfigurationDirectories([wmatdir]) || (return 0)
-
-    # get basis parameters
-    ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
-
-    # bases prep.
-    AstroBasis.fill_prefactors!(basis)
-    bases=[deepcopy(basis) for k=1:Threads.nthreads()]
-
-    # Integration points
-    tabu, Ku = FHT.tabu, FHT.Ku
-
-    # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
-
-    # print the length of the list of resonance vectors
-    (VERBOSE>0) && println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $nbResVec")
-
-    Threads.@threads for i = 1:nbResVec
-        k = Threads.threadid()
-        n1,n2 = tabResVec[1,i],tabResVec[2,i]
-
-        (VERBOSE>0) && println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
-
-        # If it has been already computed
-        if isfile(WMatFilename(wmatdir,ψModel.modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw))
-            file = h5open(WMatFilename(wmatdir,ψModel.modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "r")
-            oldnradial = read(file,"nradial")
-            if (OVERWRITE == false) && (nradial <= oldnradial)
-                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
-                continue
-            else
-                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
-            end
-            close(file)
-        end
-
-        # compute the W matrices in UV space: timing optional
-        if VERBOSE>1
-            @time tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax = MakeWmatUV(ψModel.ψ,ψModel.dψ,ψModel.d2ψ,ψModel.d3ψ,
-                                                                                    n1,n2,
-                                                                                    tabu,Kv,lharmonic,bases[k],
-                                                                                    Ω₀=ψModel.Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
-        else
-            tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabvminmax,ωminmax = MakeWmatUV(ψModel.ψ,ψModel.dψ,ψModel.d2ψ,ψModel.d3ψ,
-                                                                            n1,n2,
-                                                                            tabu,Kv,lharmonic,bases[k],
-                                                                            Ω₀=ψModel.Ω₀,rmin=rmin,rmax=rmax,Kw=Kw,VERBOSE=VERBOSE)
-        end
-
-
-        # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
-        # could consider saving other quantities as well to check mappings.
-        h5open(WMatFilename(wmatdir,ψModel.modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "w") do file
-            write(file, "nradial",nradial)
-            write(file, "wmat",tabWMat)
-            write(file, "Omgmat",tabΩ1Ω2Mat)
-            write(file, "AEmat",tabAEMat)
-            write(file, "jELABmat",tabJMat)
-            write(file, "tabvminmax",tabvminmax)
-            write(file, "omgminmax",ωminmax)
-        end
-
-    end
-
 end
