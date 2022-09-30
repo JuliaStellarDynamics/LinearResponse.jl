@@ -21,6 +21,12 @@ As `CallAResponse` is (currently) unregistered, if you would like to add it to y
 
 -----------------------------
 
+### Style notes
+
+Function arguments: should have the evaluation locations listed first (i.e. radius, eccentricity), followed by model parameters, followed by distribution function parameters. The last argument is always the `ResponseParameter` structure.
+
+----------------------------
+
 ### Authors
 
 Mike Petersen -  @michael-petersen - petersen@iap.fr
