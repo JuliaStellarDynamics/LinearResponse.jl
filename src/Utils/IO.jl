@@ -46,13 +46,9 @@ end
 
 filename for a given wmat result
 """
-function WMatFilename(wmatdir::String,
-                      modelname::String,
-                      lharmonic::Int64,n1::Int64,n2::Int64,
-                      rbasis::Float64,
-                      Ku::Int64,Kv::Int64,Kw::Int64)
+function WMatFilename(n1::Int64,n2::Int64,Parameters::ResponseParameters)
 
-    return wmatdir*"wmat_"*modelname*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rbasis)*"_Ku_"*string(Ku)*"_Kv_"*string(Kv)*"_Kw_"*string(Kw)*".h5"
+    return Parameters.wmatdir*"wmat_"*Parameters.modelname*"_l_"*string(Parameters.lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(Parameters.rbasis)*"_Ku_"*string(Parameters.Ku)*"_Kv_"*string(Parameters.Kv)*"_Kw_"*string(Parameters.Kw)*".h5"
 end
 
 """

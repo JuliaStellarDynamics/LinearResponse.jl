@@ -17,6 +17,7 @@ Must include:
 import OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
+import CallAResponse
 using HDF5
 
 
@@ -42,7 +43,6 @@ d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
 d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
 
-ψModel = CallAResponse.structPotentialcreate(modelname="IsochroneE",G=G,M=M,bc=bc,ψ=ψ,dψ=dψ,d2ψ=d2ψ,d3ψ=d3ψ,d4ψ=d4ψ,Ω₀=Ω₀)
 
 
 rmin = 1.0e-5
@@ -98,6 +98,25 @@ Etamax = 0.04
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
+
+KuTruncation = 10000
+
+VERBOSE = 2
+OVERWRITE = false
+
+EDGE = 0.01
+ELTOLECC = 0.0005
+
+
+Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
+                                                    modelname=modelname,dfname=dfname,
+                                                    wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
+                                                    lharmonic=lharmonic,n1max=n1max,nradial=nradial,
+                                                    KuTruncation=KuTruncation,
+                                                    VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
+                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,
+                                                    EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
+                                                    nmax=basis.nmax,rbasis=basis.rb)
 
 
 

@@ -9,17 +9,14 @@ using HDF5
 
 
 # call the function to construct W matrices
-#CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
-CallAResponse.RunWmat(ψModel,
-                      wmatdir,
+CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
+#CallAResponse.RunWmat(ψModel,
                       FHT,
-                      Kv,Kw,
                       basis,
-                      lharmonic,
-                      n1max,
-                      rmin,rmax,
-                      VERBOSE=2)
+                      Parameters)
 
+
+"""
 for aval=1:7
 
      raval = (aval)*0.1 + 1.0
@@ -112,3 +109,5 @@ EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,dψ,d2ψ,
 
 ModeRadius,ModePotentialShape,ModeDensityShape = CallAResponse.GetModeShape(basis,lharmonic,
                                                                             0.01,15.,100,EM,VERBOSE=1)
+
+"""
