@@ -49,11 +49,11 @@ function WBasisFT(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                   a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
-                  basis::AstroBasis.Basis_type,
+                  basisFT::BasisFT_type,
                   Parameters::ResponseParameters)
 
     # Integration step
-    dw = (2.0)/(Kw)
+    dw = (2.0)/(Parameters.Kw)
 
     # need angular momentum
     Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e)
@@ -63,7 +63,7 @@ function WBasisFT(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
     # Initialize integrand
     basis = basisFT.basis
-    dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,Parameters)
+    dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,basis,Parameters)
 
     # Initialize container
     restab = basisFT.UFT
@@ -96,7 +96,7 @@ function WBasisFT(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         w += 0.5*dw
 
         # Update integrand
-        dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,Parameters)
+        dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,basis,Parameters)
 
         # common prefactor for all the increments
         # depends on the updated (θ1+0.5*dθ1_1,θ2+0.5*dθ2_1)
@@ -132,7 +132,7 @@ function WBasisFT(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         w += 0.5*dw # Updating the time by half a timestep: we are now at the next u value
 
         # Update integrand
-        dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,Parameters)
+        dθ1dw, dθ2dw = Wintegrand(ψ,dψ,d2ψ,d3ψ,w,a,e,Lval,Ω1,Ω2,basis,Parameters)
 
         # Common prefactor for all the increments
         # Depends on the updated (θ1+dθ1_3,θ2+dθ2_3)
@@ -224,6 +224,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
                     basisFT::BasisFT_type,
                     Parameters::ResponseParameters)
 
+
     """
     @IMPROVE: consolidate steps 2 and 3, which only have different prefactors from velocities
     @IMPROVE: parallelise by launching from both -1 and 1?
@@ -233,20 +234,20 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
     """
 
     # get the number of u samples from the input vector of u vals
-    Ku = length(tabu)
+    #Ku = length(tabu)
 
     # allocate the results matrices
-    Wdata = WMatdata_create(basisFT.basis.nmax,Ku,Kv)
+    Wdata = WMatdata_create(basisFT.basis.nmax,Parameters.Ku,Parameters.Kv)
 
     # Frequency cuts associated to [rmin,rmax]
     # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
-    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω₀)
+    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,Parameters.rmin,Parameters.rmax,Ω₀=Parameters.Ω₀)
     # compute the frequency scaling factors for this resonance
-    ωmin,ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
+    ωmin,ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,Ω₀=Parameters.Ω₀,rmin=Parameters.rmin,rmax=Parameters.rmax)
     Wdata.ωminmax[1], Wdata.ωminmax[2] = ωmin, ωmax
 
     # start the loop
-    for kuval in 1:Ku
+    for kuval in 1:Parameters.Ku
 
         # get the current u value
         uval = tabu[kuval]
@@ -254,15 +255,15 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
         (Parameters.VERBOSE > 2) && println("CallAResponse.WMat.MakeWMat: on step $kuval of $Ku: u=$uval.")
 
         # get the corresponding v boundary values
-        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,αmin,αmax,βc,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
+        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,Parameters.αmin,Parameters.αmax,βc,Ω₀=Parameters.Ω₀,rmin=Parameters.rmin,rmax=Parameters.rmax)
 
         # saving them
         Wdata.tabvminmax[kuval,1], Wdata.tabvminmax[kuval,2] = vmin, vmax
 
         # determine the step size in v
-        deltav = (vmax - vmin)/(Kv)
+        deltav = (vmax - vmin)/(Parameters.Kv)
 
-        for kvval in 1:Kv
+        for kvval in 1:Parameters.Kv
 
             # get the current v value
             vval = vmin + deltav*(kvval-0.5)
@@ -273,7 +274,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
             # (u,v) -> (α,β)
             α,β = OrbitalElements.αβFromUV(uval,vval,n1,n2,ωmin,ωmax)
             # (α,β) -> (Ω1,Ω2)
-            Ω1,Ω2 = α*Ω₀,α*β*Ω₀
+            Ω1,Ω2 = α*Parameters.Ω₀,α*β*Parameters.Ω₀
             # (Ω1,Ω2) -> (a,e)
             a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=Parameters.NINT,EDGE=Parameters.EDGE,VERBOSE=Parameters.VERBOSE)
 
@@ -291,6 +292,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
 
             # Compute W(u,v) for every basis element using RK4 scheme
             WBasisFT(ψ,dψ,d2ψ,d3ψ,a,e,Ω1,Ω2,n1,n2,basisFT,Parameters)
+
             for np = 1:basisFT.basis.nmax
                 Wdata.tabW[np,kuval,kvval] = basisFT.UFT[np]
             end
@@ -323,7 +325,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     basesFT=[deepcopy(basisFT) for k=1:Threads.nthreads()]
 
     # define a function for βcircular
-    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Ω₀,rmin=Parameters.rmin,rmax=Parameters.rmax)
+    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Parameters.Ω₀,rmin=Parameters.rmin,rmax=Parameters.rmax)
 
     # Integration points
     tabu, Ku = FHT.tabu, FHT.Ku
