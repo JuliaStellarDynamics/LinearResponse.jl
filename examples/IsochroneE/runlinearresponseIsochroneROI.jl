@@ -16,6 +16,12 @@ CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
                       Parameters)
 
 
+CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,
+                       ndFdJ,
+                       FHT,
+                       basis,
+                       Parameters)
+
 """
 for aval=1:7
 

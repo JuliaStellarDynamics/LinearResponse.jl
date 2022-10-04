@@ -55,6 +55,7 @@ struct ResponseParameters
     # all Basis parameters shoujld be copied here
     nmax::Int64
     rbasis::Float64
+    ndim::Int64
 
 end
 
@@ -90,5 +91,5 @@ function ResponseParametersCreate(dψ::Function,d2ψ::Function;Ku::Int64=200,Kv:
                               VERBOSE,OVERWRITE,
                               Ω₀,rmin,rmax,αmin,αmax,
                               EDGE,ELTOLECC,NINT,
-                              nmax,rbasis)
+                              nmax,rbasis,ndim)
 end

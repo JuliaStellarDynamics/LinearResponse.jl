@@ -56,14 +56,9 @@ end
 
 filename for a given Gfunc result
 """
-function GFuncFilename(gfuncdir::String,
-                        modelname::String,
-                        dfname::String,
-                        lharmonic::Int64,n1::Int64,n2::Int64,
-                        rbasis::Float64,
-                        Ku::Int64,Kv::Int64)
+function GFuncFilename(n1::Int64,n2::Int64,Parameters::ResponseParameters)
 
-    return gfuncdir*"Gfunc_"*modelname*"_df_"*dfname*"_l_"*string(lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(rbasis)*"_Ku_"*string(Ku)*"_Kv_"*string(Kv)*".h5"
+    return Parameters.gfuncdir*"Gfunc_"*Parameters.modelname*"_df_"*Parameters.dfname*"_l_"*string(Parameters.lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(Parameters.rbasis)*"_Ku_"*string(Parameters.Ku)*"_Kv_"*string(Parameters.Kv)*".h5"
 end
 
 """

@@ -73,7 +73,7 @@ end
 
 
 # integration parameters
-Ku = 200    # number of Legendre integration sample points
+Ku = 207    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 
@@ -81,7 +81,7 @@ Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 lharmonic = 2
-n1max = 3  # maximum number of radial resonances to consider
+n1max = 1  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe

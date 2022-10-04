@@ -9,22 +9,18 @@ function MakeGu(ndFdJ::Function,
                 np::Int64,nq::Int64,
                 Wdata::WMatdata_type,
                 tabu::Array{Float64},
-                Kv::Int64,
-                ndim::Int64,
-                lharmonic::Int64;
-                Ω₀::Float64=1.,
-                VERBOSE::Int64=0.)
+                Parameters::ResponseParameters)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
-    if ndim==2
+    if Parameters.ndim==2
         # 2d prefactor, see Fouvry et al. 2015
         # ATTENTION : Landau prescription for G(u) / (u - ω) not G(u) / (ω - u)
         #             Hence the minus sign.
         pref = - (2.0*pi)^(2)
     else
         # 3d prefactor, see Hamilton et al. 2018
-        CMatrix = getCMatrix(lharmonic)
-        pref    = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,lharmonic,n2)^(2)/(2.0*lharmonic+1.0)
+        CMatrix = getCMatrix(Parameters.lharmonic)
+        pref    = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,Parameters.lharmonic,n2)^(2)/(2.0*Parameters.lharmonic+1.0)
     end
 
     # get basic parameters
@@ -34,9 +30,9 @@ function MakeGu(ndFdJ::Function,
     ωmin, ωmax = Wdata.ωminmax[:]
 
     # set up a blank array
-    tabGXi  = zeros(Ku)
+    tabGXi  = zeros(Parameters.Ku)
 
-    for kuval in 1:Ku
+    for kuval in 1:Parameters.Ku
 
         #(VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
 
@@ -44,11 +40,11 @@ function MakeGu(ndFdJ::Function,
         vmin, vmax = Wdata.tabvminmax[kuval,:]
 
         # determine the step size in v
-        deltav = (vmax - vmin)/(Kv)
+        deltav = (vmax - vmin)/(Parameters.Kv)
 
         res = 0.0 # Initialising the result
 
-        for kvval in 1:Kv
+        for kvval in 1:Parameters.Kv
             vval = vmin + deltav*(kvval-0.5)
 
             ####
@@ -74,7 +70,7 @@ function MakeGu(ndFdJ::Function,
             JacJ = (1/Ω1)
 
             # remove dimensionality from Ω mapping
-            dimensionl = (1/Ω₀)
+            dimensionl = (1/Parameters.Ω₀)
 
             # get the resonance vector
             ndotΩ = n1*Ω1 + n2*Ω2
@@ -86,7 +82,7 @@ function MakeGu(ndFdJ::Function,
             Wp = Wdata.tabW[np,kuval,kvval]
             Wq = Wdata.tabW[nq,kuval,kvval]
 
-            if ndim==2
+            if Parameters.ndim==2
                 res += pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
 
             else
@@ -113,71 +109,63 @@ end
 """
 function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                   ndFdJ::Function,
-                  wmatdir::String,gfuncdir::String,
                   FHT::FiniteHilbertTransform.FHTtype,
-                  Kv::Int64,Kw::Int64,
                   basis::AstroBasis.Basis_type,
-                  lharmonic::Int64,
-                  n1max::Int64,
-                  Ω₀::Float64,
-                  modelname::String,dfname::String,
-                  rmin::Float64,rmax::Float64;
-                  VERBOSE::Int64=0,
-                  OVERWRITE::Bool=false)
+                  Parameters::ResponseParameters)
 
     # get basis parameters
     ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
 
     # Check directory names
-    CheckConfigurationDirectories([wmatdir,gfuncdir]) || (return 0)
+    CheckConfigurationDirectories([Parameters.wmatdir,Parameters.gfuncdir]) || (return 0)
 
     # Integration points
     tabu, Ku = FHT.tabu, FHT.Ku
 
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
+    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,Parameters.ndim)
 
     # Frequency cuts associated to [rmin,rmax]
-    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,rmin,rmax,Ω₀=Ω₀)
+    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,Parameters.rmin,Parameters.rmax,Ω₀=Parameters.Ω₀)
 
-    (VERBOSE >= 0) && println("CallAResponse.GFunc.RunGfunc: Considering $nbResVec resonances.")
+    (Parameters.VERBOSE >= 0) && println("CallAResponse.GFunc.RunGfunc: Considering $(Parameters.nbResVec) resonances.")
 
-    Threads.@threads for i = 1:nbResVec
-        n1,n2 = tabResVec[1,i],tabResVec[2,i]
+    Threads.@threads for i = 1:Parameters.nbResVec
+        n1,n2 = Parameters.tabResVec[1,i],Parameters.tabResVec[2,i]
 
-        (VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
+        (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
-        outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
+        outputfilename = GFuncFilename(n1,n2,Parameters)
         if isfile(outputfilename)
-            if OVERWRITE
-                (VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): recomputing and overwritting.")
+            if (Parameters.OVERWRITE)
+                (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $(Parameters.nbResVec), ($n1,$n2): recomputing and overwritting.")
             else
-                (VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $nbResVec, ($n1,$n2): no computation.")
+                (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $(Parameters.nbResVec), ($n1,$n2): no computation.")
                 continue
             end
         end
 
         # load a value of tabWmat, plus (a,e) values
-        filename   = WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw)
+        filename   = WMatFilename(n1,n2,Parameters)
         file       = h5open(filename,"r")
         Wdata      = WMatdata_create(read(file,"wmat"),
-                                     zeros(Float64,Ku,Kv,2),read(file,"Omgmat"),read(file,"AEmat"),zeros(Float64,Ku,Kv,2),
+                                     zeros(Float64,Parameters.Ku,Parameters.Kv,2),read(file,"Omgmat"),read(file,"AEmat"),zeros(Float64,Parameters.Ku,Parameters.Kv,2),
                                      read(file,"jELABmat"),read(file,"omgminmax"),read(file,"tabvminmax"))
         close(file)
 
         # Compute EL on (u,v) points (can be done in WMat ?)
-        for kvval in 1:Kv
-            for kuval in 1:Ku
+        for kvval in 1:Parameters.Kv
+            for kuval in 1:Parameters.Ku
                 a,e = Wdata.tabAE[kuval,kvval,:]
 
                 # need (E,L): this has some relatively expensive switches
-                Wdata.tabEL[kuval,kvval,1], Wdata.tabEL[kuval,kvval,2] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=0.001)
+                Wdata.tabEL[kuval,kvval,1], Wdata.tabEL[kuval,kvval,2] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=Parameters.ELTOLECC)
             end
         end
 
         # print the size of the found files if the first processor
         if i==0
-            println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,Ku=$Ku,Kv=$Kv")
+            println("CallAResponse.GFunc.RunGfunc: Found nradial=$(Parameters.nradial),Ku=$(Parameters.Ku),Kv=$(Parameters.Kv)")
         end
 
         # need to loop through all combos of np and nq to make the full matrix.
@@ -185,22 +173,27 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
 
             # loop through all basis function combinations
             # can we just do an upper half calculation here?
-            for np = 1:nradial
-                for nq = 1:nradial
+            for np = 1:Parameters.nradial
+                for nq = np:Parameters.nradial
 
-                    if (VERBOSE > 0) && (np==1) && (nq==1)
+                    if (Parameters.VERBOSE > 0) && (np==1) && (nq==1)
                         @time tabGXi = MakeGu(ndFdJ,n1,n2,np,nq,
                                               Wdata,
-                                              tabu,Kv,ndim,
-                                              lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
+                                              tabu,
+                                              Parameters)
+
                     else
                         tabGXi = MakeGu(ndFdJ,n1,n2,np,nq,
                                         Wdata,
-                                        tabu,Kv,ndim,
-                                        lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
+                                        tabu,
+                                        Parameters)
                     end
 
                     write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
+
+                    if (np != nq)
+                        write(file, "GXinp"*string(nq)*"nq"*string(np),tabGXi) # write the opposite as well
+                    end
                 end
             end
         end
