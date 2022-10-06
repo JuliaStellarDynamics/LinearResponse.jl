@@ -316,6 +316,8 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     # check wmat directory before proceeding (save time if not.)
     CheckConfigurationDirectories([Parameters.wmatdir]) || (return 0)
 
+    # check the basis values against the Parameters
+
     # get basis parameters
     ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
 

@@ -10,7 +10,6 @@ using HDF5
 
 # call the function to construct W matrices
 CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
-#CallAResponse.RunWmat(ψModel,
                       FHT,
                       basis,
                       Parameters)
