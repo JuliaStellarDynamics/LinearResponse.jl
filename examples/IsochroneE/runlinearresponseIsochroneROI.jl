@@ -6,27 +6,42 @@ include(inputfile)
 import CallAResponse
 using HDF5
 
-
-
 # call the function to construct W matrices
-#CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
-CallAResponse.RunWmat(ψModel,
+CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,
                       wmatdir,
                       FHT,
                       Kv,Kw,
                       basis,
                       lharmonic,
                       n1max,
+                      Ω₀,
+                      modelname,
                       rmin,rmax,
                       VERBOSE=2)
 
+
+CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,
+                     ndFdJ,
+                     wmatdir,gfuncdir,
+                     FHT,
+                     Kv,Kw,
+                     basis,
+                     lharmonic,
+                     n1max,
+                     Ω₀,
+                     modelname,dfname,
+                     rmin,rmax,
+                     VERBOSE=1,OVERWRITE=true)
+
+
+"""
 for aval=1:7
 
      raval = (aval)*0.1 + 1.0
      dfnamein = "roi"*string(raval)
-
-     println("running on $dfnamein")
-
+"""
+     #println("running on $dfnamein")
+"""
      ndFdJin(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64) = ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64,bc=bc,M=M,astronomicalG=G,Ra=raval)
 
      # call the function to compute G(u) functions
@@ -95,8 +110,9 @@ bestomg = CallAResponse.FindZeroCrossing(0.00,0.03,dψ,d2ψ,
                                          rmin,rmax,NITER=16,VERBOSE=1)
 
 #bestomg = 0.0 + 0.02271406012170436im
-println("The zero-crossing frequency is $bestomg.")
-
+"""
+#println("The zero-crossing frequency is $bestomg.")
+"""
 # for the minimum, go back and compute the mode shape
 EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,dψ,d2ψ,
                                          gfuncdir,modedir,
@@ -112,3 +128,5 @@ EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,dψ,d2ψ,
 
 ModeRadius,ModePotentialShape,ModeDensityShape = CallAResponse.GetModeShape(basis,lharmonic,
                                                                             0.01,15.,100,EM,VERBOSE=1)
+
+"""

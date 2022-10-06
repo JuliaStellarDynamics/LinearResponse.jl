@@ -6,7 +6,6 @@ function to compute G(u)
 """
 function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
-                np::Int64,nq::Int64,
                 Wdata::WMatdata_type,
                 tabu::Array{Float64},
                 Kv::Int64,
@@ -29,24 +28,23 @@ function MakeGu(ndFdJ::Function,
 
     # get basic parameters
     Ku     = length(tabu)
+    nradial= size(Wdata.tabW)[1]
 
     # get ωmin and ωmax
     ωmin, ωmax = Wdata.ωminmax[:]
 
     # set up a blank array
-    tabGXi  = zeros(Ku)
+    tabGXi  = zeros(nradial,nradial,Ku)
 
     for kuval in 1:Ku
 
-        #(VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
+        (VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
 
         uval = tabu[kuval]
         vmin, vmax = Wdata.tabvminmax[kuval,:]
 
         # determine the step size in v
         deltav = (vmax - vmin)/(Kv)
-
-        res = 0.0 # Initialising the result
 
         for kvval in 1:Kv
             vval = vmin + deltav*(kvval-0.5)
@@ -82,23 +80,27 @@ function MakeGu(ndFdJ::Function,
             # compute dF/dJ: call out for value
             valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotΩ)
 
-            # get tabulated W values for different basis functions np,nq
-            Wp = Wdata.tabW[np,kuval,kvval]
-            Wq = Wdata.tabW[nq,kuval,kvval]
+            # loop over all radial elements
+            for np = 1:nradial
+                for nq = 1:nradial
 
-            if ndim==2
-                res += pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                    # get tabulated W values for different basis functions np,nq
+                    Wp = Wdata.tabW[np,kuval,kvval]
+                    Wq = Wdata.tabW[nq,kuval,kvval]
 
-            else
-                # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
-                res += pref*Lval*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                    if ndim==2
+                        tabGXi[np,nq,kuval] += deltav*pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                        #tabGXi[nq,np,kuval] += 2deltav*pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                    else
+                        # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
+                        tabGXi[np,nq,kuval] += deltav*pref*Lval*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                        #tabGXi[nq,np,kuval] += 2deltav*pref*Lval*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                    end
+
+                end
             end
 
         end
-
-        # complete the integration
-        res *= deltav
-        tabGXi[kuval] = res
 
     end
     return tabGXi
@@ -183,26 +185,21 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         # need to loop through all combos of np and nq to make the full matrix.
         h5open(outputfilename, "w") do file
 
-            # loop through all basis function combinations
-            # can we just do an upper half calculation here?
-            for np = 1:nradial
-                for nq = 1:nradial
+            if (VERBOSE > 0)
+                @time tabGXi = MakeGu(ndFdJ,n1,n2,
+                                      Wdata,
+                                      tabu,Kv,ndim,
+                                      lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
+            else
+                tabGXi = MakeGu(ndFdJ,n1,n2,
+                                Wdata,
+                                tabu,Kv,ndim,
+                                lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
 
-                    if (VERBOSE > 0) && (np==1) && (nq==1)
-                        @time tabGXi = MakeGu(ndFdJ,n1,n2,np,nq,
-                                              Wdata,
-                                              tabu,Kv,ndim,
-                                              lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
-                    else
-                        tabGXi = MakeGu(ndFdJ,n1,n2,np,nq,
-                                        Wdata,
-                                        tabu,Kv,ndim,
-                                        lharmonic,Ω₀=Ω₀,VERBOSE=VERBOSE)
-                    end
-
-                    write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
-                end
             end
+
+            write(file, "GXinp",tabGXi)
         end
+
     end
 end
