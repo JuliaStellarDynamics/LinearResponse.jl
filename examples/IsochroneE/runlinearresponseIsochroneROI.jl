@@ -31,9 +31,24 @@ CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,
                      Ω₀,
                      modelname,dfname,
                      rmin,rmax,
-                     VERBOSE=1,OVERWRITE=true)
+                     VERBOSE=1)
 
+# construct a grid of frequencies to probe
+tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 
+# compute the matrix response at each location
+tabdet = CallAResponse.RunM(tabomega,
+                         dψ,d2ψ,
+                         gfuncdir,modedir,
+                         FHT,
+                         Kv,Kw,
+                         basis,
+                         lharmonic,
+                         n1max,
+                         Ω₀,
+                         modelname,dfname,
+                         rmin,rmax,
+                         VERBOSE=1)
 """
 for aval=1:7
 
@@ -77,22 +92,7 @@ CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,
                        VERBOSE=1)
 
 
-# construct a grid of frequencies to probe
-tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 
-# compute the matrix response at each location
-tabdet = CallAResponse.RunM(tabomega,
-                            dψ,d2ψ,
-                            gfuncdir,modedir,
-                            FHT,
-                            Kv,Kw,
-                            basis,
-                            lharmonic,
-                            n1max,
-                            Ω₀,
-                            modelname,dfname,
-                            rmin,rmax,
-                            VERBOSE=1)
 
 
 # compute the determinants with a gradient descent

@@ -66,6 +66,9 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         # open the resonance file
         filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         inputfile = h5open(filename,"r")
+        tabGXi = read(inputfile,"GXinp")
+        # close the Gfunc file
+        close(inputfile)
 
         (VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
 
@@ -73,12 +76,8 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         for i_npnq=1:nbnpnq
             np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
 
-            # open the correct resonance vector
-            # read in the correct G(u) function
-            tabGXi = read(inputfile,"GXinp"*string(np)*"nq"*string(nq))
-
             # get the contribution
-            res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi)
+            res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi[np,nq,:])
 
             for k=1:Ku
 
@@ -94,8 +93,6 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
         end # basis function loop
 
-        # close the Gfunc file
-        close(inputfile)
 
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
@@ -202,14 +199,14 @@ function tabM!(ω::Complex{Float64},
     # initialise the array to 0.
     fill!(tabM,0.0 + 0.0*im)
 
+    # Rescale to get dimensionless frequency
+    ωnodim = ω/Ω₀
+
     # loop over the resonances: no threading here because we parallelise over frequencies
     for nres=1:nbResVec
 
         # get current resonance numbers (n1,n2)
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
-
-        # Rescale to get dimensionless frequency
-        ωnodim = ω/Ω₀
 
         # get the rescaled frequency
         ϖ = OrbitalElements.Getϖ(ωnodim,n1,n2,dψ,d2ψ,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
@@ -234,6 +231,7 @@ function tabM!(ω::Complex{Float64},
 
                 # hard check for nans
                 val = tabaMcoef[nres,np,nq,k]*tabD[k]
+                
                 if !isnan(val)
                     res += val
                 else
