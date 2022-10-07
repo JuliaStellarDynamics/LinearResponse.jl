@@ -20,7 +20,6 @@ these values do not depend on the frequency being evaluated: which makes them go
 is this struggling from having to pass around a gigantic array? what if we did more splitting?
 """
 function MakeaMCoefficients(tabResVec::Matrix{Int64},
-                            tabnpnq::Matrix{Int64},
                             FHT::FiniteHilbertTransform.FHTtype,
                             gfuncdir::String,
                             modedir::String,
@@ -35,18 +34,21 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
     # get relevant sizes
     Ku       = FHT.Ku
-    nbnpnq   = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
     (VERBOSE > 2) && println("CallAResponse.Xi.MakeaMCoefficients: Check params: K_u=$K_u, nb_npnq=$nb_npnq, nbResVec=$nbResVec.")
 
     # allocate the workspace
-    tabaMcoef = zeros(Float64,nradial,nradial,Ku)
+    tabaMcoef = zeros(Float64,Ku,nradial,nradial)
+
+    # allocate quadrature result and warnflag tables
+    restab = zeros(Float64,Ku)
+    warntab = zeros(Float64,Ku)
 
     # loop through all resonance vectors
     # make this parallel, but check that the loop is exited cleanly?
     # Threads.@threads for nres in 1:nbResVec
-    for nres in 1:nbResVec
+    for nres = 1:nbResVec
 
         n1,n2 = tabResVec[1,nres],tabResVec[2,nres]
 
@@ -69,30 +71,27 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
         (VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
 
-        # Loop over the basis indices to consider
-        for i_npnq=1:nbnpnq
-            np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
+        # open the correct resonance vector
+        # read in the correct G(u) function
+        tabGXi = read(inputfile,"Gmat")
 
-            # open the correct resonance vector
-            # read in the correct G(u) function
-            tabGXi = read(inputfile,"GXinp"*string(np)*"nq"*string(nq))
+        for np = 1:nradial
+            for nq = np:nradial
+                # get the contribution
+                FiniteHilbertTransform.GetaXi!(FHT,view(tabGXi,nq,np,:),restab,warntab)
 
-            # get the contribution
-            res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi)
+                for k=1:Ku
 
-            for k=1:Ku
-
-                if warnflag[k] > 2
-                    println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf (warnflag=$(warnflag[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(res[k]).")
+                    # Warning if to many Inf or Nan values
+                    (warntab[k] > 2) && println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf (warnflag=$(warntab[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(res[k]).")
+        
+                    # populate the symmetric matrix
+                    tabaMcoef[k,nq,np] = restab[k] # Element (np,nq)
+                    tabaMcoef[k,np,nq] = restab[k] # Element (nq,np). If np=nq overwrite (this is fine).
+        
                 end
-
-                # populate the symmetric matrix
-                tabaMcoef[np,nq,k] = res[k] # Element (np,nq)
-                tabaMcoef[nq,np,k] = res[k] # Element (nq,np). If np=nq overwrite (this is fine).
-
             end
-
-        end # basis function loop
+        end
 
         # close the Gfunc file
         close(inputfile)
@@ -100,10 +99,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
         h5open(outputfilename, "w") do outputfile
-            for i_npnq=1:nbnpnq
-                np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
-                write(outputfile, "aXinp"*string(np)*"nq"*string(nq),tabaMcoef[np,nq,:])
-            end
+        write(outputfile,"aXi",tabaMcoef)
         end
 
     end # resonance vector loop
@@ -114,7 +110,6 @@ end
 
 """put all aXi values into memory"""
 function StageaMcoef(tabResVec::Matrix{Int64},
-                     tabnpnq::Matrix{Int64},
                      Ku::Int64,Kv::Int64,
                      nradial::Int64;
                      modedir::String="",
@@ -125,46 +120,34 @@ function StageaMcoef(tabResVec::Matrix{Int64},
 
 
     # get dimensions from the relevant tables
-    nbnpnq  = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
     # allocate memory
-    tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,Ku)
+    tabaMcoef = zeros(Float64,Ku,nradial,nradial,nbResVec)
 
 
     #Threads.@threads for nres=1:nbResVec # Loop over the resonances
-    for nres=1:nbResVec # Loop over the resonances
+    for nres = 1:nbResVec # Loop over the resonances
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres] # Current resonance (n1,n2)
 
         # retrieve the correct M table
         filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         inputfile = h5open(filename,"r")
 
-        # Loop over the basis indices to consider
-        for i_npnq=1:nbnpnq
-            np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
+        tmptabaMcoef = read(inputfile,"aXi")
 
-            # get the table from the inputfile
-            tmptabaMcoef = read(inputfile,"aXinp"*string(np)*"nq"*string(nq))
-
-            for k=1:Ku
-
-                # fill in the (np,nq) value
-                tabaMcoef[nres,np,nq,k] = tmptabaMcoef[k]
-
-                # fill the other symmetric side of the array:
-                # does not matter because we symmetrise later
-                tabaMcoef[nres,nq,np,k] = tmptabaMcoef[k]
-
+        for np = 1:nradial
+            for nq = 1:nradial
+                for k=1:Ku
+                    # fill in the (np,nq) value
+                    tabaMcoef[k,nq,np,nres] = tmptabaMcoef[k,nq,np]
+                end
             end
-
-        end # end basis loop
+        end
 
     end # end resonance vector loop
 
     return tabaMcoef
-
-
 end
 
 
@@ -176,10 +159,9 @@ Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequen
 See LinearTheory.jl for a similar version
 """
 function tabM!(ω::Complex{Float64},
-               tabM::Array{Complex{Float64},2},
+               tabM::Matrix{Complex{Float64}},
                tabaMcoef::Array{Float64,4},
                tabResVec::Matrix{Int64},
-               tabnpnq::Matrix{Int64},
                FHT::FiniteHilbertTransform.FHTtype,
                dψ::Function,
                d2ψ::Function,
@@ -190,7 +172,6 @@ function tabM!(ω::Complex{Float64},
                KuTruncation::Int64=10000)
 
     # get dimensions from the relevant tables
-    nbnpnq      = size(tabnpnq)[2]
     nbResVec    = size(tabResVec)[2]
     Ku          = FHT.Ku
 
@@ -203,7 +184,7 @@ function tabM!(ω::Complex{Float64},
     fill!(tabM,0.0 + 0.0*im)
 
     # loop over the resonances: no threading here because we parallelise over frequencies
-    for nres=1:nbResVec
+    for nres = 1:nbResVec
 
         # get current resonance numbers (n1,n2)
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
@@ -222,36 +203,34 @@ function tabM!(ω::Complex{Float64},
 
 
         # loop over the basis indices to consider
-        for i_npnq=1:nbnpnq
+        for np = 1:nradial
+            for nq = np:nradial
 
-            # get current value of (np,nq)
-            np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq]
+                res = 0.0 + 0.0*im
 
-            res = 0.0 + 0.0*im
+                # loop over the Legendre functions to add all contributions
+                for k=1:Ku
 
-            # loop over the Legendre functions to add all contributions
-            for k=1:Ku
+                    # hard check for nans
+                    val = tabaMcoef[k,nq,np,nres]*tabD[k]
+                    if !isnan(val)
+                        res += val
+                    else
+                        (k==1) && (VERBOSE>1) && println("CallAResponse.Xi.tabM!: NaN found for n=($n1,$n2), npnq=($np,$nq), k=$k")
+                    end
 
-                # hard check for nans
-                val = tabaMcoef[nres,np,nq,k]*tabD[k]
-                if !isnan(val)
-                    res += val
-                else
-                    (k==1) && (VERBOSE>1) && println("CallAResponse.Xi.tabM!: NaN found for n=($n1,$n2), npnq=($np,$nq), k=$k")
                 end
 
+                # fill the full M matrix:
+                # as tab_npnq is the upper triangular matrix (with the diagonal),
+                # we need to duplicate for symmetries
+
+                # fill in the element (np,nq)
+                tabM[np,nq] += res
+
+                # fill in the element (nq,np). @WARNING: added twice for diagonal elements np=nq.
+                tabM[nq,np] += res
             end
-
-            # fill the full M matrix:
-            # as tab_npnq is the upper triangular matrix (with the diagonal),
-            # we need to duplicate for symmetries
-
-            # fill in the element (np,nq)
-            tabM[np,nq] += res
-
-            # fill in the element (nq,np). @WARNING: added twice for diagonal elements np=nq.
-            tabM[nq,np] += res
-
         end # basis index loop
 
     end # resonance loop
@@ -311,13 +290,10 @@ function RunM(ωlist::Array{Complex{Float64}},
     # get all weights
     tabu, Ku = FHT.tabu, FHT.Ku
 
-    # make the (np,nq) vectors that we need to evaluate
-    tabnpnq = makeTabnpnq(nradial)
-
     (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Constructing M coefficients.")
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
+    MakeaMCoefficients(tabResVec,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
 
     # allocate memory for FHT structs
     FHTlist = [deepcopy(FHT) for k=1:Threads.nthreads()]
@@ -337,7 +313,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
 
     (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
@@ -349,9 +325,9 @@ function RunM(ωlist::Array{Complex{Float64}},
         k = Threads.threadid()
 
         if (i==2) && (VERBOSE>0) # skip the first in case there is compile time built in
-            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
+            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
         else
-            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
+            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
@@ -402,14 +378,11 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     # get all weights
     tabu, Ku = FHT.tabu, FHT.Ku
 
-    # make the (np,nq) vectors that we need to evaluate
-    tabnpnq = makeTabnpnq(nradial)
-
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
+    MakeaMCoefficients(tabResVec,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,Ku,Kv,nradial,
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,Ku,Kv,nradial,
                                           modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
 
     (VERBOSE >= 0) && println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
@@ -433,14 +406,14 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
         (VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
 
         tabM!(omgval,tabMlist,tabaMcoef,
-              tabResVec,tabnpnq,
+              tabResVec,
               FHT,
               dψ,d2ψ,nradial,Ω₀,rmin,rmax)
 
         centralvalue = detXi(IMat,tabMlist)
 
         tabM!(omgvaloff,tabMlist,tabaMcoef,
-              tabResVec,tab_npnq,
+              tabResVec,
               FHT,
               dψ,d2ψ,nradial,Ω₀,rmin,rmax)
 
