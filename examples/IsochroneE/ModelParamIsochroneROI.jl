@@ -17,6 +17,7 @@ Must include:
 import OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
+import CallAResponse
 using HDF5
 
 
@@ -71,7 +72,8 @@ end
 
 
 # integration parameters
-Ku = 207    # number of Legendre integration sample points
+
+Ku = 201    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 
@@ -96,6 +98,25 @@ Etamax = 0.04
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
+
+KuTruncation = 10000
+
+VERBOSE = 2
+OVERWRITE = false
+
+EDGE = 0.01
+ELTOLECC = 0.0005
+
+
+Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
+                                                    modelname=modelname,dfname=dfname,
+                                                    wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
+                                                    lharmonic=lharmonic,n1max=n1max,nradial=nradial,
+                                                    KuTruncation=KuTruncation,
+                                                    VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
+                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,
+                                                    EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
+                                                    nmax=basis.nmax,rbasis=basis.rb)
 
 
 

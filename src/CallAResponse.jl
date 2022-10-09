@@ -11,13 +11,17 @@ const defaultΩ₀ = 1.
 const defaultrmin = 1.0e-6
 const defaultrmax = 1.0e4
 
+
+# structure to hold all parameters
+include("Utils/ParameterStructure.jl")
+
+
 # helper functions for constructing basis list, resonance list, prefactors (3d), writing utilities, and frequency tables
 include("Utils/Basis.jl")
 include("Utils/Resonances.jl")
 include("Utils/CMatrix.jl")
 include("Utils/IO.jl")
 include("Utils/OmegaGrid.jl")
-include("Utils/ParameterStructure.jl")
 
 # code to compute the Fourier transform basis functions
 include("WMat.jl")

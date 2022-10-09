@@ -22,26 +22,17 @@ is this struggling from having to pass around a gigantic array? what if we did m
 function MakeaMCoefficients(tabResVec::Matrix{Int64},
                             tabnpnq::Matrix{Int64},
                             FHT::FiniteHilbertTransform.FHTtype,
-                            gfuncdir::String,
-                            modedir::String,
-                            modelname::String,
-                            dfname::String,
-                            lharmonic::Int64,
-                            nradial::Int64,
-                            rb::Float64,
-                            Kv::Int64;
-                            VERBOSE::Int64=0,
-                            OVERWRITE::Bool=false)
+                            Parameters::ResponseParameters)
 
     # get relevant sizes
     Ku       = FHT.Ku
     nbnpnq   = size(tabnpnq)[2]
     nbResVec = size(tabResVec)[2]
 
-    (VERBOSE > 2) && println("CallAResponse.Xi.MakeaMCoefficients: Check params: K_u=$K_u, nb_npnq=$nb_npnq, nbResVec=$nbResVec.")
+    (Parameters.VERBOSE > 2) && println("CallAResponse.Xi.MakeaMCoefficients: Check params: K_u=$K_u, nb_npnq=$nb_npnq, nbResVec=$nbResVec.")
 
     # allocate the workspace
-    tabaMcoef = zeros(Float64,nradial,nradial,Ku)
+    tabaMcoef = zeros(Float64,Parameters.nradial,Parameters.nradial,Ku)
 
     # loop through all resonance vectors
     # make this parallel, but check that the loop is exited cleanly?
@@ -51,30 +42,30 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         n1,n2 = tabResVec[1,nres],tabResVec[2,nres]
 
         # don't do this loop if the file calculation already exists (unless asked)
-        outputfilename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
+        outputfilename = AxiFilename(n1,n2,Parameters)
         if isfile(outputfilename)
 
             # log if requested
-            (VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: file already exists for step $nres of $nbResVec, ($n1,$n2).")
+            (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: file already exists for step $nres of $nbResVec, ($n1,$n2).")
 
             # decide if we want to overwrite anyway
-            OVERWRITE ? println("...recomputing anyway.") : continue
+            Parameters.OVERWRITE ? println("...recomputing anyway.") : continue
         end
 
-        (VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: on step $nres of $nbResVec: ($n1,$n2).")
+        (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: on step $nres of $nbResVec: ($n1,$n2).")
 
         # open the resonance file
-        filename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
+        filename = GFuncFilename(n1,n2,Parameters)
         inputfile = h5open(filename,"r")
         tabGXi = read(inputfile,"GXinp")
-        # close the Gfunc file
         close(inputfile)
 
-        (VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
+        (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
 
         # Loop over the basis indices to consider
         for i_npnq=1:nbnpnq
             np, nq = tabnpnq[1,i_npnq], tabnpnq[2,i_npnq] # Current value of (np,nq)
+
 
             # get the contribution
             res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi[np,nq,:])
@@ -92,6 +83,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
             end
 
         end # basis function loop
+
 
 
         # this is expensive enough to compute that we will want to save these
@@ -112,13 +104,7 @@ end
 """put all aXi values into memory"""
 function StageaMcoef(tabResVec::Matrix{Int64},
                      tabnpnq::Matrix{Int64},
-                     Ku::Int64,Kv::Int64,
-                     nradial::Int64;
-                     modedir::String="",
-                     modelname::String="",
-                     dfname::String="",
-                     lharmonic::Int64=1,
-                     rb::Float64=1.0)
+                     Parameters::ResponseParameters)
 
 
     # get dimensions from the relevant tables
@@ -126,7 +112,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
     nbResVec = size(tabResVec)[2]
 
     # allocate memory
-    tabaMcoef = zeros(Float64,nbResVec,nradial,nradial,Ku)
+    tabaMcoef = zeros(Float64,nbResVec,Parameters.nradial,Parameters.nradial,Parameters.Ku)
 
 
     #Threads.@threads for nres=1:nbResVec # Loop over the resonances
@@ -134,7 +120,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres] # Current resonance (n1,n2)
 
         # retrieve the correct M table
-        filename = AxiFilename(modedir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
+        filename = AxiFilename(n1,n2,Parameters)
         inputfile = h5open(filename,"r")
 
         # Loop over the basis indices to consider
@@ -144,7 +130,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
             # get the table from the inputfile
             tmptabaMcoef = read(inputfile,"aXinp"*string(np)*"nq"*string(nq))
 
-            for k=1:Ku
+            for k=1:Parameters.Ku
 
                 # fill in the (np,nq) value
                 tabaMcoef[nres,np,nq,k] = tmptabaMcoef[k]
@@ -284,47 +270,41 @@ end
 
 function RunM(ωlist::Array{Complex{Float64}},
               dψ::Function,d2ψ::Function,
-              gfuncdir::String,modedir::String,
               FHT::FiniteHilbertTransform.FHTtype,
-              Kv::Int64,Kw::Int64,
               basis::AstroBasis.Basis_type,
-              lharmonic::Int64,
-              n1max::Int64,
-              Ω₀::Float64,
-              modelname::String,dfname::String,
-              rmin::Float64,rmax::Float64;
-              VERBOSE::Int64=0,
-              OVERWRITE::Bool=false,
-              KuTruncation::Int64=10000)
+              Parameters::ResponseParameters
+              )
 
     # Check directory names
-    CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
+    CheckConfigurationDirectories([Parameters.gfuncdir,Parameters.modedir]) || (return 0)
 
     # get basis parameters
     ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
 
+    #if Parameters.nradial != nradial, break
+
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
+    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,ndim)
 
     # get all weights
     tabu, Ku = FHT.tabu, FHT.Ku
 
     # make the (np,nq) vectors that we need to evaluate
-    tabnpnq = makeTabnpnq(nradial)
+    tabnpnq = makeTabnpnq(Parameters.nradial)
 
-    (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Constructing M coefficients.")
+    (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Constructing M coefficients.")
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,Parameters)
 
     # allocate memory for FHT structs
     FHTlist = [deepcopy(FHT) for k=1:Threads.nthreads()]
 
     # allocate memory for the response matrices M and identity matrices
-    tabMlist = [zeros(Complex{Float64},nradial,nradial) for k=1:Threads.nthreads()]
+    tabMlist = [zeros(Complex{Float64},Parameters.nradial,Parameters.nradial) for k=1:Threads.nthreads()]
 
     # make identity matrix and copies
-    IMat = makeIMat(nradial)
+    IMat = makeIMat(Parameters.nradial)
     IMatlist = [deepcopy(IMat) for k=1:Threads.nthreads()]
 
     # how many omega values are we computing?
@@ -332,31 +312,37 @@ function RunM(ωlist::Array{Complex{Float64}},
     # allocate containers for determinant and min eigenvalue
     tabdetXi = zeros(Complex{Float64},nω)
 
-    (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
+    (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Parameters)
 
-    (VERBOSE >= 0) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
+    (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
-    (VERBOSE > 0) && println("CallAResponse.Xi.RunM: computing $nω frequency values.")
+    (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.RunM: computing $nω frequency values.")
 
     # loop through all frequencies
     Threads.@threads for i = 1:nω
 
         k = Threads.threadid()
 
-        if (i==2) && (VERBOSE>0) # skip the first in case there is compile time built in
-            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
+        if (i==2) && (Parameters.VERBOSE>0) # skip the first in case there is compile time built in
+            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,
+                        Parameters.nradial,Parameters.Ω₀,
+                        Parameters.rmin,Parameters.rmax,
+                        VERBOSE=Parameters.VERBOSE,KuTruncation=Parameters.KuTruncation)
         else
-            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
+            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,tabnpnq,FHTlist[k],dψ,d2ψ,
+                  Parameters.nradial,Parameters.Ω₀,
+                  Parameters.rmin,Parameters.rmax,
+                  VERBOSE=Parameters.VERBOSE,KuTruncation=Parameters.KuTruncation)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
 
     end
 
-    WriteDeterminant(DetFilename(modedir,modelname,dfname,lharmonic,n1max,rb,Ku,Kv),ωlist,tabdetXi)
+    WriteDeterminant(DetFilename(Parameters),ωlist,tabdetXi)
 
     return tabdetXi
 end
@@ -369,25 +355,16 @@ Newton-Raphson descent to find the zero crossing
 """
 function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
                           dψ::Function,d2ψ::Function,
-                          gfuncdir::String,modedir::String,
                           FHT::FiniteHilbertTransform.FHTtype,
-                          Kv::Int64,Kw::Int64,
                           basis::AstroBasis.Basis_type,
-                          lharmonic::Int64,
-                          n1max::Int64,
-                          Ω₀::Float64,
-                          modelname::String,dfname::String,
-                          rb::Float64,
-                          rmin::Float64,rmax::Float64;
+                          Parameters::ResponseParameters;
                           NITER::Int64=32,
                           eta::Bool=true,
-                          ACCURACY::Float64=1.0e-10,
-                          VERBOSE::Int64=0,
-                          OVERWRITE::Bool=false)
+                          ACCURACY::Float64=1.0e-10)
 
 
     # Check directory names
-    CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
+    CheckConfigurationDirectories([Parameters.gfuncdir,Parameters.modedir]) || (return 0)
 
     # get basis parameters
     ndim, nradial = basis.dimension, basis.nmax
@@ -395,7 +372,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     #####
     # Construct the table of needed resonance vectors
     #####
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
+    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
 
     # get all weights
     tabu, Ku = FHT.tabu, FHT.Ku
@@ -404,13 +381,12 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     tabnpnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE,OVERWRITE=OVERWRITE)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,Parameters)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,Ku,Kv,nradial,
-                                          modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,Parameters)
 
-    (VERBOSE >= 0) && println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+    (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # memory for the response matrices M and identity matrices
     tabMlist = zeros(Complex{Float64},nradial,nradial)
@@ -428,19 +404,19 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
         # calculate the new off omega value
         omgvaloff = omgval + im*domega
 
-        (VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
+        (Parameters.VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
 
         tabM!(omgval,tabMlist,tabaMcoef,
               tabResVec,tabnpnq,
               FHT,
-              dψ,d2ψ,nradial,Ω₀,rmin,rmax)
+              dψ,d2ψ,Parameters.nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax)
 
         centralvalue = detXi(IMat,tabMlist)
 
         tabM!(omgvaloff,tabMlist,tabaMcoef,
               tabResVec,tab_npnq,
               FHT,
-              dψ,d2ψ,nradial,Ω₀,rmin,rmax)
+              dψ,d2ψ,Parameters.nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax)
 
         offsetvalue = detXi(IMat,tabMlist)
 
@@ -451,7 +427,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
         stepsize = real(centralvalue)/derivative
         omgval  = omgval - im*stepsize
 
-        (VERBOSE > 1) && println("Newomg=$omgval, cval=$centralvalue, oval=$offsetvalue")
+        (Parameters.VERBOSE > 1) && println("Newomg=$omgval, cval=$centralvalue, oval=$offsetvalue")
 
         # record iteration number
         completediterations += 1
@@ -463,7 +439,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
     end
 
-    (VERBOSE > 0) && println("CallAResponse.Xi.FindZeroCrossing: zero found in $completediterations steps.")
+    (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.FindZeroCrossing: zero found in $completediterations steps.")
 
     return omgval
 
