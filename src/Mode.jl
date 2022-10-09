@@ -9,18 +9,11 @@ for a single omega, compute the shape of the mode
 function ComputeModeTables(omgval::Complex{Float64},
                            dψ::Function,d2ψ::Function,
                            FHT::FiniteHilbertTransform.FHTtype,
-                           gfuncdir::String,modedir::String,
-                           Kv::Int64,
                            basis::AstroBasis.Basis_type,
-                           lharmonic::Int64,
-                           n1max::Int64,
-                           Ω₀::Float64,
-                           rmin::Float64,rmax::Float64,
-                           modelname::String,dfname::String;
-                           VERBOSE::Int64=0)
+                           Parameters::ResponseParameters)
 
     # Check directory names
-    CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
+    CheckConfigurationDirectories([Parameters.gfuncdir,Parameters.modedir]) || (return 0)
 
     # get needed parameters from structures
     Ku      = FHT.Ku
@@ -29,18 +22,18 @@ function ComputeModeTables(omgval::Complex{Float64},
     ndim    = basis.dimension
 
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
+    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,ndim)
 
     # make the (np,nq) vectors that we need to evaluate
     tabnpnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,Kv,VERBOSE=VERBOSE)
+    MakeaMCoefficients(tabResVec,tabnpnq,FHT,Parameters)
 
     # load aXi values
-    tabaMcoef = StageaMcoef(tabResVec,tabnpnq,FHT.Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    tabaMcoef = StageaMcoef(tabResVec,tabnpnq,Parameters)
 
-    if VERBOSE>0
+    if Parameters.VERBOSE>0
         println("CallAResponse.Xi.ComputeModeTables: tabaMcoef loaded.")
     end
 
@@ -52,9 +45,9 @@ function ComputeModeTables(omgval::Complex{Float64},
     tabdetXi = zeros(Float64,nomg) # real part of the determinant
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Ω₀,rmin,rmax,VERBOSE=VERBOSE)
+    tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax,VERBOSE=Parameters.VERBOSE)
 
-    if VERBOSE>0
+    if Parameters.VERBOSE>0
         println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
     end
 
@@ -120,17 +113,10 @@ Function that computes the radial shape of a given mode
 
 """
 function GetModeShape(basis::AstroBasis.Basis_type,
-                      lharmonic::Int64,
-                      nradial::Int64,
-                      n1max::Int64,
                       Rmin::Float64,Rmax::Float64,
                       nRMode::Int64,
                       EigenMode::Array{Float64},
-                      modedir::String,
-                      modelname::String,
-                      dfname::String,
-                      Ku::Int64,Kv::Int64;
-                      VERBOSE::Int64=0)
+                      Parameters::ResponseParameters)
 
     # prep the basis
     AstroBasis.fill_prefactors!(basis)
@@ -159,11 +145,11 @@ function GetModeShape(basis::AstroBasis.Basis_type,
         dval = 0.0
 
         # for each basis element, add the coefficient contribution
-        for np=1:nradial
+        for np=1:Parameters.nradial
 
             # add the contribution from the basis elements.
-            pval += EigenMode[np]*AstroBasis.getUln(basis,lharmonic,np-1,R)
-            dval += EigenMode[np]*AstroBasis.getDln(basis,lharmonic,np-1,R)
+            pval += EigenMode[np]*AstroBasis.getUln(basis,Parameters.lharmonic,np-1,R)
+            dval += EigenMode[np]*AstroBasis.getDln(basis,Parameters.lharmonic,np-1,R)
 
         end
 
@@ -174,7 +160,7 @@ function GetModeShape(basis::AstroBasis.Basis_type,
 
     end
 
-    h5open(ModeFilename(modedir,modelname,dfname,lharmonic,n1max,basis.rb,Ku,Kv), "w") do file
+    h5open(ModeFilename(Parameters), "w") do file
         write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
         write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
         write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file
@@ -191,16 +177,10 @@ Function that computes the radial and azimuthal shape of a given mode
 -see Eq. (72) of Hamilton+ (2018)
 """
 function GetModeShapeComplex(basis::AstroBasis.Basis_type,
-                            lharmonic::Int64,
-                            n1max::Int64,
                             Rmin::Float64,Rmax::Float64,
                             nRMode::Int64,
                             EigenMode::Array{Complex{Float64}},
-                            modedir::String,
-                            modelname::String,
-                            dfname::String,
-                            Ku::Int64,Kv::Int64;
-                            VERBOSE::Int64=0)
+                            Parameters::ResponseParameters)
 
     # prep the basis
     AstroBasis.fill_prefactors!(basis)
@@ -235,8 +215,8 @@ function GetModeShapeComplex(basis::AstroBasis.Basis_type,
         for np=1:nradial
 
             # add the contribution from the basis elements.
-            pval += EigenMode[np]*AstroBasis.getUln(basis,lharmonic,np-1,R)
-            dval += EigenMode[np]*AstroBasis.getDln(basis,lharmonic,np-1,R)
+            pval += EigenMode[np]*AstroBasis.getUln(basis,Parameters.lharmonic,np-1,R)
+            dval += EigenMode[np]*AstroBasis.getDln(basis,Parameters.lharmonic,np-1,R)
 
         end
 
@@ -247,7 +227,7 @@ function GetModeShapeComplex(basis::AstroBasis.Basis_type,
 
     end
 
-    h5open(ModeFilename(modedir,modelname,dfname,lharmonic,n1max,basis.rb,Ku,Kv), "w") do file
+    h5open(ModeFilename(Parameters), "w") do file
         write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
         write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
         write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file
