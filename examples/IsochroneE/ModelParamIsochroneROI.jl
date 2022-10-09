@@ -44,7 +44,6 @@ d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
 
 
-
 rmin = 1.0e-5
 rmax = 1.0e5
 
@@ -73,6 +72,7 @@ end
 
 
 # integration parameters
+
 Ku = 201    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
@@ -81,7 +81,7 @@ Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 lharmonic = 2
-n1max = 0  # maximum number of radial resonances to consider
+n1max = 1  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe

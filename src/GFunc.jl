@@ -32,9 +32,11 @@ function MakeGu(ndFdJ::Function,
     # set up a blank array
     tabGXi = zeros(nradial,nradial,Ku)
 
+
     for kuval in 1:Parameters.Ku
 
         (Parameters.VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
+
 
         uval = tabu[kuval]
         vmin, vmax = Wdata.tabvminmax[kuval,:]
@@ -42,9 +44,9 @@ function MakeGu(ndFdJ::Function,
         # determine the step size in v
         deltav = (vmax - vmin)/(Parameters.Kv)
 
-        res = 0.0 # Initialising the result
 
         for kvval in 1:Parameters.Kv
+
             vval = vmin + deltav*(kvval-0.5)
 
             ####
@@ -91,16 +93,13 @@ function MakeGu(ndFdJ::Function,
                     else
                         # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
                         tabGXi[np,nq,kuval] += deltav*pref*Lval*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+
                     end
 
                 end
             end
 
         end
-
-        # complete the integration
-        res *= deltav
-        tabGXi[kuval] = res
 
     end
     return tabGXi
@@ -190,5 +189,6 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
 
 
         end
+
     end
 end

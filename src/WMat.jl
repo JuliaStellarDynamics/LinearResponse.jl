@@ -374,6 +374,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         # could consider saving other quantities as well to check mappings.
         h5open(WMatFilename(n1,n2,Parameters), "w") do file
             write(file, "nradial",nradial)
+
             write(file, "wmat",Wdata.tabW)
             write(file, "Omgmat",Wdata.tabΩ1Ω2)
             write(file, "AEmat",Wdata.tabAE)
