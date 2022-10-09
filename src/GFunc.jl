@@ -6,7 +6,6 @@ function to compute G(u)
 """
 function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
-                np::Int64,nq::Int64,
                 Wdata::WMatdata_type,
                 tabu::Array{Float64},
                 Parameters::ResponseParameters)
@@ -25,16 +24,17 @@ function MakeGu(ndFdJ::Function,
 
     # get basic parameters
     Ku     = length(tabu)
+    nradial= size(Wdata.tabW)[1]
 
     # get ωmin and ωmax
     ωmin, ωmax = Wdata.ωminmax[:]
 
     # set up a blank array
-    tabGXi  = zeros(Parameters.Ku)
+    tabGXi = zeros(nradial,nradial,Ku)
 
     for kuval in 1:Parameters.Ku
 
-        #(VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
+        (Parameters.VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
 
         uval = tabu[kuval]
         vmin, vmax = Wdata.tabvminmax[kuval,:]
@@ -78,16 +78,22 @@ function MakeGu(ndFdJ::Function,
             # compute dF/dJ: call out for value
             valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotΩ)
 
-            # get tabulated W values for different basis functions np,nq
-            Wp = Wdata.tabW[np,kuval,kvval]
-            Wq = Wdata.tabW[nq,kuval,kvval]
+            # loop over all radial elements
+            for np = 1:nradial
+                for nq = 1:nradial
 
-            if Parameters.ndim==2
-                res += pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                    # get tabulated W values for different basis functions np,nq
+                    Wp = Wdata.tabW[np,kuval,kvval]
+                    Wq = Wdata.tabW[nq,kuval,kvval]
 
-            else
-                # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
-                res += pref*Lval*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                    if Parameters.ndim==2
+                        tabGXi[np,nq,kuval] += deltav*pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                    else
+                        # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
+                        tabGXi[np,nq,kuval] += deltav*pref*Lval*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
+                    end
+
+                end
             end
 
         end
@@ -173,29 +179,16 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
 
             # loop through all basis function combinations
             # can we just do an upper half calculation here?
-            for np = 1:Parameters.nradial
-                for nq = np:Parameters.nradial
+            if (Parameters.VERBOSE > 0)
+                @time tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,tabu,Parameters)
 
-                    if (Parameters.VERBOSE > 0) && (np==1) && (nq==1)
-                        @time tabGXi = MakeGu(ndFdJ,n1,n2,np,nq,
-                                              Wdata,
-                                              tabu,
-                                              Parameters)
-
-                    else
-                        tabGXi = MakeGu(ndFdJ,n1,n2,np,nq,
-                                        Wdata,
-                                        tabu,
-                                        Parameters)
-                    end
-
-                    write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
-
-                    if (np != nq)
-                        write(file, "GXinp"*string(nq)*"nq"*string(np),tabGXi) # write the opposite as well
-                    end
-                end
+            else
+                tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,tabu,Parameters)
             end
+
+            write(file, "GXinp",tabGXi)
+
+
         end
     end
 end

@@ -57,6 +57,8 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         # open the resonance file
         filename = GFuncFilename(n1,n2,Parameters)
         inputfile = h5open(filename,"r")
+        tabGXi = read(inputfile,"GXinp")
+        close(inputfile)
 
         (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
 
@@ -66,10 +68,10 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
 
             # open the correct resonance vector
             # read in the correct G(u) function
-            tabGXi = read(inputfile,"GXinp"*string(np)*"nq"*string(nq))
+
 
             # get the contribution
-            res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi)
+            res,warnflag = FiniteHilbertTransform.GetaXi(FHT,tabGXi[np,nq,:])
 
             for k=1:Ku
 
@@ -86,7 +88,7 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         end # basis function loop
 
         # close the Gfunc file
-        close(inputfile)
+
 
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
