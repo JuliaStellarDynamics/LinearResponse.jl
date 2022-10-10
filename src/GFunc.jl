@@ -1,6 +1,6 @@
 
 """
-    MakeGu(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,n1,n2,np,nq,tabWMat,tabΩ1Ω2Mat,tabAEMat,tabJMat,tabu,Kv,ndim,nradial,ωmin,ωmax,tabvminvmax,lharmonic[,Ω₀])
+    MakeGu(ndFdJ,n1,n2,Wdata,tabu,Kv,ndim,nradial,ωmin,ωmax,tabvminvmax,lharmonic[,Ω₀])
 
 function to compute G(u)
 """
@@ -26,12 +26,22 @@ function MakeGu(ndFdJ::Function,
     Ku     = length(tabu)
     nradial= size(Wdata.tabW)[1]
 
-    # get ωmin and ωmax
-    ωmin, ωmax = Wdata.ωminmax[:]
-
+    # Number of basis elements
+    nradial = size(Wdata.tabW)[1]
     # set up a blank array
-    tabGXi = zeros(nradial,nradial,Ku)
+    tabGXi  = zeros(Float64,nradial,nradial,Ku)
+    # get ωmin and ωmax
+    ωmin, ωmax = Wdata.ωminmax[1], Wdata.ωminmax[2]
 
+
+    # determine the step size in vp
+    δvp = 1.0/Kv
+
+    # remove dimensionality from Ω mapping
+    dimensionl = (1/Ω₀)
+
+    # Integration step volume
+    δvol = δvp * dimensionl
 
     for kuval in 1:Parameters.Ku
 
@@ -39,25 +49,27 @@ function MakeGu(ndFdJ::Function,
 
 
         uval = tabu[kuval]
-        vmin, vmax = Wdata.tabvminmax[kuval,:]
+        vmin, vmax = Wdata.tabvminmax[1,kuval], Wdata.tabvminmax[2,kuval]
 
-        # determine the step size in v
-        deltav = (vmax - vmin)/(Parameters.Kv)
+        for kvval = 1:Kv
+            
+            # get the current v value
+            vp = δvp*(kvval-0.5)
+            vval = g(vp,vmin,vmax,n=2)
 
+            # vp -> v
+            Jacvp = dg(vp,vmin,vmax,n=2)
 
-        for kvval in 1:Parameters.Kv
-
-            vval = vmin + deltav*(kvval-0.5)
 
             ####
             # (u,v) -> (a,e)
             # From WMat computations
             ####
             # (u,v) -> (Ω1,Ω2)
-            Ω1,Ω2 = Wdata.tabΩ1Ω2[kuval,kvval,:]
+            Ω1,Ω2 = Wdata.tabΩ1Ω2[1,kvval,kuval], Wdata.tabΩ1Ω2[2,kvval,kuval]
 
             # need (E,L): this has some relatively expensive switches
-            Eval,Lval = Wdata.tabEL[kuval,kvval,:]
+            Eval,Lval = Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval]
 
             # compute Jacobians
             # (α,β) -> (u,v).
@@ -66,13 +78,11 @@ function MakeGu(ndFdJ::Function,
 
             # (E,L) -> (α,β): this is the most expensive function here,
             # so we have pre-tabulated it
-            JacEL = Wdata.tabJ[kuval,kvval]
+            JacEL = Wdata.tabJ[kvval,kuval]
 
             #(J) -> (E,L)
             JacJ = (1/Ω1)
 
-            # remove dimensionality from Ω mapping
-            dimensionl = (1/Parameters.Ω₀)
 
             # get the resonance vector
             ndotΩ = n1*Ω1 + n2*Ω2
@@ -80,38 +90,41 @@ function MakeGu(ndFdJ::Function,
             # compute dF/dJ: call out for value
             valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotΩ)
 
-            # loop over all radial elements
+
+            # Common part of the integrand (to every np,nq)
+            integrand = pref*δvol*Jacvp*Jacαβ*JacEL*JacJ*valndFdJ
+            # In 3D, volume element to add
+            integrand *= (ndim == 3) ? Lval : 1.0
+
+            # Adding step contribution to every element
             for np = 1:nradial
-                for nq = 1:nradial
+                Wp = Wdata.tabW[np,kvval,kuval]
 
+                # CAUTION: np = nq elements apart (to prevent counting twice)
+                tabGXi[np,np,kuval] += integrand * Wp * Wp
+                for nq = (np+1):nradial
                     # get tabulated W values for different basis functions np,nq
-                    Wp = Wdata.tabW[np,kuval,kvval]
-                    Wq = Wdata.tabW[nq,kuval,kvval]
+                    fullin = integrand * Wp * Wdata.tabW[nq,kvval,kuval]
 
-                    if Parameters.ndim==2
-                        tabGXi[np,nq,kuval] += deltav*pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
-                    else
-                        # add in extra Lval from the action-space volume element (Hamilton et al. 2018, eq 30)
-                        tabGXi[np,nq,kuval] += deltav*pref*Lval*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq # Local increment in the location (u,v)
-
-                    end
+                    # Adding the contribution
+                    tabGXi[nq,np,kuval] += fullin
+                    tabGXi[np,nq,kuval] += fullin
 
                 end
             end
-
         end
 
     end
+
     return tabGXi
-
 end
-
 
 """
     RunGfunc()
 
 @TO DESCRIBE
 """
+
 function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                   ndFdJ::Function,
                   FHT::FiniteHilbertTransform.FHTtype,
@@ -130,13 +143,11 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
     # Resonance vectors
     nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,Parameters.ndim)
 
-    # Frequency cuts associated to [rmin,rmax]
-    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,Parameters.rmin,Parameters.rmax,Ω₀=Parameters.Ω₀)
-
     (Parameters.VERBOSE >= 0) && println("CallAResponse.GFunc.RunGfunc: Considering $(Parameters.nbResVec) resonances.")
 
     Threads.@threads for i = 1:Parameters.nbResVec
         n1,n2 = Parameters.tabResVec[1,i],Parameters.tabResVec[2,i]
+
 
         (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
@@ -153,40 +164,26 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         # load a value of tabWmat, plus (a,e) values
         filename   = WMatFilename(n1,n2,Parameters)
         file       = h5open(filename,"r")
-        Wdata      = WMatdata_create(read(file,"wmat"),
-                                     zeros(Float64,Parameters.Ku,Parameters.Kv,2),read(file,"Omgmat"),read(file,"AEmat"),zeros(Float64,Parameters.Ku,Parameters.Kv,2),
-                                     read(file,"jELABmat"),read(file,"omgminmax"),read(file,"tabvminmax"))
+        Wdata      = WMatdata_type(read(file,"wmat"),                                                               # Basis FT
+                                   read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),    # Mappings
+                                   read(file,"jELABmat"),                                                           # Jacobians
+                                   read(file,"omgminmax"),read(file,"tabvminmax"))                                  # Mapping parameters
         close(file)
 
-        # Compute EL on (u,v) points (can be done in WMat ?)
-        for kvval in 1:Parameters.Kv
-            for kuval in 1:Parameters.Ku
-                a,e = Wdata.tabAE[kuval,kvval,:]
-
-                # need (E,L): this has some relatively expensive switches
-                Wdata.tabEL[kuval,kvval,1], Wdata.tabEL[kuval,kvval,2] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=Parameters.ELTOLECC)
-            end
-        end
-
         # print the size of the found files if the first processor
-        if i==0
-            println("CallAResponse.GFunc.RunGfunc: Found nradial=$(Parameters.nradial),Ku=$(Parameters.Ku),Kv=$(Parameters.Kv)")
+        if i==1
+            println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,Ku=$Ku,Kv=$Kv")
+
         end
 
-        # need to loop through all combos of np and nq to make the full matrix.
+        # G(u) computation for this resonance number
+        tabGXi = MakeGu(ndFdJ,n1,n2,
+                        Wdata,
+                        tabu,Parameters)
+        # Saving in file
         h5open(outputfilename, "w") do file
 
-            # loop through all basis function combinations
-            # can we just do an upper half calculation here?
-            if (Parameters.VERBOSE > 0)
-                @time tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,tabu,Parameters)
-
-            else
-                tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,tabu,Parameters)
-            end
-
-            write(file, "GXinp",tabGXi)
-
+        write(file,"Gmat",tabGXi)
 
         end
 
