@@ -26,14 +26,15 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
     # get relevant sizes
     Ku       = FHT.Ku
     nbResVec = size(tabResVec)[2]
+    nradial  = Parameters.nradial
 
-    (Parameters.VERBOSE > 2) && println("CallAResponse.Xi.MakeaMCoefficients: Check params: K_u=$K_u, nb_npnq=$nb_npnq, nbResVec=$nbResVec.")
+    (Parameters.VERBOSE > 2) && println("CallAResponse.Xi.MakeaMCoefficients: Check params: Ku=$Ku, nbResVec=$nbResVec.")
 
     # allocate the workspace
     tabaMcoef = zeros(Float64,Ku,nradial,nradial)
 
     # allocate quadrature result and warnflag tables
-    restab = zeros(Float64,Ku)
+    restab  = zeros(Float64,Ku)
     warntab = zeros(Float64,Ku)
 
 
@@ -58,37 +59,34 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: on step $nres of $nbResVec: ($n1,$n2).")
 
         # open the resonance file
-        filename = GFuncFilename(n1,n2,Parameters)
+        filename  = GFuncFilename(n1,n2,Parameters)
         inputfile = h5open(filename,"r")
-        tabGXi = read(inputfile,"GXinp")
-        close(inputfile)
 
         (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
 
-        # open the correct resonance vector
-        # read in the correct G(u) function
         tabGXi = read(inputfile,"Gmat")
 
         for np = 1:nradial
             for nq = np:nradial
                 # get the contribution
-                FiniteHilbertTransform.GetaXi!(FHT,view(tabGXi,nq,np,:),restab,warntab)
+                #FiniteHilbertTransform.GetaXi!(FHT,view(tabGXi,nq,np,:),restab,warntab)
+                FiniteHilbertTransform.GetaXi!(FHT,tabGXi[nq,np,:],restab,warntab)
 
 
                 for k=1:Ku
 
                     # Warning if to many Inf or Nan values
-                    (warntab[k] > 2) && println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf (warnflag=$(warntab[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(res[k]).")
-        
+                    (warntab[k] > 3) && println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf (warnflag=$(warntab[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(restab[k]).")
+
                     # populate the symmetric matrix
                     tabaMcoef[k,nq,np] = restab[k] # Element (np,nq)
                     tabaMcoef[k,np,nq] = restab[k] # Element (nq,np). If np=nq overwrite (this is fine).
-        
+
                 end
             end
         end
 
-
+        close(inputfile)
 
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
@@ -104,15 +102,16 @@ end
 
 """put all aXi values into memory"""
 function StageaMcoef(tabResVec::Matrix{Int64},
-                     tabnpnq::Matrix{Int64},
                      Parameters::ResponseParameters)
 
 
     # get dimensions from the relevant tables
     nbResVec = size(tabResVec)[2]
+    nradial  = Parameters.nradial
+    Ku       = Parameters.Ku
 
     # allocate memory
-    tabaMcoef = zeros(Float64,Parameters.Ku,Parameters.nradial,Parameters.nradial,nbResVec)
+    tabaMcoef = zeros(Float64,Ku,nradial,nradial,nbResVec)
 
 
 

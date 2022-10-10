@@ -24,14 +24,12 @@ function ComputeModeTables(omgval::Complex{Float64},
     # Resonance vectors
     nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,ndim)
 
-    # make the (np,nq) vectors that we need to evaluate
-    tabnpnq = makeTabnpnq(nradial)
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,tabnpnq,FHT,Parameters)
+    MakeaMCoefficients(tabResVec,FHT,Parameters)
 
     # load aXi values
-    tabaMcoef = StageaMcoef(tabResVec,tabnpnq,Parameters)
+    tabaMcoef = StageaMcoef(tabResVec,Parameters)
 
     if Parameters.VERBOSE>0
         println("CallAResponse.Xi.ComputeModeTables: tabaMcoef loaded.")
@@ -45,7 +43,7 @@ function ComputeModeTables(omgval::Complex{Float64},
     tabdetXi = zeros(Float64,nomg) # real part of the determinant
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,FHT,dψ,d2ψ,nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax,VERBOSE=Parameters.VERBOSE)
+    tabM!(omgval,MMat,tabaMcoef,tabResVec,FHT,dψ,d2ψ,nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax,VERBOSE=Parameters.VERBOSE)
 
     if Parameters.VERBOSE>0
         println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
