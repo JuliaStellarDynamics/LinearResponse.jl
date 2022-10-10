@@ -23,16 +23,17 @@ function MakeGu(ndFdJ::Function,
     end
 
     # get basic parameters
-    Ku     = length(tabu)
-    nradial= size(Wdata.tabW)[1]
+    Ku      = length(tabu)
+    nradial = size(Wdata.tabW)[1]
 
     # Number of basis elements
     nradial = size(Wdata.tabW)[1]
+
     # set up a blank array
     tabGXi  = zeros(Float64,nradial,nradial,Ku)
+
     # get ωmin and ωmax
     ωmin, ωmax = Wdata.ωminmax[1], Wdata.ωminmax[2]
-
 
     # determine the step size in vp
     δvp = 1.0/Parameters.Kv
@@ -47,7 +48,6 @@ function MakeGu(ndFdJ::Function,
 
         (Parameters.VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $(Parmeters.Ku).")
 
-
         uval = tabu[kuval]
         vmin, vmax = Wdata.tabvminmax[1,kuval], Wdata.tabvminmax[2,kuval]
 
@@ -59,7 +59,6 @@ function MakeGu(ndFdJ::Function,
 
             # vp -> v
             Jacvp = dg(vp,vmin,vmax,n=2)
-
 
             ####
             # (u,v) -> (a,e)
@@ -120,11 +119,10 @@ function MakeGu(ndFdJ::Function,
 end
 
 """
-    RunGfunc()
+    RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,FHT,basis,Parameters)
 
 @TO DESCRIBE
 """
-
 function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                   ndFdJ::Function,
                   FHT::FiniteHilbertTransform.FHTtype,
@@ -154,7 +152,7 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         outputfilename = GFuncFilename(n1,n2,Parameters)
         if isfile(outputfilename)
             if (Parameters.OVERWRITE)
-                (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $(Parameters.nbResVec), ($n1,$n2): recomputing and overwritting.")
+                (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $(Parameters.nbResVec), ($n1,$n2): recomputing and overwriting.")
             else
                 (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $(Parameters.nbResVec), ($n1,$n2): no computation.")
                 continue
@@ -171,15 +169,11 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         close(file)
 
         # print the size of the found files if the first processor
-        if i==1
-            println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,Ku=$(Parameters.Ku),Kv=$(Parameters.Kv)")
-
-        end
+        (i==1) && println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,Ku=$(Parameters.Ku),Kv=$(Parameters.Kv)")
 
         # G(u) computation for this resonance number
-        tabGXi = MakeGu(ndFdJ,n1,n2,
-                        Wdata,
-                        tabu,Parameters)
+        tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,tabu,Parameters)
+
         # Saving in file
         h5open(outputfilename, "w") do file
 
