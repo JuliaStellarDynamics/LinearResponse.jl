@@ -54,7 +54,8 @@ function WBasisFT(a::Float64,e::Float64,
     @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: FT array not of the same size as the basis"
     
     # Integration step
-    dw = (2.0)/(Kw)
+    Kwp = ceil(Int64,Kw/(0.1+(1-e)))
+    dw = (2.0)/(Kwp)
 
     # need angular momentum
     Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e)
@@ -70,7 +71,7 @@ function WBasisFT(a::Float64,e::Float64,
 
     # start the integration loop now that we are initialised
     # at each step, we are performing an RK4-like calculation
-    for istep=1:Kw
+    for istep=1:Kwp
 
         ####
         # RK4 Step 1
