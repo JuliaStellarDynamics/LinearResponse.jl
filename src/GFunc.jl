@@ -35,24 +35,24 @@ function MakeGu(ndFdJ::Function,
 
 
     # determine the step size in vp
-    δvp = 1.0/Kv
+    δvp = 1.0/Parameters.Kv
 
     # remove dimensionality from Ω mapping
-    dimensionl = (1/Ω₀)
+    dimensionl = (1/Parameters.Ω₀)
 
     # Integration step volume
     δvol = δvp * dimensionl
 
     for kuval in 1:Parameters.Ku
 
-        (Parameters.VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $Ku.")
+        (Parameters.VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $(Parmeters.Ku).")
 
 
         uval = tabu[kuval]
         vmin, vmax = Wdata.tabvminmax[1,kuval], Wdata.tabvminmax[2,kuval]
 
-        for kvval = 1:Kv
-            
+        for kvval = 1:Parameters.Kv
+
             # get the current v value
             vp = δvp*(kvval-0.5)
             vval = g(vp,vmin,vmax,n=2)
@@ -94,7 +94,7 @@ function MakeGu(ndFdJ::Function,
             # Common part of the integrand (to every np,nq)
             integrand = pref*δvol*Jacvp*Jacαβ*JacEL*JacJ*valndFdJ
             # In 3D, volume element to add
-            integrand *= (ndim == 3) ? Lval : 1.0
+            integrand *= (Parameters.ndim == 3) ? Lval : 1.0
 
             # Adding step contribution to every element
             for np = 1:nradial
@@ -141,7 +141,7 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
     tabu, Ku = FHT.tabu, FHT.Ku
 
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,Parameters.ndim)
+    #nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,Parameters.ndim)
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.GFunc.RunGfunc: Considering $(Parameters.nbResVec) resonances.")
 
@@ -172,7 +172,7 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
 
         # print the size of the found files if the first processor
         if i==1
-            println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,Ku=$Ku,Kv=$Kv")
+            println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,Ku=$(Parameters.Ku),Kv=$(Parameters.Kv)")
 
         end
 
