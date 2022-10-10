@@ -1,5 +1,63 @@
 
 
+"""
+structure to store Fourier Transform values of basis elements
+"""
+struct BasisFT_type
+    basis::AstroBasis.Basis_type
+    UFT::Array{Float64}
+end
+
+function BasisFT_create(basis::AstroBasis.Basis_type)
+
+    return BasisFT_type(basis,zeros(Float64,basis.nmax))
+end
+
+
+"""
+structure to store the W matrix computation results
+"""
+struct WMatdata_type
+    tabW::Array{Float64,3}
+    tabUV::Array{Float64,3}
+    tabΩ1Ω2::Array{Float64,3}
+    tabAE::Array{Float64,3}
+    tabEL::Array{Float64,3}
+    tabJ::Array{Float64,2}
+    ωminmax::Vector{Float64}
+    tabvminmax::Array{Float64,2}
+end
+
+"""
+@TO DESCRIBE
+"""
+function WMatdata_create(nmax::Int64,Ku::Int64,Kv::Int64)
+
+    return WMatdata_type(zeros(Float64,nmax,Kv,Ku),
+                         zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
+                         zeros(Float64,Kv,Ku),
+                         zeros(Float64,2),zeros(Float64,2,Ku))
+end
+
+
+###
+# mapping functions
+###
+
+function g(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+    return (vmax-vmin)*(vp^n)+vmin
+end
+
+function dg(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+    return n*(vmax-vmin)*(vp^(n-1))
+end
+
+function invg(v::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+    return ((v-vmin)/(vmax-vmin))^(1/n)
+end
+
+
+
 ########################################################################
 #
 # Fourier Transform at one location
@@ -42,13 +100,14 @@ function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                  basisFT::BasisFT_type,
+                  basis::AstroBasis.Basis_type,
+                  restab::Array{Float64},
                   Parameters::ResponseParameters)
 
     @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: FT array not of the same size as the basis"
-    
+
     # Integration step
-    Kwp = ceil(Int64,Kw/(0.1+(1-e)))
+    Kwp = ceil(Int64,Parameters.Kw/(0.1+(1-e)))
     dw = (2.0)/(Kwp)
 
 
@@ -59,7 +118,6 @@ function WBasisFT(a::Float64,e::Float64,
     w, θ1, θ2 = -1.0, 0.0, 0.0
 
     # Initialize integrand
-    basis = basisFT.basis
     dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,basis,Parameters)
 
     # Initialize container
@@ -154,18 +212,6 @@ function WBasisFT(a::Float64,e::Float64,
     end # RK4 integration
 end
 
-"""
-structure to store Fourier Transform values of basis elements
-"""
-struct BasisFT_type
-    basis::AstroBasis.Basis_type
-    UFT::Array{Float64}
-end
-
-function BasisFT_create(basis::AstroBasis.Basis_type)
-
-    return BasisFT_type(basis,zeros(Float64,basis.nmax))
-end
 
 """
 with basisFT struct
@@ -174,16 +220,13 @@ function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                  lharmonic::Int64,
-                  basisFT::BasisFT_type;
-                  Kw::Int64=50,
-                  EDGE::Float64=0.01,
-                  NINT::Int64=32,
-                  VERBOSE::Int64=0)
+                  basisFT::BasisFT_type,
+                  Parameters::ResponseParameters
+                  )
 
-    
+
     # Basis FT
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,lharmonic,basisFT.basis,basisFT.UFT,Kw=Kw,EDGE=EDGE,VERBOSE=VERBOSE)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
 end
 
 """
@@ -191,8 +234,8 @@ without Ω1, Ω2
 """
 function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
-                  basisFT::BasisFT_type,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                  basisFT::BasisFT_type,
                   Parameters::ResponseParameters
                   )
 
@@ -200,7 +243,7 @@ function WBasisFT(a::Float64,e::Float64,
     Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e;TOLECC=Parameters.TOLECC,VERBOSE=Parameters.VERBOSE,NINT=Parameters.NINT,EDGE=Parameters.EDGE)
     # Basis FT
 
-    WBasisFT(ψ,dψ,d2ψ,d3ψ,a,e,Ω1,Ω2,n1,n2,basisFT,Parameters)
+    WBasisFT(ψ,dψ,d2ψ,d3ψ,a,e,Ω1,Ω2,n1,n2,basisFT.basis,basisFT.UFT,Parameters)
 end
 
 
@@ -209,41 +252,6 @@ end
 # Store FT on all (u,v) points for one resonance number
 #
 ########################################################################
-
-"""
-structure to store the W matrix computation results
-"""
-struct WMatdata_type
-    tabW::Array{Float64,3}
-    tabUV::Array{Float64,3}
-    tabΩ1Ω2::Array{Float64,3}
-    tabAE::Array{Float64,3}
-    tabEL::Array{Float64,3}
-    tabJ::Array{Float64,2}
-    ωminmax::Vector{Float64}
-    tabvminmax::Array{Float64,2}
-end
-
-"""
-@TO DESCRIBE
-"""
-function WMatdata_create(nmax::Int64,Ku::Int64,Kv::Int64)
-
-    return WMatdata_type(zeros(Float64,nmax,Kv,Ku),
-                         zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
-                         zeros(Float64,Kv,Ku),
-                         zeros(Float64,2),zeros(Float64,2,Ku))
-end
-
-function g(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
-    return (vmax-vmin)*(vp^n)+vmin
-end
-function dg(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
-    return n*(vmax-vmin)*(vp^(n-1))
-end
-function invg(v::Float64,vmin::Float64,vmax::Float64)
-    return ((v-vmin)/(vmax-vmin))^(1/n)
-end
 
 
 
@@ -282,7 +290,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
         Wdata.tabvminmax[1,kuval], Wdata.tabvminmax[2,kuval] = vmin, vmax
 
         # determine the step size in v
-        δvp = 1.0/Kv
+        δvp = 1.0/Parameters.Kv
 
 
         for kvval in 1:Parameters.Kv
@@ -314,10 +322,10 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
 
             # compute the Jacobian (E,L)->(alpha,beta) here. a little more expensive, but savings in the long run
 
-            Wdata.tabJ[kuval,kvval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Parameters.Ω₀)
+            Wdata.tabJ[kvval,kuval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Parameters.Ω₀)
 
             # Compute W(u,v) for every basis element using RK4 scheme
-            WBasisFT(ψ,dψ,d2ψ,d3ψ,a,e,Ω1,Ω2,n1,n2,basisFT,Parameters)
+            WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,Parameters)
 
             for np = 1:basisFT.basis.nmax
                 Wdata.tabW[np,kvval,kuval] = basisFT.UFT[np]
@@ -363,11 +371,6 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     # Integration points
     tabu, Ku = FHT.tabu, FHT.Ku
 
-    # Resonance vectors
-    #nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
-    #Parameters.nbResVec
-    #Parameters.tabResVec
-
     # print the length of the list of resonance vectors
     (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $(Parameters.nbResVec)")
 
@@ -382,10 +385,10 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
             file = h5open(WMatFilename(n1,n2,Parameters), "r")
             oldnradial = read(file,"nradial")
             if (Parameters.OVERWRITE == false) && (Parameters.nradial <= oldnradial)
-                (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
+                (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonance WMat file already exists with higher nradial: no computation.")
                 continue
             else
-                (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
+                (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonance WMat file already exists (possibly with lower nradial): recomputing and overwriting.")
             end
             close(file)
         end

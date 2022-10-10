@@ -81,7 +81,7 @@ Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 lharmonic = 2
-n1max = 1  # maximum number of radial resonances to consider
+n1max = 0  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe
@@ -102,7 +102,7 @@ modedir  = "xifunc/"
 KuTruncation = 10000
 
 VERBOSE = 2
-OVERWRITE = false
+OVERWRITE = true
 
 EDGE = 0.01
 ELTOLECC = 0.0005
