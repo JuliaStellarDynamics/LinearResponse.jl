@@ -58,6 +58,7 @@ struct ResponseParameters
     ndim::Int64
 
     VMAPN::Int64
+    ADAPTIVEKW::Bool
 
 end
 
@@ -70,7 +71,7 @@ function ResponseParametersCreate(dψ::Function,d2ψ::Function;Ku::Int64=200,Kv:
                                   VERBOSE::Int64=0,OVERWRITE::Bool=false,
                                   Ω₀::Float64=1.0,rmin::Float64=1.e-5,rmax::Float64=1.e5,
                                   EDGE::Float64=0.01,ELTOLECC::Float64=0.001,ndim::Int64=3,NINT::Int64=32,
-                                  nmax::Int64,rbasis::Float64,VMAPN::Int64=2)
+                                  nmax::Int64,rbasis::Float64,VMAPN::Int64=2,ADAPTIVEKW::Bool=false)
 
     # Resonance vectors
     nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
@@ -94,5 +95,5 @@ function ResponseParametersCreate(dψ::Function,d2ψ::Function;Ku::Int64=200,Kv:
                               Ω₀,rmin,rmax,αmin,αmax,
                               EDGE,ELTOLECC,NINT,
                               nmax,rbasis,ndim,
-                              VMAPN)
+                              VMAPN,ADAPTIVEKW)
 end

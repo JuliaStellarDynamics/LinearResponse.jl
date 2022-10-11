@@ -7,7 +7,7 @@ import CallAResponse
 using HDF5
 
 # call the function to construct W matrices
-#CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,FHT,basis,Parameters)
+CallAResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,FHT,basis,Parameters)
 
 CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,FHT,basis,Parameters)
 

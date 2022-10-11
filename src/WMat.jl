@@ -102,14 +102,18 @@ function WBasisFT(a::Float64,e::Float64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                   basis::AstroBasis.Basis_type,
                   restab::Array{Float64},
-                  Parameters::ResponseParameters)
+                  Parameters::ResponseParameters;
+                  ADAPTIVEKW::Bool=false)
 
     @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: FT array not of the same size as the basis"
 
     # Integration step
-    Kwp = ceil(Int64,Parameters.Kw/(0.1+(1-e)))
+    if ADAPTIVEKW
+        Kwp = ceil(Int64,Parameters.Kw/(0.1+(1-e)))
+    else
+        Kwp = Parameters.Kw
+    end
     dw = (2.0)/(Kwp)
-
 
     # need angular momentum
     Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e)
@@ -221,12 +225,13 @@ function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                   basisFT::BasisFT_type,
-                  Parameters::ResponseParameters
+                  Parameters::ResponseParameters;
+                  ADAPTIVEKW::Bool=false
                   )
 
 
     # Basis FT
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters,ADAPTIVEKW=ADAPTIVEKW)
 end
 
 """
@@ -236,13 +241,14 @@ function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                   basisFT::BasisFT_type,
-                  Parameters::ResponseParameters)
+                  Parameters::ResponseParameters;
+                  ADAPTIVEKW::Bool=false)
 
     # Frequencies
     Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e;TOLECC=Parameters.TOLECC,VERBOSE=Parameters.VERBOSE,NINT=Parameters.NINT,EDGE=Parameters.EDGE)
     # Basis FT
 
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters,ADAPTIVEKW=ADAPTIVEKW)
 end
 
 
@@ -258,7 +264,8 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
                     n1::Int64,n2::Int64,
                     tabu::Vector{Float64},
                     basisFT::BasisFT_type,
-                    Parameters::ResponseParameters)
+                    Parameters::ResponseParameters;
+                    ADAPTIVEKW::Bool=false)
 
 
     # get the number of u samples from the input vector of u vals
@@ -295,7 +302,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
         for kvval in 1:Parameters.Kv
 
             # get the current v value
-            vp = δvp*(kvval-0.5)
+            vp   = δvp*(kvval-0.5)
             vval = vprime(vp,vmin,vmax,n=Parameters.VMAPN)
 
             ####
@@ -324,7 +331,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
             Wdata.tabJ[kvval,kuval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Parameters.Ω₀)
 
             # Compute W(u,v) for every basis element using RK4 scheme
-            WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,Parameters)
+            WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,Parameters,ADAPTIVEKW=ADAPTIVEKW)
 
             for np = 1:basisFT.basis.nmax
                 Wdata.tabW[np,kvval,kuval] = basisFT.UFT[np]
@@ -396,11 +403,11 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         if (Parameters.VERBOSE > 1)
             @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,βc,
                                      n1,n2,FHT.tabu,
-                                     basesFT[k],Parameters)
+                                     basesFT[k],Parameters,ADAPTIVEKW=Parameters.ADAPTIVEKW)
         else
             Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,βc,
                                n1,n2,FHT.tabu,
-                               basesFT[k],Parameters)
+                               basesFT[k],Parameters,ADAPTIVEKW=Parameters.ADAPTIVEKW)
         end
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).

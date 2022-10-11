@@ -73,24 +73,26 @@ end
 
 # integration parameters
 
-Ku = 201    # number of Legendre integration sample points
+Ku = 202    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
+KuTruncation = 10000
 
 # define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
+
 lharmonic = 2
-n1max = 0  # maximum number of radial resonances to consider
+n1max = 2  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe
-nOmega = 51
+nOmega   = 51
 Omegamin = -0.02
 Omegamax = 0.02
-nEta = 50
-Etamin = 0.001
-Etamax = 0.04
+nEta     = 50
+Etamin   = 0.001
+Etamax   = 0.04
 
 
 
@@ -99,13 +101,12 @@ wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
 
-KuTruncation = 10000
 
-VERBOSE = 2
+VERBOSE   = 2
 OVERWRITE = true
-
-EDGE = 0.01
-ELTOLECC = 0.0005
+EDGE      = 0.01
+ELTOLECC  = 0.0005
+VMAPN     = 1 # exponent for v mapping (1 is linear)
 
 
 Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
@@ -116,7 +117,7 @@ Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
                                                     VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
                                                     Ω₀=Ω₀,rmin=rmin,rmax=rmax,
                                                     EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
-                                                    nmax=basis.nmax,rbasis=basis.rb)
+                                                    nmax=basis.nmax,rbasis=basis.rb,VMAPN=VMAPN)
 
 
 

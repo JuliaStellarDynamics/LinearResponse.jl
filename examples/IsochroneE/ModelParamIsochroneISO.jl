@@ -63,7 +63,7 @@ end
 #########
 # Integration parameters
 #########
-Ku = 201    # number of Legendre integration sample points
+Ku = 203    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 KuTruncation = 10000 # if limiting Ku for sum, specify here
@@ -74,7 +74,7 @@ FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 # Considered resonance parameters
 #########
 lharmonic = 1
-n1max     = 10  # maximum number of radial resonances to consider
+n1max     = 2  # maximum number of radial resonances to consider
 
 #########
 # Frequencies to probe
@@ -102,7 +102,7 @@ OVERWRITE = false
 EDGE      = 0.01
 ELTOLECC  = 0.0005
 VMAPN     = 2 # exponent for v mapping (1 is linear)
-
+ADAPTIVEKW= true
 
 Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
                                                     modelname=modelname,dfname=dfname,
