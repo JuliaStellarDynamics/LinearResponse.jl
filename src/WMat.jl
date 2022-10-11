@@ -44,15 +44,15 @@ end
 # mapping functions
 ###
 
-function g(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+function vprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
     return (vmax-vmin)*(vp^n)+vmin
 end
 
-function dg(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+function dvprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
     return n*(vmax-vmin)*(vp^(n-1))
 end
 
-function invg(v::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+function invvprime(v::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
     return ((v-vmin)/(vmax-vmin))^(1/n)
 end
 
@@ -296,7 +296,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
 
             # get the current v value
             vp = δvp*(kvval-0.5)
-            vval = g(vp,vmin,vmax,n=2)
+            vval = vprime(vp,vmin,vmax,n=Parameters.VMAPN)
 
             ####
             # (u,v) -> (a,e)
