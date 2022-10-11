@@ -113,21 +113,13 @@ end
 
 function FindPole(startingomg::Complex{Float64},
                   FHT::FiniteHilbertTransform.FHTtype,
-                  lharmonic::Int64,
-                  n1max::Int64,
-                  nradial::Int64,ndim::Int64,
-                  dψ::Function,
-                  d2ψ::Function,Ω₀::Float64,
-                  rmin::Float64,rmax::Float64,
-                  modedir::String,modelname::String,dfname::String,
-                  rb::Float64,Kv::Int64;
-                  TOL::Float64=1.0e-16,
-                  VERBOSE::Int64=0,
-                  KuTruncation::Int64=10000)
+                  dψ::Function,d2ψ::Function,
+                  Parameters::ResponseParameters)
 
-    IMat,MMat,tabaMcoef,tabResVec,tabnpnq = SetupDeterminantZero(FHT,ndim,lharmonic,
-                                                                 n1max,nradial,modedir,modelname,dfname,
-                                                                 rb,Kv,VERBOSE=VERBOSE)
+    IMat,MMat,tabaMcoef,tabResVec,tabnpnq = SetupDeterminantZero(FHT,Parameters.ndim,Parameters.lharmonic,
+                                                                 Parameters.n1max,Parameters.nradial,Parameters.modedir,
+                                                                 Parameters.modelname,Parameters.dfname,
+                                                                 Parameters.rb,Parameters.Kv,VERBOSE=Parameters.VERBOSE)
 
 
     bestomg = FindDeterminantZero(startingomg,
@@ -135,12 +127,10 @@ function FindPole(startingomg::Complex{Float64},
                                   FHT,
                                   tabaMcoef,
                                   tabResVec,tabnpnq,
-                                  nradial,
-                                  dψ,d2ψ,Ω₀,rmin,rmax,VERBOSE=VERBOSE,KuTruncation=KuTruncation)
+                                  Parameters.nradial,
+                                  dψ,d2ψ,Parameters.Ω₀,Parameters.rmin,Parameters.rmax,VERBOSE=Parameters.VERBOSE,KuTruncation=Parameters.KuTruncation)
 
-    if VERBOSE >= 0
-        println("Best O for n1max=$n1max,nradial=$nradial == $bestomg")
-    end
+    (Parameters.VERBOSE >= 0) && println("Best O for n1max=$(Parameters.n1max),nradial=$(Parameters.nradial) == $bestomg")
 
     return bestomg
 
