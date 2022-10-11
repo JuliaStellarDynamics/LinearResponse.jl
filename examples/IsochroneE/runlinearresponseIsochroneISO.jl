@@ -14,10 +14,10 @@ CallAResponse.RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,FHT,basis,Parameters)
 tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 
 # compute the matrix response at each location
-tabdet = CallAResponse.RunM(tabomega,dψ,d2ψ,FHT,basis,Parameters)
+#tabdet = CallAResponse.RunM(tabomega,dψ,d2ψ,FHT,basis,Parameters)
 
 startingomg = 0.1 - 0.01im
-bestomg = FindPole(startingomg,FHT,dψ,d2ψ,Parameters)
+bestomg = CallAResponse.FindPole(startingomg,FHT,dψ,d2ψ,Parameters)
 
 println("The zero-crossing frequency is $bestomg.")
 

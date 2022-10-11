@@ -98,9 +98,10 @@ modedir  = "xifunc/"
 # control parameters
 #########
 VERBOSE   = 2
-OVERWRITE = true
+OVERWRITE = false
 EDGE      = 0.01
 ELTOLECC  = 0.0005
+VMAPN     = 2 # exponent for v mapping (1 is linear)
 
 
 Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
@@ -111,7 +112,7 @@ Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
                                                     VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
                                                     Ω₀=Ω₀,rmin=rmin,rmax=rmax,
                                                     EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
-                                                    nmax=basis.nmax,rbasis=basis.rb)
+                                                    nmax=basis.nmax,rbasis=basis.rb,VMAPN=VMAPN)
 
 
 
