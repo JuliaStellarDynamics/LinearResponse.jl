@@ -1,4 +1,9 @@
 
+########################################################################
+#
+# Data structure
+#
+########################################################################
 
 """
 structure to store Fourier Transform values of basis elements
@@ -40,22 +45,32 @@ function WMatdata_create(nmax::Int64,Ku::Int64,Kv::Int64)
 end
 
 
-###
-# mapping functions
-###
+########################################################################
+#
+# Mapping functions
+#
+########################################################################
 
+"""
+@TO DESCRIBE
+"""
 function vprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
     return (vmax-vmin)*(vp^n)+vmin
 end
 
+"""
+@TO DESCRIBE
+"""
 function dvprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
     return n*(vmax-vmin)*(vp^(n-1))
 end
 
+"""
+@TO DESCRIBE
+"""
 function invvprime(v::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
     return ((v-vmin)/(vmax-vmin))^(1/n)
 end
-
 
 
 ########################################################################
@@ -102,13 +117,12 @@ function WBasisFT(a::Float64,e::Float64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                   basis::AstroBasis.Basis_type,
                   restab::Array{Float64},
-                  Parameters::ResponseParameters;
-                  ADAPTIVEKW::Bool=false)
+                  Parameters::ResponseParameters)
 
     @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: FT array not of the same size as the basis"
 
     # Integration step
-    if ADAPTIVEKW
+    if Parameters.ADAPTIVEKW
         Kwp = ceil(Int64,Parameters.Kw/(0.1+(1-e)))
     else
         Kwp = Parameters.Kw
@@ -225,13 +239,11 @@ function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                   basisFT::BasisFT_type,
-                  Parameters::ResponseParameters;
-                  ADAPTIVEKW::Bool=false
-                  )
+                  Parameters::ResponseParameters)
 
 
     # Basis FT
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters,ADAPTIVEKW=ADAPTIVEKW)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
 end
 
 """
@@ -241,14 +253,13 @@ function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                   basisFT::BasisFT_type,
-                  Parameters::ResponseParameters;
-                  ADAPTIVEKW::Bool=false)
+                  Parameters::ResponseParameters)
 
     # Frequencies
     Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e;TOLECC=Parameters.TOLECC,VERBOSE=Parameters.VERBOSE,NINT=Parameters.NINT,EDGE=Parameters.EDGE)
     # Basis FT
 
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters,ADAPTIVEKW=ADAPTIVEKW)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
 end
 
 
@@ -258,14 +269,14 @@ end
 #
 ########################################################################
 
-
-
+"""
+@TO DESCRIBE
+"""
 function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc::Function,
                     n1::Int64,n2::Int64,
                     tabu::Vector{Float64},
                     basisFT::BasisFT_type,
-                    Parameters::ResponseParameters;
-                    ADAPTIVEKW::Bool=false)
+                    Parameters::ResponseParameters)
 
 
     # get the number of u samples from the input vector of u vals
@@ -331,7 +342,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
             Wdata.tabJ[kvval,kuval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Parameters.Ω₀)
 
             # Compute W(u,v) for every basis element using RK4 scheme
-            WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,Parameters,ADAPTIVEKW=ADAPTIVEKW)
+            WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,Parameters)
 
             for np = 1:basisFT.basis.nmax
                 Wdata.tabW[np,kvval,kuval] = basisFT.UFT[np]
@@ -341,6 +352,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
 
     return Wdata
 end
+
 
 ########################################################################
 #
@@ -363,9 +375,6 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
     # check the basis values against the Parameters
 
-    # get basis parameters
-    ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
-
     # bases prep.
     AstroBasis.fill_prefactors!(basis)
     basisFT = BasisFT_create(basis)
@@ -373,9 +382,6 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
     # define a function for βcircular
     βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Parameters.Ω₀,rmin=Parameters.rmin,rmax=Parameters.rmax)
-
-    # Integration points
-    tabu, Ku = FHT.tabu, FHT.Ku
 
     # print the length of the list of resonance vectors
     (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: Number of resonances to compute: $(Parameters.nbResVec)")
@@ -403,17 +409,17 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
         if (Parameters.VERBOSE > 1)
             @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,βc,
                                      n1,n2,FHT.tabu,
-                                     basesFT[k],Parameters,ADAPTIVEKW=Parameters.ADAPTIVEKW)
+                                     basesFT[k],Parameters)
         else
             Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,βc,
                                n1,n2,FHT.tabu,
-                               basesFT[k],Parameters,ADAPTIVEKW=Parameters.ADAPTIVEKW)
+                               basesFT[k],Parameters)
         end
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.
         h5open(WMatFilename(n1,n2,Parameters), "w") do file
-            write(file, "nradial",nradial)
+            write(file, "nradial",Parameters.nradial)
             # Basis FT
             write(file, "wmat",Wdata.tabW)
             # Mappings parameters

@@ -1,4 +1,10 @@
 
+########################################################################
+#
+# Compute G(u) = \int dv G(u,v) for one resonance number
+#
+########################################################################
+
 """
     MakeGu(ndFdJ,n1,n2,Wdata,tabu,Kv,ndim,nradial,ωmin,ωmax,tabvminvmax,lharmonic[,Ω₀])
 
@@ -118,25 +124,23 @@ function MakeGu(ndFdJ::Function,
     return tabGXi
 end
 
+########################################################################
+#
+# Wrapper compute G(u) for all resonance number
+#
+########################################################################
+
 """
     RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,FHT,basis,Parameters)
 
 @TO DESCRIBE
 """
-function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
-                  ndFdJ::Function,
+function RunGfunc(ndFdJ::Function,
                   FHT::FiniteHilbertTransform.FHTtype,
-                  basis::AstroBasis.Basis_type,
                   Parameters::ResponseParameters)
-
-    # get basis parameters
-    ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
 
     # Check directory names
     CheckConfigurationDirectories([Parameters.wmatdir,Parameters.gfuncdir]) || (return 0)
-
-    # Integration points
-    tabu, Ku = FHT.tabu, FHT.Ku
 
     # Resonance vectors
     #nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,Parameters.ndim)
@@ -162,6 +166,9 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         # load a value of tabWmat, plus (a,e) values
         filename   = WMatFilename(n1,n2,Parameters)
         file       = h5open(filename,"r")
+        #####
+        # !!! Add sufficient nradial verification
+        #####
         Wdata      = WMatdata_type(read(file,"wmat"),                                                               # Basis FT
                                    read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),    # Mappings
                                    read(file,"jELABmat"),                                                           # Jacobians
@@ -169,16 +176,17 @@ function RunGfunc(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ:
         close(file)
 
         # print the size of the found files if the first processor
-        (i==1) && println("CallAResponse.GFunc.RunGfunc: Found nradial=$nradial,Ku=$(Parameters.Ku),Kv=$(Parameters.Kv)")
+        (i==1) && println("CallAResponse.GFunc.RunGfunc: Found nradial=$(Parameters.nradial),Ku=$(Parameters.Ku),Kv=$(Parameters.Kv)")
 
         # G(u) computation for this resonance number
-        tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,tabu,Parameters)
+        tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,FHT.tabu,Parameters)
 
         # Saving in file
         h5open(outputfilename, "w") do file
-
+        #####
+        # !!! Add some parameters informations ?
+        #####
         write(file,"Gmat",tabGXi)
-
         end
 
     end

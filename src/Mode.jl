@@ -7,7 +7,6 @@ for a single omega, compute the shape of the mode
 
 """
 function ComputeModeTables(omgval::Complex{Float64},
-                           dψ::Function,d2ψ::Function,
                            FHT::FiniteHilbertTransform.FHTtype,
                            basis::AstroBasis.Basis_type,
                            Parameters::ResponseParameters)
@@ -15,35 +14,20 @@ function ComputeModeTables(omgval::Complex{Float64},
     # Check directory names
     CheckConfigurationDirectories([Parameters.gfuncdir,Parameters.modedir]) || (return 0)
 
-    # get needed parameters from structures
-    Ku      = FHT.Ku
-    nradial = basis.nmax
-    rb      = basis.rb
-    ndim    = basis.dimension
-
-    # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,ndim)
-
-
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,FHT,Parameters)
+    MakeaMCoefficients(FHT,Parameters)
 
     # load aXi values
-    tabaMcoef = StageaMcoef(tabResVec,Parameters)
+    tabaMcoef = StageaMcoef(Parameters)
 
     if Parameters.VERBOSE>0
         println("CallAResponse.Xi.ComputeModeTables: tabaMcoef loaded.")
     end
 
     # memory for the response matrices M and identity matrices
-    MMat = zeros(Complex{Float64},nradial,nradial)
+    MMat = zeros(Complex{Float64},Parameters.nradial,Parameters.nradial)
 
-    # Containers for determinant and min eigenvalue
-    nomg = 1
-    tabdetXi = zeros(Float64,nomg) # real part of the determinant
-    tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
-
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,FHT,dψ,d2ψ,nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax,VERBOSE=Parameters.VERBOSE)
+    tabM!(omgval,MMat,tabaMcoef,FHT,Parameters)
 
     if Parameters.VERBOSE>0
         println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
@@ -53,7 +37,6 @@ function ComputeModeTables(omgval::Complex{Float64},
     EV,EF,EM = mevXi(MMat)
 
     return EV,EF,EM
-
 end
 
 
@@ -62,10 +45,10 @@ end
 
 minimal eigenvalue of M
 """
-function mevXi(tabM::Array{Complex{Float64},2})
+function mevXi(tabM::Matrix{Complex{Float64}})
 
     # these should be equal, and =nradial!
-    nEig1,nEig2 = size(tabM)
+    nEig1, _ = size(tabM)
 
     # Computing the eigenvalue that is closest to 1
     tabeigvals = eigvals(tabM)
@@ -96,7 +79,6 @@ function mevXi(tabM::Array{Complex{Float64},2})
 
     # output
     return tabeigvals[indEig],tabeigvecs[:,indEig],tabEigenMode
-
 end
 
 
@@ -113,24 +95,22 @@ Function that computes the radial shape of a given mode
 function GetModeShape(basis::AstroBasis.Basis_type,
                       Rmin::Float64,Rmax::Float64,
                       nRMode::Int64,
-                      EigenMode::Array{Float64},
+                      EigenMode::Vector,
                       Parameters::ResponseParameters)
 
     # prep the basis
     AstroBasis.fill_prefactors!(basis)
 
-    # get the step distance of the array in RMode
-    deltaRMode = (Rmax - Rmin)/(nRMode - 1)
-
     # table of R for which the mode is computed
     radiusvals = LinRange(Rmin,Rmax,nRMode)
 
     # table containing the radial shape of the mode
+    eigentype = typeof(EigenMode[1])
     ModeRadius         = zeros(Float64,nRMode)
-    ModePotentialShape = zeros(Float64,nRMode)
-    ModeDensityShape   = zeros(Float64,nRMode)
+    ModePotentialShape = zeros(eigentype,nRMode)
+    ModeDensityShape   = zeros(eigentype,nRMode)
 
-    println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
+    (Parameters.VEBOSE > 1) && println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
 
     # at each radius, compute the shape of the mode response
     for irad=1:nRMode
@@ -166,72 +146,4 @@ function GetModeShape(basis::AstroBasis.Basis_type,
 
     # return just in case we want to do something else
     return ModeRadius,ModePotentialShape,ModeDensityShape
-
-end
-
-"""
-    GetModeShapeComplex(basis,l,Rmin,Rmax,nR,EigenModeC)
-Function that computes the radial and azimuthal shape of a given mode
--see Eq. (72) of Hamilton+ (2018)
-"""
-function GetModeShapeComplex(basis::AstroBasis.Basis_type,
-                            Rmin::Float64,Rmax::Float64,
-                            nRMode::Int64,
-                            EigenMode::Array{Complex{Float64}},
-                            Parameters::ResponseParameters)
-
-    # prep the basis
-    AstroBasis.fill_prefactors!(basis)
-
-    # Basis parameters
-    nradial = basis.nmax
-
-    # get the step distance of the array in RMode
-    deltaRMode = (Rmax - Rmin)/(nRMode - 1)
-
-    # table of R for which the mode is computed
-    radiusvals = LinRange(Rmin,Rmax,nRMode)
-
-    # table containing the radial shape of the mode
-    ModeRadius         = zeros(Float64,nRMode)
-    ModePotentialShape = zeros(Complex{Float64},nRMode)
-    ModeDensityShape   = zeros(Complex{Float64},nRMode)
-
-    println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
-
-    # at each radius, compute the shape of the mode response
-    for irad=1:nRMode
-
-        # current value of R
-        R = radiusvals[irad]
-
-        # initialise the values
-        pval = 0.0
-        dval = 0.0
-
-        # for each basis element, add the coefficient contribution
-        for np=1:nradial
-
-            # add the contribution from the basis elements.
-            pval += EigenMode[np]*AstroBasis.getUln(basis,Parameters.lharmonic,np-1,R)
-            dval += EigenMode[np]*AstroBasis.getDln(basis,Parameters.lharmonic,np-1,R)
-
-        end
-
-        # log contribution in tables
-        ModeRadius[irad] = R
-        ModePotentialShape[irad] = pval
-        ModeDensityShape[irad] = dval
-
-    end
-
-    h5open(ModeFilename(Parameters), "w") do file
-        write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
-        write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
-        write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file
-    end
-
-    # return just in case we want to do something else
-    return ModeRadius,ModePotentialShape,ModeDensityShape
-
 end

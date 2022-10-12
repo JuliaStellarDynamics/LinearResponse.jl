@@ -19,14 +19,13 @@ these values do not depend on the frequency being evaluated: which makes them go
 
 is this struggling from having to pass around a gigantic array? what if we did more splitting?
 """
-function MakeaMCoefficients(tabResVec::Matrix{Int64},
-                            FHT::FiniteHilbertTransform.FHTtype,
+function MakeaMCoefficients(FHT::FiniteHilbertTransform.FHTtype,
                             Parameters::ResponseParameters)
 
     # get relevant sizes
-    Ku       = FHT.Ku
-    nbResVec = size(tabResVec)[2]
+    nbResVec, tabResVec = Parameters.nbResVec, Parameters.tabResVec
     nradial  = Parameters.nradial
+    Ku       = FHT.Ku
 
     (Parameters.VERBOSE > 2) && println("CallAResponse.Xi.MakeaMCoefficients: Check params: Ku=$Ku, nbResVec=$nbResVec.")
 
@@ -71,16 +70,13 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
                 # get the contribution
                 FiniteHilbertTransform.GetaXi!(FHT,view(tabGXi,nq,np,:),restab,warntab)
 
-
                 for k=1:Ku
-
                     # Warning if to many Inf or Nan values
                     (warntab[k] > 3) && println("CallAResponse.Xi.MakeaMCoefficients: NaN/Inf (warnflag=$(warntab[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(restab[k]).")
 
                     # populate the symmetric matrix
                     tabaMcoef[k,nq,np] = restab[k] # Element (np,nq)
                     tabaMcoef[k,np,nq] = restab[k] # Element (nq,np). If np=nq overwrite (this is fine).
-
                 end
             end
         end
@@ -90,6 +86,9 @@ function MakeaMCoefficients(tabResVec::Matrix{Int64},
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
         h5open(outputfilename, "w") do outputfile
+        #####
+        # !!! Add some parameters informations ?
+        #####
         write(outputfile,"aXi",tabaMcoef)
         end
 
@@ -100,19 +99,16 @@ end
 
 
 """put all aXi values into memory"""
-function StageaMcoef(tabResVec::Matrix{Int64},
-                     Parameters::ResponseParameters)
+function StageaMcoef(Parameters::ResponseParameters)
 
 
     # get dimensions from the relevant tables
-    nbResVec = size(tabResVec)[2]
+    nbResVec, tabResVec = Parameters.nbResVec, Parameters.tabResVec
     nradial  = Parameters.nradial
     Ku       = Parameters.Ku
 
     # allocate memory
     tabaMcoef = zeros(Float64,Ku,nradial,nradial,nbResVec)
-
-
 
     #Threads.@threads for nres=1:nbResVec # Loop over the resonances
     for nres = 1:nbResVec # Loop over the resonances
@@ -140,7 +136,7 @@ function StageaMcoef(tabResVec::Matrix{Int64},
 end
 
 
-"""tabM!(omg,tabM,tabaMcoef,tabResVec,tabnpnq,struct_tabLeg,dψ,d2ψ,Ω0)
+"""tabM!(omg,tabM,tabaMcoef,FHT,Parameters)
 Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω0.
 
 @IMPROVE: The shape of the array could maybe be improved
@@ -150,19 +146,14 @@ See LinearTheory.jl for a similar version
 function tabM!(ω::Complex{Float64},
                tabM::Matrix{Complex{Float64}},
                tabaMcoef::Array{Float64,4},
-               tabResVec::Matrix{Int64},
                FHT::FiniteHilbertTransform.FHTtype,
-               dψ::Function,
-               d2ψ::Function,
-               nradial::Int64,
-               Ω₀::Float64,
-               rmin::Float64,rmax::Float64;
-               VERBOSE::Int64=0,
-               KuTruncation::Int64=10000)
+               Parameters::ResponseParameters)
 
     # get dimensions from the relevant tables
-    nbResVec    = size(tabResVec)[2]
-    Ku          = FHT.Ku
+    nbResVec, tabResVec = Parameters.nbResVec, Parameters.tabResVec
+    KuTruncation = Parameters.KuTruncation
+    nradial  = Parameters.nradial
+    Ku       = FHT.Ku
 
     if KuTruncation < Ku
         Ku = KuTruncation
@@ -173,7 +164,7 @@ function tabM!(ω::Complex{Float64},
     fill!(tabM,0.0 + 0.0*im)
 
     # Rescale to get dimensionless frequency
-    ωnodim = ω/Ω₀
+    ωnodim = ω/Parameters.Ω₀
 
     # loop over the resonances: no threading here because we parallelise over frequencies
     for nres = 1:nbResVec
@@ -181,15 +172,20 @@ function tabM!(ω::Complex{Float64},
         # get current resonance numbers (n1,n2)
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
 
+        # get already computed (stored in WMat file) ωmin and ωmax values
+        filename = WMatFilename(n1,n2,Parameters)
+        file = h5open(filename, "r")
+        ωminmax= read(file,"omgminmax")
+        close(file)
+
         # get the rescaled frequency
-        ϖ = OrbitalElements.Getϖ(ωnodim,n1,n2,dψ,d2ψ,Ω₀=Ω₀,rmin=rmin,rmax=rmax)
+        ϖ = OrbitalElements.Getϖ(ωnodim,ωminmax[1],ωminmax[2])
 
         # get the integration values
         FiniteHilbertTransform.GettabD!(ϖ,FHT)
 
         # mame of the array where the D_k(w) are stored
         tabD = FHT.tabDLeg
-
 
         # loop over the basis indices to consider
         for np = 1:nradial
@@ -229,10 +225,7 @@ function tabM!(ω::Complex{Float64},
     for np=1:nradial
         tabM[np,np] *= 0.5
     end
-
 end
-
-
 
 
 """
@@ -252,33 +245,22 @@ function detXi(IMat::Array{Complex{Float64},2},
 end
 
 
-
+"""
+@TO DESCRIBE
+"""
 function RunM(ωlist::Array{Complex{Float64}},
-              dψ::Function,d2ψ::Function,
               FHT::FiniteHilbertTransform.FHTtype,
-              basis::AstroBasis.Basis_type,
-              Parameters::ResponseParameters
-              )
+              Parameters::ResponseParameters)
 
     # Check directory names
     CheckConfigurationDirectories([Parameters.gfuncdir,Parameters.modedir]) || (return 0)
 
-    # get basis parameters
-    ndim, nradial, rb = basis.dimension, basis.nmax, basis.rb
-
-    #if Parameters.nradial != nradial, break
-
-    # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,ndim)
-
-    # get all weights
-    tabu, Ku = FHT.tabu, FHT.Ku
+    # check the basis values against the Parameters
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Constructing M coefficients.")
 
     # make the decomposition coefficients a_k
-    MakeaMCoefficients(tabResVec,FHT,Parameters)
-
+    MakeaMCoefficients(FHT,Parameters)
 
     # allocate memory for FHT structs
     FHTlist = [deepcopy(FHT) for k=1:Threads.nthreads()]
@@ -298,8 +280,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
 
     # load aXi values
-
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,Parameters)
+    tabaMcoef = CallAResponse.StageaMcoef(Parameters)
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
@@ -310,21 +291,13 @@ function RunM(ωlist::Array{Complex{Float64}},
 
         k = Threads.threadid()
 
-
         if (i==2) && (Parameters.VERBOSE>0) # skip the first in case there is compile time built in
-            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,FHTlist[k],dψ,d2ψ,
-                        Parameters.nradial,Parameters.Ω₀,
-                        Parameters.rmin,Parameters.rmax,
-                        VERBOSE=Parameters.VERBOSE,KuTruncation=Parameters.KuTruncation)
+            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,FHTlist[k],Parameters)
         else
-            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabResVec,FHTlist[k],dψ,d2ψ,
-                  Parameters.nradial,Parameters.Ω₀,
-                  Parameters.rmin,Parameters.rmax,
-                  VERBOSE=Parameters.VERBOSE,KuTruncation=Parameters.KuTruncation)
+            tabM!(ωlist[i],tabMlist[k],tabaMcoef,FHTlist[k],Parameters)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
-
     end
 
     WriteDeterminant(DetFilename(Parameters),ωlist,tabdetXi)
@@ -339,9 +312,7 @@ end
 Newton-Raphson descent to find the zero crossing
 """
 function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
-                          dψ::Function,d2ψ::Function,
                           FHT::FiniteHilbertTransform.FHTtype,
-                          basis::AstroBasis.Basis_type,
                           Parameters::ResponseParameters;
                           NITER::Int64=32,
                           eta::Bool=true,
@@ -351,29 +322,17 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     # Check directory names
     CheckConfigurationDirectories([Parameters.gfuncdir,Parameters.modedir]) || (return 0)
 
-    # get basis parameters
-    ndim, nradial = basis.dimension, basis.nmax
-
-    #####
-    # Construct the table of needed resonance vectors
-    #####
-    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
-
-    # get all weights
-    tabu, Ku = FHT.tabu, FHT.Ku
-
     # make the decomposition coefficients a_k
-
-    MakeaMCoefficients(tabResVec,FHT,Parameters)
+    MakeaMCoefficients(FHT,Parameters)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,Parameters)
+    tabaMcoef = CallAResponse.StageaMcoef(Parameters)
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # memory for the response matrices M and identity matrices
-    tabMlist = zeros(Complex{Float64},nradial,nradial)
-    IMat = makeIMat(nradial)
+    tabMlist = zeros(Complex{Float64},Parameters.nradial,Parameters.nradial)
+    IMat = makeIMat(Parameters.nradial)
 
     omgval = Ωguess + im*ηguess
     domega = 1.e-4
@@ -389,17 +348,11 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
         (Parameters.VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
 
-        tabM!(omgval,tabMlist,tabaMcoef,
-              tabResVec,
-              FHT,
-              dψ,d2ψ,Parameters.nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax)
+        tabM!(omgval,tabMlist,tabaMcoef,FHT,Parameters)
 
         centralvalue = detXi(IMat,tabMlist)
 
-        tabM!(omgvaloff,tabMlist,tabaMcoef,
-              tabResVec,
-              FHT,
-              dψ,d2ψ,Parameters.nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax)
+        tabM!(omgvaloff,tabMlist,tabaMcoef,FHT,Parameters)
 
         offsetvalue = detXi(IMat,tabMlist)
 
@@ -425,5 +378,4 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.FindZeroCrossing: zero found in $completediterations steps.")
 
     return omgval
-
 end
