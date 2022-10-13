@@ -127,13 +127,13 @@ function WBasisFT(a::Float64,e::Float64,
     else
         Kwp = Parameters.Kw
     end
-    dw = (2.0)/(Kwp)
+    dw = -(2.0)/(Kwp)
 
     # need angular momentum
     Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e)
 
     # Initialise the state vectors: w, θ1, (θ2-psi)
-    w, θ1, θ2 = -1.0, 0.0, 0.0
+    w, θ1, θ2 = 1.0, pi, 0.0
 
     # Initialize integrand
     dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,basis,Parameters)
@@ -228,6 +228,10 @@ function WBasisFT(a::Float64,e::Float64,
         # clean or check nans?
 
     end # RK4 integration
+    # -1 factor (reverse integration)
+    for np=1:basis.nmax
+        @inbounds restab[np] *= -1.0
+    end
 end
 
 
@@ -285,9 +289,6 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
     # allocate the results matrices
     Wdata = WMatdata_create(basisFT.basis.nmax,Parameters.Ku,Parameters.Kv)
 
-    # Frequency cuts associated to [rmin,rmax]
-    # @IMPROVE: compute them once (independant of n1,n2) and function argument ?
-    αmin,αmax = OrbitalElements.αminmax(dψ,d2ψ,Parameters.rmin,Parameters.rmax,Ω₀=Parameters.Ω₀)
     # compute the frequency scaling factors for this resonance
     ωmin,ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,Ω₀=Parameters.Ω₀,rmin=Parameters.rmin,rmax=Parameters.rmax)
     Wdata.ωminmax[1], Wdata.ωminmax[2] = ωmin, ωmax
