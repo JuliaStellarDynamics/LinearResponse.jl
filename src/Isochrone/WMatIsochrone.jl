@@ -519,7 +519,6 @@ function RunWmatIsochrone(wmatdir::String,
     end
 
     # bases prep.
-    AstroBasis.fill_prefactors!(basis)
     bases=[deepcopy(basis) for k=1:Threads.nthreads()]
 
     # Legendre integration prep.

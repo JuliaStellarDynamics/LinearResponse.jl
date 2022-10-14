@@ -65,7 +65,7 @@ function mevXi(tabM::Matrix{Complex{Float64}})
     end
 
     # construct the mode table
-    tabEigenMode = zeros(Float64,nEig1)
+    tabEigenMode = zeros(Complex{Float64},nEig1)
 
     # now fill in the eigenmode
     # loop over the number of basis elements
@@ -73,8 +73,7 @@ function mevXi(tabM::Matrix{Complex{Float64}})
 
         # extract the eigenvector
         # tabeigvecs is the matrix whose COLUMNS are eigenvectors
-        # careful, we are only getting the real part
-        tabEigenMode[np] = real(tabeigvecs[np,indEig])
+        tabEigenMode[np] = tabeigvecs[np,indEig]
     end
 
     # output
@@ -97,9 +96,6 @@ function GetModeShape(basis::AstroBasis.Basis_type,
                       nRMode::Int64,
                       EigenMode::Vector,
                       Parameters::ResponseParameters)
-
-    # prep the basis
-    AstroBasis.fill_prefactors!(basis)
 
     # table of R for which the mode is computed
     radiusvals = LinRange(Rmin,Rmax,nRMode)

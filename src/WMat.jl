@@ -376,8 +376,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
     # check the basis values against the Parameters
 
-    # bases prep.
-    AstroBasis.fill_prefactors!(basis)
+    # FT bases prep.
     basisFT = BasisFT_create(basis)
     basesFT=[deepcopy(basisFT) for k=1:Threads.nthreads()]
 
