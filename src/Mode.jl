@@ -8,7 +8,7 @@ for a single omega, compute the shape of the mode
 """
 function ComputeModeTables(omgval::Complex{Float64},
                            FHT::FiniteHilbertTransform.FHTtype,
-                           basis::AstroBasis.Basis_type,
+                           basis::AstroBasis.BasisType,
                            Parameters::ResponseParameters)
 
     # Check directory names
@@ -91,7 +91,7 @@ Function that computes the radial shape of a given mode
 
 
 """
-function GetModeShape(basis::AstroBasis.Basis_type,
+function GetModeShape(basis::AstroBasis.BasisType,
                       Rmin::Float64,Rmax::Float64,
                       nRMode::Int64,
                       EigenMode::Vector,

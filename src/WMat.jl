@@ -9,11 +9,11 @@
 structure to store Fourier Transform values of basis elements
 """
 struct BasisFT_type
-    basis::AstroBasis.Basis_type
+    basis::AstroBasis.BasisType
     UFT::Array{Float64}
 end
 
-function BasisFT_create(basis::AstroBasis.Basis_type)
+function BasisFT_create(basis::AstroBasis.BasisType)
 
     return BasisFT_type(basis,zeros(Float64,basis.nmax))
 end
@@ -88,7 +88,7 @@ function Wintegrand(w::Float64,
                     a::Float64,e::Float64,L::Float64,
                     Ω1::Float64,Ω2::Float64,
                     ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                    basis::AstroBasis.Basis_type,
+                    basis::AstroBasis.BasisType,
                     Parameters::ResponseParameters)
 
 
@@ -115,7 +115,7 @@ function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                  basis::AstroBasis.Basis_type,
+                  basis::AstroBasis.BasisType,
                   restab::Array{Float64},
                   Parameters::ResponseParameters)
 
@@ -368,7 +368,7 @@ end
 """
 function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                  FHT::FiniteHilbertTransform.FHTtype,
-                 basis::AstroBasis.Basis_type,
+                 basis::AstroBasis.BasisType,
                  Parameters::ResponseParameters)
 
     # check wmat directory before proceeding (save time if not.)
