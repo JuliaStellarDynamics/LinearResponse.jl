@@ -8,14 +8,14 @@
 """
 structure to store Fourier Transform values of basis elements
 """
-struct BasisFT_type
+struct BasisFTtype
     basis::AstroBasis.BasisType
     UFT::Array{Float64}
 end
 
-function BasisFT_create(basis::AstroBasis.BasisType)
+function BasisFTcreate(basis::AstroBasis.BasisType)
 
-    return BasisFT_type(basis,zeros(Float64,basis.nmax))
+    return BasisFTtype(basis,zeros(Float64,basis.nmax))
 end
 
 
@@ -54,21 +54,21 @@ end
 """
 @TO DESCRIBE
 """
-function vprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+function vprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)::Float64
     return (vmax-vmin)*(vp^n)+vmin
 end
 
 """
 @TO DESCRIBE
 """
-function dvprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+function dvprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)::Float64
     return n*(vmax-vmin)*(vp^(n-1))
 end
 
 """
 @TO DESCRIBE
 """
-function invvprime(v::Float64,vmin::Float64,vmax::Float64;n::Int64=2)
+function invvprime(v::Float64,vmin::Float64,vmax::Float64;n::Int64=2)::Float64
     return ((v-vmin)/(vmax-vmin))^(1/n)
 end
 
@@ -89,7 +89,7 @@ function Wintegrand(w::Float64,
                     Ω1::Float64,Ω2::Float64,
                     ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
                     basis::AstroBasis.BasisType,
-                    Parameters::ResponseParameters)
+                    Parameters::ResponseParameters)::Tuple{Float64,Float64}
 
 
     # Current location of the radius, r=r(w)
@@ -114,7 +114,7 @@ result stored in place
 function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                   basis::AstroBasis.BasisType,
                   restab::Array{Float64},
                   Parameters::ResponseParameters)
@@ -241,13 +241,13 @@ with basisFT struct
 function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                  basisFT::BasisFT_type,
+                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
+                  basisFT::BasisFTtype,
                   Parameters::ResponseParameters)
 
 
     # Basis FT
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,d4ψ,basisFT.basis,basisFT.UFT,Parameters)
 end
 
 """
@@ -255,15 +255,17 @@ without Ω1, Ω2
 """
 function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
-                  basisFT::BasisFT_type,
+                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
+                  basisFT::BasisFTtype,
                   Parameters::ResponseParameters)
 
     # Frequencies
-    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e;TOLECC=Parameters.TOLECC,VERBOSE=Parameters.VERBOSE,NINT=Parameters.NINT,EDGE=Parameters.EDGE)
+    #Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=Parameters.TOLECC,NINT=Parameters.NINT,EDGE=Parameters.EDGE)
+    O1,O2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,false,TOLECC=Parameters.TOLECC,NINT=Parameters.NINT,EDGE=EParameters.EDGE)
+
     # Basis FT
 
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,d4ψ,basisFT.basis,basisFT.UFT,Parameters)
 end
 
 
@@ -276,10 +278,10 @@ end
 """
 @TO DESCRIBE
 """
-function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc::Function,
+function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,βc::Function,
                     n1::Int64,n2::Int64,
                     tabu::Vector{Float64},
-                    basisFT::BasisFT_type,
+                    basisFT::BasisFTtype,
                     Parameters::ResponseParameters)
 
 
@@ -323,27 +325,28 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,βc
             # (u,v) -> (α,β)
             α,β = OrbitalElements.αβFromUV(uval,vval,n1,n2,ωmin,ωmax)
             # (α,β) -> (Ω1,Ω2)
-            Ω1,Ω2 = α*Parameters.Ω₀,α*β*Parameters.Ω₀
+            Ω₁,Ω₂= α*Parameters.Ω₀,α*β*Parameters.Ω₀
             # (Ω1,Ω2) -> (a,e)
-            a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=Parameters.NINT,EDGE=Parameters.EDGE,VERBOSE=Parameters.VERBOSE)
+            #a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,NINT=Parameters.NINT,EDGE=Parameters.EDGE)
+            a,e = OrbitalElements.AEFromΩ1Ω2Brute(Ω₁,Ω₂,ψ,dψ,d2ψ,d3ψ,d4ψ,TOLECC=Parameters.ELTOLECC,EDGE=Parameters.EDGE,NINT=Parameters.NINT)
 
             (Parameters.VERBOSE > 2) && print("v=$kvval,o1=$Ω1,o2=$Ω2;")
 
             # save (u,v) values for later
             Wdata.tabUV[1,kvval,kuval], Wdata.tabUV[2,kvval,kuval] = uval, vval
             # save (Ω1,Ω2) values for later
-            Wdata.tabΩ1Ω2[1,kvval,kuval], Wdata.tabΩ1Ω2[2,kvval,kuval] = Ω1, Ω2
+            Wdata.tabΩ1Ω2[1,kvval,kuval], Wdata.tabΩ1Ω2[2,kvval,kuval] = Ω₁,Ω₂
             # save (a,e) values for later
             Wdata.tabAE[1,kvval,kuval], Wdata.tabAE[2,kvval,kuval] = a, e
             # save (E,L) values for later
-            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,TOLECC=0.001)
+            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,Parameters.ELTOLECC)
 
             # compute the Jacobian (E,L)->(alpha,beta) here. a little more expensive, but savings in the long run
 
             Wdata.tabJ[kvval,kuval] = OrbitalElements.JacELToαβAE(a,e,ψ,dψ,d2ψ,Parameters.Ω₀)
 
             # Compute W(u,v) for every basis element using RK4 scheme
-            WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,Parameters)
+            WBasisFT(a,e,Ω₁,Ω₂,n1,n2,ψ,dψ,d2ψ,d3ψ,d4ψ,basisFT,Parameters)
 
             for np = 1:basisFT.basis.nmax
                 Wdata.tabW[np,kvval,kuval] = basisFT.UFT[np]
@@ -366,7 +369,7 @@ end
 
 @TO DESCRIBE
 """
-function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                  FHT::FiniteHilbertTransform.FHTtype,
                  basis::AstroBasis.BasisType,
                  Parameters::ResponseParameters)
@@ -377,7 +380,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
     # check the basis values against the Parameters
 
     # FT bases prep.
-    basisFT = BasisFT_create(basis)
+    basisFT = BasisFTcreate(basis)
     basesFT=[deepcopy(basisFT) for k=1:Threads.nthreads()]
 
     # define a function for βcircular
@@ -407,11 +410,11 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
 
         # compute the W matrices in UV space: timing optional
         if (Parameters.VERBOSE > 1)
-            @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,βc,
+            @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,βc,
                                      n1,n2,FHT.tabu,
                                      basesFT[k],Parameters)
         else
-            Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,βc,
+            Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,βc,
                                n1,n2,FHT.tabu,
                                basesFT[k],Parameters)
         end

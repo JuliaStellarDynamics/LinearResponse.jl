@@ -27,7 +27,7 @@ using HDF5
 G         = 1.
 rb        = 15.0
 lmax,nmax = 1,30
-basis     = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
+basis     = AstroBasis.CB73BasisCreate(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim      = basis.dimension
 nradial   = basis.nmax
 
