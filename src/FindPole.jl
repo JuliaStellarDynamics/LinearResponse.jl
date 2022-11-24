@@ -3,17 +3,14 @@
 function SetupDeterminantZero(FHT::FiniteHilbertTransform.FHTtype,
                               Parameters::ResponseParameters)
 
-    # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,Parameters.ndim)
-
     # read the decomposition coefficients a_k (must be created elsewhere)
-    tabaMcoef = StageaMcoef(tabResVec,Parameters)
+    tabaMcoef = StageaMcoef(Parameters)
 
     # allocate arrays for constructing the determinant
     MMat = zeros(Complex{Float64},Parameters.nradial,Parameters.nradial)
     IMat = makeIMat(Parameters.nradial)
 
-    return IMat,MMat,tabaMcoef,tabResVec
+    return IMat,MMat,tabaMcoef
 
 end
 
@@ -22,8 +19,6 @@ function GoStep(omgval::Complex{Float64},
                 IMat::Array{Complex{Float64},2},MMat::Array{Complex{Float64},2},
                 FHT::FiniteHilbertTransform.FHTtype,
                 tabaMcoef::Array{Float64,4},
-                tabResVec::Matrix{Int64},
-                dψ::Function,d2ψ::Function,
                 Parameters::ResponseParameters)
 
     nomg = 1
@@ -32,7 +27,7 @@ function GoStep(omgval::Complex{Float64},
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
     # fill the M matrix
-    tabM!(omgval,MMat,tabaMcoef,tabResVec,FHT,dψ,d2ψ,Parameters.nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax,VERBOSE=Parameters.VERBOSE)
+    tabM!(omgval,MMat,tabaMcoef,FHT,Parameters)
 
     # compute the determinant of I-M
     detXival = detXi(IMat,MMat)
@@ -41,10 +36,10 @@ function GoStep(omgval::Complex{Float64},
     riomgval = omgval + 1.e-5
     upomgval = omgval + 1.e-5im
 
-    tabM!(riomgval,MMat,tabaMcoef,tabResVec,FHT,dψ,d2ψ,Parameters.nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax,VERBOSE=Parameters.VERBOSE)
+    tabM!(riomgval,MMat,tabaMcoef,FHT,Parameters)
     detXivalri = detXi(IMat,MMat)
 
-    tabM!(upomgval,MMat,tabaMcoef,tabResVec,FHT,dψ,d2ψ,Parameters.nradial,Parameters.Ω₀,Parameters.rmin,Parameters.rmax,VERBOSE=Parameters.VERBOSE)
+    tabM!(upomgval,MMat,tabaMcoef,FHT,Parameters)
     detXivalup = detXi(IMat,MMat)
 
     dXirir = real(detXivalri-detXival)/1.e-5
@@ -73,8 +68,6 @@ function FindDeterminantZero(startingomg::Complex{Float64},
                              IMat::Array{Complex{Float64},2},MMat::Array{Complex{Float64},2},
                              FHT::FiniteHilbertTransform.FHTtype,
                              tabaMcoef::Array{Float64,4},
-                             tabResVec::Matrix{Int64},
-                             dψ::Function,d2ψ::Function,
                              Parameters::ResponseParameters;
                              TOL::Float64=1.e-12)
 
@@ -84,7 +77,7 @@ function FindDeterminantZero(startingomg::Complex{Float64},
 
     while abs(detXival)^2 > TOL
 
-        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,tabResVec,dψ,d2ψ,Parameters)
+        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,Parameters)
 
         if abs(detXival) > 1.0
             break
@@ -100,14 +93,13 @@ end
 
 function FindPole(startingomg::Complex{Float64},
                   FHT::FiniteHilbertTransform.FHTtype,
-                  dψ::Function,d2ψ::Function,
                   Parameters::ResponseParameters,
                   TOL::Float64=1.e-12)
 
-    IMat,MMat,tabaMcoef,tabResVec = SetupDeterminantZero(FHT,Parameters)
+    IMat,MMat,tabaMcoef = SetupDeterminantZero(FHT,Parameters)
 
 
-    bestomg = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,tabResVec,dψ,d2ψ,Parameters,TOL=TOL)
+    bestomg = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,Parameters,TOL=TOL)
 
     (Parameters.VERBOSE >= 0) && println("Best O for n1max=$(Parameters.n1max),nradial=$(Parameters.nradial) == $bestomg")
 

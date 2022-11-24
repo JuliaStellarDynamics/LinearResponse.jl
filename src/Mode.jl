@@ -106,7 +106,7 @@ function GetModeShape(basis::AstroBasis.BasisType,
     ModePotentialShape = zeros(eigentype,nRMode)
     ModeDensityShape   = zeros(eigentype,nRMode)
 
-    (Parameters.VEBOSE > 1) && println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
+    (Parameters.VERBOSE > 1) && println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
 
     # at each radius, compute the shape of the mode response
     for irad=1:nRMode
