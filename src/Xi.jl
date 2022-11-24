@@ -164,7 +164,7 @@ function tabM!(ω::Complex{Float64},
     fill!(tabM,0.0 + 0.0*im)
 
     # Rescale to get dimensionless frequency
-    ωnodim = ω/Parameters.Ω₀
+    ωnodim = ω/Parameters.OEparams.Ω₀
 
     # loop over the resonances: no threading here because we parallelise over frequencies
     for nres = 1:nbResVec
@@ -307,7 +307,7 @@ end
 
 
 
-"""FindZeroCrossing(Ωguess,ηguess,dψ,d2ψ,gfuncdir,modedir,FHT,Kv,Kw,basis,lharmonic,n1max,Ω₀,modelname,dfname,rb,rmin::Float64,rmax[,NITER,eta,ACCURACY=1.0e-10,VERBOSE=0,OVERWRITE=false])
+"""FindZeroCrossing(Ωguess,ηguess,FHT,params[,NITER,eta,ACCURACY=1.0e-10])
 
 Newton-Raphson descent to find the zero crossing
 """
