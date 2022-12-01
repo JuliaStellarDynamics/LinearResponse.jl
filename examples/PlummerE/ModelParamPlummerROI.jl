@@ -14,11 +14,12 @@ Must include:
 """
 
 
+
 import OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
+import CallAResponse
 using HDF5
-
 
 #####
 # Basis
@@ -26,7 +27,7 @@ using HDF5
 G  = 1.
 rb = 20.0
 lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
-basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
+basis = AstroBasis.CB73BasisCreate(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
 
@@ -50,12 +51,6 @@ rmax = 1.0e5
 
 
 dfname = "roi1.0"
-dfname = "roi0.75"
-#dfname = "roi0.90"
-#dfname = "roi0.95"
-
-#dfname = "roi1.1"
-
 
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,
@@ -68,40 +63,52 @@ end
 
 
 # integration parameters
-Ku = 200    # number of Legendre integration sample points
+
+Ku = 202    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
-Kw = 200    # number of allocations is insensitive to this (also time, largely?
+Kw = 200    # number of allocations is insensitive to this (also time, largely)?
+KuTruncation = 10000
 
 # define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 
 lharmonic = 2
-n1max     = 10 # maximum number of radial resonances to consider
+n1max = 2  # maximum number of radial resonances to consider
 
-# output directories
-wmatdir  = "wmat/"
-gfuncdir = "gfunc/"
-xifuncdir= "xifunc/"
-modedir  = "xifunc/"
-
-#=
+# Mode of response matrix computation
 # Frequencies to probe
 nOmega   = 51
 Omegamin = -0.02
 Omegamax = 0.02
 nEta     = 50
 Etamin   = 0.001
-Etamax   = 0.05
-=#
+Etamax   = 0.04
 
-# Frequencies to probe
-nOmega   = 51
-Omegamin = -0.02
-Omegamax = 0.02
-nEta     = 50
-Etamin   = -0.005
-Etamax   = -0.00001
+
+
+# output directories
+wmatdir  = "wmat/"
+gfuncdir = "gfunc/"
+modedir  = "xifunc/"
+
+
+VERBOSE   = 2
+OVERWRITE = true
+EDGE      = 0.01
+ELTOLECC  = 0.0005
+VMAPN     = 1 # exponent for v mapping (1 is linear)
+
+
+Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
+                                                    modelname=modelname,dfname=dfname,
+                                                    wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
+                                                    lharmonic=lharmonic,n1max=n1max,nradial=nradial,
+                                                    KuTruncation=KuTruncation,
+                                                    VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
+                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,
+                                                    EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
+                                                    nmax=basis.nmax,rbasis=basis.rb,VMAPN=VMAPN)
 
 
 

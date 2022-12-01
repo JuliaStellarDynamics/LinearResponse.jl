@@ -30,4 +30,5 @@ Function arguments: should have the evaluation locations listed first (i.e. radi
 ### Authors
 
 Mike Petersen -  @michael-petersen - petersen@iap.fr
+
 Mathieu Roule - @MathieuRoule - roule@iap.fr

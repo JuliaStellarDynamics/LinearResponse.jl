@@ -28,7 +28,7 @@ G  = 1.
 #rb = 20.0
 rb = 15.0
 lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
-basis = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
+basis = AstroBasis.CB73BasisCreate(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
 

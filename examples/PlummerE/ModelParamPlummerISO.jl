@@ -17,6 +17,7 @@ Must include:
 import OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
+import CallAResponse
 using HDF5
 
 # basis parameters
@@ -25,7 +26,7 @@ rb = 20.0
 lmax,nmax = 1,100 # number of basis functions
 
 # automatically set up the basis parameters
-basis   = AstroBasis.CB73Basis_create(lmax=lmax, nmax=nmax,G=G,rb=rb)
+basis   = AstroBasis.CB73BasisCreate(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim    = basis.dimension
 nradial = basis.nmax
 
@@ -59,31 +60,52 @@ end
 
 
 # integration parameters
-Ku = 200    # number of Legendre integration sample points
+
+Ku = 202    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
-Kw = 200    # number of allocations is insensitive to this (also time, largely?
+Kw = 200    # number of allocations is insensitive to this (also time, largely)?
+KuTruncation = 10000
 
 # define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 
-lharmonic = 1   # azimuthal harmonic to consider
-n1max     = 20  # maximum number of radial resonances to consider
+lharmonic = 1
+n1max = 5  # maximum number of radial resonances to consider
 
-# outputs directories
+# Mode of response matrix computation
+# Frequencies to probe
+nOmega   = 51
+Omegamin = -0.02
+Omegamax = 0.02
+nEta     = 50
+Etamin   = 0.001
+Etamax   = 0.04
+
+
+
+# output directories
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
 
 
-# to see the computation in the upper half plane...
-# Frequencies to probe
-nOmega   = 61
-Omegamin = -0.05
-Omegamax = 0.05
-nEta     = 30
-Etamin   = 0.0001
-Etamax   = 0.005
+VERBOSE   = 2
+OVERWRITE = true
+EDGE      = 0.01
+ELTOLECC  = 0.0005
+VMAPN     = 1 # exponent for v mapping (1 is linear)
+
+
+Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
+                                                    modelname=modelname,dfname=dfname,
+                                                    wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
+                                                    lharmonic=lharmonic,n1max=n1max,nradial=nradial,
+                                                    KuTruncation=KuTruncation,
+                                                    VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
+                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,
+                                                    EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
+                                                    nmax=basis.nmax,rbasis=basis.rb,VMAPN=VMAPN)
 
 
 

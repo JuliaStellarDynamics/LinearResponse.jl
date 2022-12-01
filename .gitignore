@@ -7,6 +7,7 @@
 examples/*/wmat
 examples/*/gfunc
 examples/*/xifunc
+examples/*/figures
 
 # log on cluster
 examples/*/log

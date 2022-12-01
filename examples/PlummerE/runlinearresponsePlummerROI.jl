@@ -1,9 +1,9 @@
 """
-for the Isochrone radially-unstable model: compute linear response theory
+for the radially-biased Plummer model: compute linear response theory
 """
 
 # bring in all parameters from the input file
-inputfile = "ModelParamIsochroneROI.jl"
+inputfile = "ModelParamPlummerROI.jl"
 include(inputfile)
 
 import CallAResponse
@@ -22,7 +22,7 @@ tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 tabdet = CallAResponse.RunM(tabomega,FHT,Parameters)
 
 # find a pole by using gradient descent
-startingomg = 0.0 + 0.02im
+startingomg = 0.0 + 0.2im
 bestomg = CallAResponse.FindPole(startingomg,FHT,Parameters,1.e-12)
 
 #bestomg = 0.0 + 0.02271406012170436im
