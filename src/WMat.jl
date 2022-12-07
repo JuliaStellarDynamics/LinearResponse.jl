@@ -84,7 +84,7 @@ end
 
 Integrand computation/update for FT of basis elements
 """
-function Wintegrand(w::Float64,
+@inline function Wintegrand(w::Float64,
                     a::Float64,e::Float64,L::Float64,
                     Ω1::Float64,Ω2::Float64,
                     ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
@@ -111,7 +111,7 @@ end
 Fourier Transform of basis elements using RK4 scheme
 result stored in place
 """
-function WBasisFT(a::Float64,e::Float64,
+@inline function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
@@ -122,17 +122,17 @@ function WBasisFT(a::Float64,e::Float64,
     @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: FT array not of the same size as the basis"
 
     # Integration step
-    if Parameters.ADAPTIVEKW
-        Kwp = ceil(Int64,Parameters.Kw/(0.1+(1-e)))
-    else
-        Kwp = Parameters.Kw
-    end
+    Kwp = (Parameters.ADAPTIVEKW) ? ceil(Int64,Parameters.Kw/(0.1+(1-e))) : Kwp = Parameters.Kw
+
+    # Caution : Reverse integration (lower error at apocenter than pericenter)
+    # -> Result to multiply by -1
     dw = -(2.0)/(Kwp)
 
     # need angular momentum
     Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e,Parameters.OEparams)
 
     # Initialise the state vectors: w, θ1, (θ2-psi)
+    # Reverse integration, starting at apocenter
     w, θ1, θ2 = 1.0, pi, 0.0
 
     # Initialize integrand
@@ -228,17 +228,20 @@ function WBasisFT(a::Float64,e::Float64,
         # clean or check nans?
 
     end # RK4 integration
+    
     # -1 factor (reverse integration)
     for np=1:basis.nmax
         @inbounds restab[np] *= -1.0
     end
+
+    return nothing
 end
 
 
 """
 with basisFT struct
 """
-function WBasisFT(a::Float64,e::Float64,
+@inline function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
@@ -253,7 +256,7 @@ end
 """
 without Ω1, Ω2
 """
-function WBasisFT(a::Float64,e::Float64,
+@inline function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
                   basisFT::BasisFTtype,
