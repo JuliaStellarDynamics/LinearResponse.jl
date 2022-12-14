@@ -12,7 +12,7 @@ function to compute G(u)
 """
 function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
-                Wdata::WMatdata_type,
+                Wdata::WMatdataType,
                 tabu::Array{Float64},
                 Parameters::ResponseParameters)
 
@@ -61,10 +61,10 @@ function MakeGu(ndFdJ::Function,
 
             # get the current v value
             vp = δvp*(kvval-0.5)
-            vval = vprime(vp,vmin,vmax,n=Parameters.VMAPN)
+            vval = vprime(vp,vmin,vmax,Parameters.VMAPN)
 
             # vp -> v
-            Jacvp = dvprime(vp,vmin,vmax,n=Parameters.VMAPN)
+            Jacvp = dvprime(vp,vmin,vmax,Parameters.VMAPN)
 
             ####
             # (u,v) -> (a,e)
@@ -169,7 +169,7 @@ function RunGfunc(ndFdJ::Function,
         #####
         # !!! Add sufficient nradial verification
         #####
-        Wdata      = WMatdata_type(read(file,"wmat"),                                                               # Basis FT
+        Wdata      = WMatdataType(read(file,"wmat"),                                                               # Basis FT
                                    read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),    # Mappings
                                    read(file,"jELABmat"),                                                           # Jacobians
                                    read(file,"omgminmax"),read(file,"tabvminmax"))                                  # Mapping parameters

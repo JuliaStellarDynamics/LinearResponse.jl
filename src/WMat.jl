@@ -22,7 +22,7 @@ end
 """
 structure to store the W matrix computation results
 """
-struct WMatdata_type
+struct WMatdataType
     tabW::Array{Float64,3}
     tabUV::Array{Float64,3}
     tabΩ1Ω2::Array{Float64,3}
@@ -36,9 +36,9 @@ end
 """
 @TO DESCRIBE
 """
-function WMatdata_create(nmax::Int64,Ku::Int64,Kv::Int64)
+function WMatdataCreate(nmax::Int64,Ku::Int64,Kv::Int64)
 
-    return WMatdata_type(zeros(Float64,nmax,Kv,Ku),
+    return WMatdataType(zeros(Float64,nmax,Kv,Ku),
                          zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
                          zeros(Float64,Kv,Ku),
                          zeros(Float64,2),zeros(Float64,2,Ku))
@@ -54,21 +54,21 @@ end
 """
 @TO DESCRIBE
 """
-function vprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)::Float64
+function vprime(vp::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
     return (vmax-vmin)*(vp^n)+vmin
 end
 
 """
 @TO DESCRIBE
 """
-function dvprime(vp::Float64,vmin::Float64,vmax::Float64;n::Int64=2)::Float64
+function dvprime(vp::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
     return n*(vmax-vmin)*(vp^(n-1))
 end
 
 """
 @TO DESCRIBE
 """
-function invvprime(v::Float64,vmin::Float64,vmax::Float64;n::Int64=2)::Float64
+function invvprime(v::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
     return ((v-vmin)/(vmax-vmin))^(1/n)
 end
 
@@ -84,7 +84,7 @@ end
 
 Integrand computation/update for FT of basis elements
 """
-@inline function Wintegrand(w::Float64,
+function Wintegrand(w::Float64,
                     a::Float64,e::Float64,L::Float64,
                     Ω1::Float64,Ω2::Float64,
                     ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
@@ -111,18 +111,18 @@ end
 Fourier Transform of basis elements using RK4 scheme
 result stored in place
 """
-@inline function WBasisFT(a::Float64,e::Float64,
+function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
+                  ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,
                   basis::AstroBasis.BasisType,
-                  restab::Array{Float64},
-                  Parameters::ResponseParameters)
+                  restab::Vector{Float64},
+                  Parameters::ResponseParameters) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
 
     @assert length(restab) == basis.nmax "CallAResponse.WBasisFT: FT array not of the same size as the basis"
 
     # Integration step
-    Kwp = (Parameters.ADAPTIVEKW) ? ceil(Int64,Parameters.Kw/(0.1+(1-e))) : Kwp = Parameters.Kw
+    Kwp = (Parameters.ADAPTIVEKW) ? ceil(Int64,Parameters.Kw/(0.1+(1-e))) : Parameters.Kw
 
     # Caution : Reverse integration (lower error at apocenter than pericenter)
     # -> Result to multiply by -1
@@ -241,33 +241,32 @@ end
 """
 with basisFT struct
 """
-@inline function WBasisFT(a::Float64,e::Float64,
+function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
+                  ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,
                   basisFT::BasisFTtype,
-                  Parameters::ResponseParameters)
-
+                  Parameters::ResponseParameters) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
 
     # Basis FT
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,d4ψ,basisFT.basis,basisFT.UFT,Parameters)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
 end
 
 """
 without Ω1, Ω2
 """
-@inline function WBasisFT(a::Float64,e::Float64,
+function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
+                  ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,
                   basisFT::BasisFTtype,
-                  Parameters::ResponseParameters)
+                  Parameters::ResponseParameters) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
 
     # Frequencies
-    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Parameters.OEparams)
+    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e,Parameters.OEparams)
 
     # Basis FT
 
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,d4ψ,basisFT.basis,basisFT.UFT,Parameters)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,Parameters)
 end
 
 
@@ -291,7 +290,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
     #Ku = length(tabu)
 
     # allocate the results matrices
-    Wdata = WMatdata_create(basisFT.basis.nmax,Parameters.Ku,Parameters.Kv)
+    Wdata = WMatdataCreate(basisFT.basis.nmax,Parameters.Ku,Parameters.Kv)
 
     # compute the frequency scaling factors for this resonance
     ωmin,ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,Parameters.OEparams)
@@ -319,7 +318,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
 
             # get the current v value
             vp   = δvp*(kvval-0.5)
-            vval = vprime(vp,vmin,vmax,n=Parameters.VMAPN)
+            vval = vprime(vp,vmin,vmax,Parameters.VMAPN)
 
             ####
             # (u,v) -> (a,e)
@@ -347,7 +346,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
             Wdata.tabJ[kvval,kuval] = OrbitalElements.JacELToαβAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Parameters.OEparams)
 
             # Compute W(u,v) for every basis element using RK4 scheme
-            WBasisFT(a,e,Ω₁,Ω₂,n1,n2,ψ,dψ,d2ψ,d3ψ,d4ψ,basisFT,Parameters)
+            WBasisFT(a,e,Ω₁,Ω₂,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,Parameters)
 
             for np = 1:basisFT.basis.nmax
                 Wdata.tabW[np,kvval,kuval] = basisFT.UFT[np]
@@ -410,7 +409,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
         end
 
         # compute the W matrices in UV space: timing optional
-        if (Parameters.VERBOSE > 1)
+        if (Parameters.VERBOSE > 1) && (k == 1)
             @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,βc,
                                      n1,n2,FHT.tabu,
                                      basesFT[k],Parameters)
