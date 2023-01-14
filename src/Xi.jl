@@ -42,28 +42,18 @@ function MakeaMCoefficients(FHT::FiniteHilbertTransform.FHTtype,
     # Threads.@threads for nres in 1:nbResVec
     for nres = 1:nbResVec
 
-        n1,n2 = tabResVec[1,nres],tabResVec[2,nres]
+        n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
 
-        # don't do this loop if the file calculation already exists (unless asked)
+        (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: Starting on ($n1,$n2).")
+
         outputfilename = AxiFilename(n1,n2,Parameters)
-        if isfile(outputfilename)
+        # Check if the file already exist / has enough basis elements / overwritting imposed
+        # false if no computation needed, then continue
+        CheckFileNradial(outputfilename,Parameters,"CallAResponse.Xi.MakeaMCoefficients: ($n1,$n2) resonance") || continue
 
-            # log if requested
-            (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: file already exists for step $nres of $nbResVec, ($n1,$n2).")
-
-            # decide if we want to overwrite anyway
-            Parameters.OVERWRITE ? println("...recomputing anyway.") : continue
-        end
-
-        (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: on step $nres of $nbResVec: ($n1,$n2).")
-
-        # open the resonance file
-        filename  = GFuncFilename(n1,n2,Parameters)
-        inputfile = h5open(filename,"r")
-
-        (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
-
-        tabGXi = read(inputfile,"Gmat")
+        # Read G(u) from the GFunc file for this resonance
+        gfuncfilename  = GFuncFilename(n1,n2,Parameters)
+        tabGXi = h5read(gfuncfilename,"Gmat")
 
         for np = 1:nradial
             for nq = np:nradial
@@ -81,15 +71,12 @@ function MakeaMCoefficients(FHT::FiniteHilbertTransform.FHTtype,
             end
         end
 
-        close(inputfile)
-
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
         h5open(outputfilename, "w") do outputfile
-        #####
-        # !!! Add some parameters informations ?
-        #####
-        write(outputfile,"aXi",tabaMcoef)
+            write(outputfile,"aXi",tabaMcoef)
+            # Parameters
+            WriteParameters(outputfile,Parameters)
         end
 
     end # resonance vector loop
@@ -153,6 +140,7 @@ function tabM!(ω::Complex{Float64},
     nbResVec, tabResVec = Parameters.nbResVec, Parameters.tabResVec
     KuTruncation = Parameters.KuTruncation
     nradial  = Parameters.nradial
+    VERBOSE  = Parameters.VERBOSE
     Ku       = FHT.Ku
 
     if KuTruncation < Ku
@@ -301,7 +289,7 @@ function RunM(ωlist::Array{Complex{Float64}},
     end
 
     WriteDeterminant(DetFilename(Parameters),ωlist,tabdetXi)
-
+    WriteParameters(DetFilename(Parameters),Parameters)
     return tabdetXi
 end
 

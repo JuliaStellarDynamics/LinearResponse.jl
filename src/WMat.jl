@@ -381,7 +381,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
 
     # FT bases prep.
     basisFT = BasisFTcreate(basis)
-    basesFT=[deepcopy(basisFT) for k=1:Threads.nthreads()]
+    basesFT = [deepcopy(basisFT) for k=1:Threads.nthreads()]
 
     # define a function for βcircular
     βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,Parameters.OEparams)
@@ -396,17 +396,11 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
         (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
 
         # If it has been already computed
-        if isfile(WMatFilename(n1,n2,Parameters))
-            file = h5open(WMatFilename(n1,n2,Parameters), "r")
-            oldnradial = read(file,"nradial")
-            if (Parameters.OVERWRITE == false) && (Parameters.nradial <= oldnradial)
-                (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonance WMat file already exists with higher nradial: no computation.")
-                continue
-            else
-                (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonance WMat file already exists (possibly with lower nradial): recomputing and overwriting.")
-            end
-            close(file)
-        end
+        outputfilename = WMatFilename(n1,n2,Parameters)
+
+        # Check if the file already exist / has enough basis elements / overwritting imposed
+        # false if no computation needed, then continue
+        CheckFileNradial(outputfilename,Parameters,"CallAResponse.WMat.RunWMat: ($n1,$n2) resonance WMat") || continue
 
         # compute the W matrices in UV space: timing optional
         if (Parameters.VERBOSE > 1) && (k == 1)
@@ -421,8 +415,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.
-        h5open(WMatFilename(n1,n2,Parameters), "w") do file
-            write(file, "nradial",Parameters.nradial)
+        h5open(outputfilename, "w") do file
             # Basis FT
             write(file, "wmat",Wdata.tabW)
             # Mappings parameters
@@ -435,6 +428,8 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
             write(file, "ELmat",Wdata.tabEL)
             # Jacobians
             write(file, "jELABmat",Wdata.tabJ)
+            # Parameters
+            WriteParameters(file,Parameters)
         end
     end
 end
