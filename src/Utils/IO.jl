@@ -3,15 +3,9 @@
 
 function CheckValidDirectory(dir::String)
 
-    # check that this is in fact a directory
-    if !isdir(dir)
+    # check that this is in fact a directory path ("/" at the end, "" return true)
+    if !isdirpath(dir)
         println("CallAResponse.IO.CheckValidDirectory: nonexistent directory $dir.")
-        return false
-    end
-
-    # check the trailing slash
-    if last(dir)!='/'
-        println("CallAResponse.IO.CheckValidDirectory: bad dir (needs trailing /) $dir")
         return false
     end
 
@@ -35,7 +29,7 @@ function CheckConfigurationDirectories(dirs::Array{String})
 
     # check for all specified directories (will succeed if no directory is specified, just might annoyingly print to wherever code is executed,)
     for dir in dirs
-        ((dir=="") || CheckValidDirectory(dir)) || (return false)
+        CheckValidDirectory(dir) || (return false)
     end
     return true
 end

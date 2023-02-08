@@ -54,21 +54,21 @@ end
 """
 @TO DESCRIBE
 """
-function vprime(vp::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
+function vFromvp(vp::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
     return (vmax-vmin)*(vp^n)+vmin
 end
 
 """
 @TO DESCRIBE
 """
-function dvprime(vp::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
+function DvDvp(vp::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
     return n*(vmax-vmin)*(vp^(n-1))
 end
 
 """
 @TO DESCRIBE
 """
-function invvprime(v::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
+function vpFromv(v::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
     return ((v-vmin)/(vmax-vmin))^(1/n)
 end
 
@@ -87,9 +87,9 @@ Integrand computation/update for FT of basis elements
 function Wintegrand(w::Float64,
                     a::Float64,e::Float64,L::Float64,
                     Ω1::Float64,Ω2::Float64,
-                    ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,
+                    ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,
                     basis::AstroBasis.BasisType,
-                    Parameters::ResponseParameters)::Tuple{Float64,Float64}
+                    Parameters::ResponseParameters)::Tuple{Float64,Float64} where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
 
 
     # Current location of the radius, r=r(w)
@@ -144,7 +144,6 @@ function WBasisFT(a::Float64,e::Float64,
     # start the integration loop now that we are initialised
     # at each step, we are performing an RK4-like calculation
     for istep=1:Kwp
-
 
         ####
         # RK4 Step 1
@@ -297,7 +296,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
     Wdata.ωminmax[1], Wdata.ωminmax[2] = ωmin, ωmax
 
     # start the loop
-    for kuval in 1:Parameters.Ku
+    for kuval = 1:Parameters.Ku
 
         # get the current u value
         uval = tabu[kuval]
@@ -314,11 +313,11 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
         δvp = 1.0/Parameters.Kv
 
 
-        for kvval in 1:Parameters.Kv
+        for kvval = 1:Parameters.Kv
 
             # get the current v value
             vp   = δvp*(kvval-0.5)
-            vval = vprime(vp,vmin,vmax,Parameters.VMAPN)
+            vval = vFromvp(vp,vmin,vmax,Parameters.VMAPN)
 
             ####
             # (u,v) -> (a,e)
@@ -326,7 +325,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
             # (u,v) -> (α,β)
             α,β = OrbitalElements.αβFromUV(uval,vval,n1,n2,ωmin,ωmax)
             # (α,β) -> (Ω1,Ω2)
-            Ω₁,Ω₂= α*Ω₀,α*β*Ω₀
+            Ω₁, Ω₂ = OrbitalElements.FrequenciesFromαβ(α,β,Ω₀)
             # (Ω1,Ω2) -> (a,e)
             a,e = OrbitalElements.ComputeAEFromFrequencies(ψ,dψ,d2ψ,d3ψ,d4ψ,Ω₁,Ω₂,Parameters.OEparams)
 
@@ -335,7 +334,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
             # save (u,v) values for later
             Wdata.tabUV[1,kvval,kuval], Wdata.tabUV[2,kvval,kuval] = uval, vval
             # save (Ω1,Ω2) values for later
-            Wdata.tabΩ1Ω2[1,kvval,kuval], Wdata.tabΩ1Ω2[2,kvval,kuval] = Ω₁,Ω₂
+            Wdata.tabΩ1Ω2[1,kvval,kuval], Wdata.tabΩ1Ω2[2,kvval,kuval] = Ω₁, Ω₂
             # save (a,e) values for later
             Wdata.tabAE[1,kvval,kuval], Wdata.tabAE[2,kvval,kuval] = a, e
             # save (E,L) values for later
@@ -375,7 +374,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
                  Parameters::ResponseParameters)
 
     # check wmat directory before proceeding (save time if not.)
-    CheckConfigurationDirectories([Parameters.wmatdir]) || (return 0)
+    CheckValidDirectory(Parameters.wmatdir) || (return 0)
 
     # check the basis values against the Parameters
 

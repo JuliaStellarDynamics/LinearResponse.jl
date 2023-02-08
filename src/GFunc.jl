@@ -61,10 +61,10 @@ function MakeGu(ndFdJ::Function,
 
             # get the current v value
             vp = δvp*(kvval-0.5)
-            vval = vprime(vp,vmin,vmax,Parameters.VMAPN)
+            vval = vFromvp(vp,vmin,vmax,Parameters.VMAPN)
 
             # vp -> v
-            Jacvp = dvprime(vp,vmin,vmax,Parameters.VMAPN)
+            Jacvp = DvDvp(vp,vmin,vmax,Parameters.VMAPN)
 
             ####
             # (u,v) -> (a,e)

@@ -103,10 +103,7 @@ function StageaMcoef(Parameters::ResponseParameters)
 
         # retrieve the correct M table
         filename = AxiFilename(n1,n2,Parameters)
-        inputfile = h5open(filename,"r")
-
-        tmptabaMcoef = read(inputfile,"aXi")
-
+        tmptabaMcoef = h5read(filename,"aXi")
 
         for np = 1:nradial
             for nq = 1:nradial
@@ -162,9 +159,7 @@ function tabM!(ω::Complex{Float64},
 
         # get already computed (stored in WMat file) ωmin and ωmax values
         filename = WMatFilename(n1,n2,Parameters)
-        file = h5open(filename, "r")
-        ωminmax= read(file,"omgminmax")
-        close(file)
+        ωminmax = h5read(filename,"omgminmax")
 
         # get the rescaled frequency
         ϖ = OrbitalElements.Getϖ(ωnodim,ωminmax[1],ωminmax[2])
