@@ -23,16 +23,16 @@ tabdet = CallAResponse.RunM(tabomega,FHT,Parameters)
 
 # find a pole by using gradient descent
 startingomg = 0.1 - 0.001im
-bestomg = CallAResponse.FindPole(startingomg,FHT,Parameters,1.e-12)
+#bestomg = CallAResponse.FindPole(startingomg,FHT,Parameters,1.e-12)
 
 #bestomg = 0.0 + 0.02271406012170436im
-println("The zero-crossing frequency is $bestomg.")
+#println("The zero-crossing frequency is $bestomg.")
 
 # for the minimum, go back and compute the mode shape
-EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,FHT,basis,Parameters)
+#EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,FHT,basis,Parameters)
 
 
 modeRmin = 0.01
 modeRmax = 15.0
 nmode = 100
-ModeRadius,ModePotentialShape,ModeDensityShape = CallAResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)
+#ModeRadius,ModePotentialShape,ModeDensityShape = CallAResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)

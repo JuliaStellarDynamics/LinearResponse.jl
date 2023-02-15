@@ -25,8 +25,8 @@ using HDF5
 # Basis
 #####
 G  = 1.
-rb = 20.0
-lmax,nmax = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
+rb = 4.0
+lmax,nmax = 2,20 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73BasisCreate(lmax=lmax, nmax=nmax,G=G,rb=rb)
 ndim = basis.dimension
 nradial = basis.nmax
@@ -51,11 +51,13 @@ rmax = 1.0e5
 
 
 dfname = "roi1.0"
+dfname = "roi0.75"
+dfname = "roi5.0"
 
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,
                ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.0)
+               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=5.0)
 
     return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
 
@@ -78,12 +80,12 @@ n1max = 2  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe
-nOmega   = 51
-Omegamin = -0.02
-Omegamax = 0.02
-nEta     = 50
-Etamin   = 0.001
-Etamax   = 0.04
+nOmega   = 101
+Omegamin = -0.1
+Omegamax = 0.1
+nEta     = 100
+Etamin   = -0.1
+Etamax   = 0.4
 
 
 

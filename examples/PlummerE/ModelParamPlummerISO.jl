@@ -22,8 +22,8 @@ using HDF5
 
 # basis parameters
 G  = 1.
-rb = 20.0
-lmax,nmax = 1,100 # number of basis functions
+rb = 4.0
+lmax,nmax = 1,20 # number of basis functions
 
 # automatically set up the basis parameters
 basis   = AstroBasis.CB73BasisCreate(lmax=lmax, nmax=nmax,G=G,rb=rb)
@@ -71,16 +71,16 @@ FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 
 
 lharmonic = 1
-n1max = 5  # maximum number of radial resonances to consider
+n1max = 8  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe
-nOmega   = 51
-Omegamin = -0.02
-Omegamax = 0.02
-nEta     = 50
-Etamin   = 0.001
-Etamax   = 0.04
+nOmega   = 101
+Omegamin = -0.5
+Omegamax = 0.5
+nEta     = 100
+Etamin   = -0.05
+Etamax   = 0.3
 
 
 
@@ -91,7 +91,7 @@ modedir  = "xifunc/"
 
 
 VERBOSE   = 2
-OVERWRITE = true
+OVERWRITE = false
 EDGE      = 0.01
 ELTOLECC  = 0.0005
 VMAPN     = 1 # exponent for v mapping (1 is linear)
