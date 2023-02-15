@@ -110,6 +110,7 @@ function Wintegrand(w::Float64,
     # Current value of the radial frequency integrand (almost dθ/dw)
     gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,w,a,e,Parameters.OEparams)
 
+
     # collect the basis elements (in place!)
     AstroBasis.tabUl!(basis,Parameters.lharmonic,rval)
 

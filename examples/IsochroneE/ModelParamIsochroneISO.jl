@@ -43,8 +43,9 @@ d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
 d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
 d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
-rmin = 1.0e-5
-rmax = 1.0e5
+
+rmin = 1.0e-5 # minimum radius to consider for frequency calculation
+rmax = 1.0e5  # maximum radius to consider for frequency calculation
 
 
 #########
@@ -74,7 +75,7 @@ FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
 # Considered resonance parameters
 #########
 lharmonic = 1
-n1max     = 2  # maximum number of radial resonances to consider
+n1max     = 5  # maximum number of radial resonances to consider
 
 #########
 # Frequencies to probe
@@ -97,12 +98,12 @@ modedir  = "xifunc/"
 #########
 # control parameters
 #########
-VERBOSE   = 2
-OVERWRITE = false
-EDGE      = 0.01
-ELTOLECC  = 0.0005
-VMAPN     = 2 # exponent for v mapping (1 is linear)
-ADAPTIVEKW= true
+VERBOSE   = 2       # how much reporting?
+OVERWRITE = false   # if true, recompute tables regardless of whether parameters match
+EDGE      = 0.01    # set the edge boundary in u integration (i.e. |1-EDGE| switches to expansions)
+ELTOLECC  = 0.0005  # eccenticity tolerance for
+VMAPN     = 1 #2    # exponent for v mapping (1 is linear)
+ADAPTIVEKW= false#true
 
 Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
                                                     modelname=modelname,dfname=dfname,
