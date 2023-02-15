@@ -23,25 +23,37 @@ end
 structure to store the W matrix computation results
 """
 struct WMatdataType
+    ωmin::Float64
+    ωmax::Float64
+    tabvminmax::Array{Float64,2}
+
     tabW::Array{Float64,3}
     tabUV::Array{Float64,3}
     tabΩ1Ω2::Array{Float64,3}
     tabAE::Array{Float64,3}
     tabEL::Array{Float64,3}
     tabJ::Array{Float64,2}
-    ωminmax::Vector{Float64}
-    tabvminmax::Array{Float64,2}
 end
 
 """
 @TO DESCRIBE
 """
-function WMatdataCreate(nmax::Int64,Ku::Int64,Kv::Int64)
+function WMatdataCreate(dψ::Function,d2ψ::Function,
+                        n1::Int64,n2::Int64,
+                        basis::AstroBasis.BasisType,
+                        Parameters::ResponseParameters)
 
-    return WMatdataType(zeros(Float64,nmax,Kv,Ku),
-                         zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
-                         zeros(Float64,Kv,Ku),
-                         zeros(Float64,2),zeros(Float64,2,Ku))
+    # compute the frequency scaling factors for this resonance
+    ωmin, ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,Parameters.OEparams)
+
+    # Useful parameters
+    nmax = basis.nmax
+    Ku, Kv = Parameters.Ku, Parameters.Kv
+
+    return WMatdataType(ωmin,ωmax,zeros(Float64,2,Ku),
+                        zeros(Float64,nmax,Kv,Ku),
+                        zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
+                        zeros(Float64,Kv,Ku))
 end
 
 
@@ -285,15 +297,12 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
                     Parameters::ResponseParameters)
 
     Ω₀ = Parameters.OEparams.Ω₀
-    # get the number of u samples from the input vector of u vals
-    #Ku = length(tabu)
+    
+    @assert length(tabu) == Parameters.Ku "CallAResponse.WMat.MakeWmatUV: tabu length is not Ku."
 
     # allocate the results matrices
-    Wdata = WMatdataCreate(basisFT.basis.nmax,Parameters.Ku,Parameters.Kv)
-
-    # compute the frequency scaling factors for this resonance
-    ωmin,ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,Parameters.OEparams)
-    Wdata.ωminmax[1], Wdata.ωminmax[2] = ωmin, ωmax
+    Wdata = WMatdataCreate(dψ,d2ψ,n1,n2,basisFT.basis,Parameters)
+    ωmin, ωmax = Wdata.ωmin, Wdata.ωmax
 
     # start the loop
     for kuval = 1:Parameters.Ku
@@ -415,11 +424,10 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
         # could consider saving other quantities as well to check mappings.
         h5open(outputfilename, "w") do file
-            # Basis FT
-            write(file, "wmat",Wdata.tabW)
             # Mappings parameters
+            write(file, "omgmin",Wdata.ωmin)
+            write(file, "omgmax",Wdata.ωmax)
             write(file, "tabvminmax",Wdata.tabvminmax)
-            write(file, "omgminmax",Wdata.ωminmax)
             # Mappings
             write(file, "UVmat",Wdata.tabUV)
             write(file, "Omgmat",Wdata.tabΩ1Ω2)
@@ -427,6 +435,8 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
             write(file, "ELmat",Wdata.tabEL)
             # Jacobians
             write(file, "jELABmat",Wdata.tabJ)
+            # Basis FT
+            write(file, "wmat",Wdata.tabW)
             # Parameters
             WriteParameters(file,Parameters)
         end

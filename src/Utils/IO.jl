@@ -151,7 +151,7 @@ function CheckFileNradial(filename::String,
                           preprint::String="")
         
     if isfile(filename)
-        oldnradial = h5read(filename,"ResponseParameters/nradial")
+        oldnradial = try h5read(filename,"ResponseParameters/nradial") catch; return true end
         if (Parameters.OVERWRITE == false) && (Parameters.nradial <= oldnradial)
             (Parameters.VERBOSE > 0) && println(preprint*" file already exists with higher nradial: no computation.")
             return false

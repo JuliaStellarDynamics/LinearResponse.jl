@@ -71,9 +71,14 @@ function MakeaMCoefficients(FHT::FiniteHilbertTransform.FHTtype,
             end
         end
 
+        ωmin, ωmax = h5read(gfuncfilename,"omgmin"), h5read(gfuncfilename,"omgmax")
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
         h5open(outputfilename, "w") do outputfile
+            # Mappings parameters
+            write(outputfile, "omgmin",ωmin)
+            write(outputfile, "omgmax",ωmax)
+            # M_{n1,n2} decomposition coefficients
             write(outputfile,"aXi",tabaMcoef)
             # Parameters
             WriteParameters(outputfile,Parameters)
@@ -120,6 +125,32 @@ function StageaMcoef(Parameters::ResponseParameters)
 end
 
 
+
+"""
+    Stageωminωmax(Parameters::ResponseParameters)
+
+    read the WMat HDF5 files to construct a matrix with the ωmin and ωmax values for every resonances
+"""
+function Stageωminωmax(Parameters::ResponseParameters)
+
+    nbResVec, tabResVec = Parameters.nbResVec, Parameters.tabResVec
+    tabωminωmax = zeros(Float64,2,nbResVec)
+    
+    for nres = 1:nbResVec
+        # get current resonance numbers (n1,n2)
+        n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
+
+        # get already computed ωmin and ωmax values
+        filename = AxiFilename(n1,n2,Parameters)
+        ωmin = h5read(filename,"omgmin")
+        ωmax = h5read(filename,"omgmax")
+
+        tabωminωmax[1,nres], tabωminωmax[2,nres] = ωmin, ωmax
+    end
+
+    return tabωminωmax
+end
+
 """tabM!(omg,tabM,tabaMcoef,FHT,Parameters)
 Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω0.
 
@@ -130,6 +161,7 @@ See LinearTheory.jl for a similar version
 function tabM!(ω::Complex{Float64},
                tabM::Matrix{Complex{Float64}},
                tabaMcoef::Array{Float64,4},
+               tabωminωmax::Matrix{Float64},
                FHT::FiniteHilbertTransform.FHTtype,
                Parameters::ResponseParameters)
 
@@ -157,12 +189,11 @@ function tabM!(ω::Complex{Float64},
         # get current resonance numbers (n1,n2)
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
 
-        # get already computed (stored in WMat file) ωmin and ωmax values
-        filename = WMatFilename(n1,n2,Parameters)
-        ωminmax = h5read(filename,"omgminmax")
+        # get ωmin and ωmax values
+        ωmin, ωmax = tabωminωmax[1,nres], tabωminωmax[2,nres]
 
         # get the rescaled frequency
-        ϖ = OrbitalElements.Getϖ(ωnodim,ωminmax[1],ωminmax[2])
+        ϖ = OrbitalElements.Getϖ(ωnodim,ωmin,ωmax)
 
         # get the integration values
         FiniteHilbertTransform.GettabD!(ϖ,FHT)
@@ -263,11 +294,14 @@ function RunM(ωlist::Array{Complex{Float64}},
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(Parameters)
+    tabaMcoef = StageaMcoef(Parameters)
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
     (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.RunM: computing $nω frequency values.")
+
+    # load ωmin, ωmax values
+    tabωminωmax = Stageωminωmax(Parameters)
 
     # loop through all frequencies
     Threads.@threads for i = 1:nω
@@ -275,9 +309,9 @@ function RunM(ωlist::Array{Complex{Float64}},
         k = Threads.threadid()
 
         if (i==2) && (Parameters.VERBOSE>0) # skip the first in case there is compile time built in
-            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,FHTlist[k],Parameters)
+            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],Parameters)
         else
-            tabM!(ωlist[i],tabMlist[k],tabaMcoef,FHTlist[k],Parameters)
+            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],Parameters)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
@@ -309,7 +343,10 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     MakeaMCoefficients(FHT,Parameters)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(Parameters)
+    tabaMcoef = StageaMcoef(Parameters)
+
+    # load ωmin, ωmax values
+    tabωminωmax = Stageωminωmax(Parameters)
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
@@ -331,11 +368,11 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
         (Parameters.VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
 
-        tabM!(omgval,tabMlist,tabaMcoef,FHT,Parameters)
+        tabM!(omgval,tabMlist,tabaMcoef,tabωminωmax,FHT,Parameters)
 
         centralvalue = detXi(IMat,tabMlist)
 
-        tabM!(omgvaloff,tabMlist,tabaMcoef,FHT,Parameters)
+        tabM!(omgvaloff,tabMlist,tabaMcoef,tabωminωmax,FHT,Parameters)
 
         offsetvalue = detXi(IMat,tabMlist)
 

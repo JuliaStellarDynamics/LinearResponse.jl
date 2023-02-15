@@ -39,7 +39,7 @@ function MakeGu(ndFdJ::Function,
     tabGXi  = zeros(Float64,nradial,nradial,Ku)
 
     # get ωmin and ωmax
-    ωmin, ωmax = Wdata.ωminmax[1], Wdata.ωminmax[2]
+    ωmin, ωmax = Wdata.ωmin, Wdata.ωmax
 
     # determine the step size in vp
     δvp = 1.0/Parameters.Kv
@@ -160,10 +160,10 @@ function RunGfunc(ndFdJ::Function,
         # Check if enough basis element in this file (throw error if not)
         (Parameters.nradial <= read(file,"ResponseParameters/nradial")) || error("Not enough basis element in WMat file for ($n1,$n2) resonance.")
         # Construct the Wdata structure for the file
-        Wdata      = WMatdataType(read(file,"wmat"),                                                               # Basis FT
-                                   read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),    # Mappings
-                                   read(file,"jELABmat"),                                                           # Jacobians
-                                   read(file,"omgminmax"),read(file,"tabvminmax"))                                  # Mapping parameters
+        Wdata      = WMatdataType(read(file,"omgmin"),read(file,"omgmax"),read(file,"tabvminmax"),                  # Mapping parameters
+                                  read(file,"wmat"),                                                                # Basis FT
+                                  read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),     # Mappings
+                                  read(file,"jELABmat"))                                                            # Jacobians                                  
         close(file)
 
         # G(u) computation for this resonance number
@@ -171,6 +171,10 @@ function RunGfunc(ndFdJ::Function,
 
         # Saving in file
         h5open(outputfilename, "w") do file
+            # Mappings parameters
+            write(file, "omgmin",Wdata.ωmin)
+            write(file, "omgmax",Wdata.ωmax)
+            # G(u)
             write(file,"Gmat",tabGXi)
             # Parameters
             WriteParameters(file,Parameters)
