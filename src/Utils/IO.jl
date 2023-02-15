@@ -3,15 +3,9 @@
 
 function CheckValidDirectory(dir::String)
 
-    # check that this is in fact a directory
-    if !isdir(dir)
+    # check that this is in fact a directory path ("/" at the end, "" return true)
+    if !isdirpath(dir)
         println("CallAResponse.IO.CheckValidDirectory: nonexistent directory $dir.")
-        return false
-    end
-
-    # check the trailing slash
-    if last(dir)!='/'
-        println("CallAResponse.IO.CheckValidDirectory: bad dir (needs trailing /) $dir")
         return false
     end
 
@@ -35,7 +29,7 @@ function CheckConfigurationDirectories(dirs::Array{String})
 
     # check for all specified directories (will succeed if no directory is specified, just might annoyingly print to wherever code is executed,)
     for dir in dirs
-        ((dir=="") || CheckValidDirectory(dir)) || (return false)
+        CheckValidDirectory(dir) || (return false)
     end
     return true
 end
@@ -81,7 +75,7 @@ function DetFilename(Parameters::ResponseParameters)
 end
 
 """
-wrtie the determinant array to a file
+Create and (over)write the determinant array to a file
 """
 function WriteDeterminant(detname::String,
                           tabomega::Array{Complex{Float64}},
@@ -114,4 +108,58 @@ function MFilename(Parameters::ResponseParameters)
 
     return Parameters.modedir*"TabM_"*Parameters.modelname*"_df_"*Parameters.dfname*"_l_"*string(Parameters.lharmonic)*"_rb_"*string(Parameters.rbasis)*"_Ku_"*string(Parameters.Ku)*"_Kv_"*string(Parameters.Kv)*".h5"
 
+end
+
+"""
+write all the parameters to a file
+"""
+function WriteParameters(filename::String,
+                         Parameters::ResponseParameters,
+                         mode::String="r+")
+
+    h5open(filename, mode) do file
+        WriteParameters(file,Parameters)
+    end
+end
+
+function WriteParameters(file::HDF5.File,
+                         Parameters::ResponseParameters)
+
+    group = create_group(file,"ResponseParameters")
+    for i = 1:fieldcount(ResponseParameters)
+        varname = string(fieldname(ResponseParameters,i))
+        if (varname == "tabResVec")
+            continue
+        elseif (varname == "OEparams")
+            OrbitalElements.WriteParameters(file,Parameters.OEparams)
+        else
+            try write(group,varname,getfield(Parameters,i)) catch; println("Unable to write parameter: "*varname) end
+        end
+    end
+end
+
+
+"""
+    Check if a file exist, has enough basis elements / if overwritting is expected
+    Return true if computation needed, and false if not, i.e. if all following conditions are satisfied:
+        - the file already exists,
+        - overwritting is not mandatory (OVERWRITE == false)
+        - the old file has been created with enough basis elements (nradial sufficiently high)
+"""
+function CheckFileNradial(filename::String,
+                          Parameters::ResponseParameters,
+                          preprint::String="")
+        
+    if isfile(filename)
+        oldnradial = try h5read(filename,"ResponseParameters/nradial") catch; return true end
+        if (Parameters.OVERWRITE == false) && (Parameters.nradial <= oldnradial)
+            (Parameters.VERBOSE > 0) && println(preprint*" file already exists with higher nradial: no computation.")
+            return false
+        else
+            (Parameters.VERBOSE > 0) && println(preprint*" file already exists (possibly with lower nradial) : recomputing and overwriting.")
+            return true
+        end
+    else 
+        return true
+    end
 end

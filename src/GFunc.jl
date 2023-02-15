@@ -6,13 +6,13 @@
 ########################################################################
 
 """
-    MakeGu(ndFdJ,n1,n2,Wdata,tabu,Kv,ndim,nradial,ωmin,ωmax,tabvminvmax,lharmonic[,Ω₀])
+    MakeGu(ndFdJ,n1,n2,Wdata,tabu,params)
 
 function to compute G(u)
 """
 function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
-                Wdata::WMatdata_type,
+                Wdata::WMatdataType,
                 tabu::Array{Float64},
                 Parameters::ResponseParameters)
 
@@ -39,13 +39,13 @@ function MakeGu(ndFdJ::Function,
     tabGXi  = zeros(Float64,nradial,nradial,Ku)
 
     # get ωmin and ωmax
-    ωmin, ωmax = Wdata.ωminmax[1], Wdata.ωminmax[2]
+    ωmin, ωmax = Wdata.ωmin, Wdata.ωmax
 
     # determine the step size in vp
     δvp = 1.0/Parameters.Kv
 
     # remove dimensionality from Ω mapping
-    dimensionl = (1/Parameters.Ω₀)
+    dimensionl = (1.0/Parameters.OEparams.Ω₀)
 
     # Integration step volume
     δvol = δvp * dimensionl
@@ -61,10 +61,10 @@ function MakeGu(ndFdJ::Function,
 
             # get the current v value
             vp = δvp*(kvval-0.5)
-            vval = vprime(vp,vmin,vmax,n=Parameters.VMAPN)
+            vval = vFromvp(vp,vmin,vmax,Parameters.VMAPN)
 
             # vp -> v
-            Jacvp = dvprime(vp,vmin,vmax,n=Parameters.VMAPN)
+            Jacvp = DvDvp(vp,vmin,vmax,Parameters.VMAPN)
 
             ####
             # (u,v) -> (a,e)
@@ -79,7 +79,7 @@ function MakeGu(ndFdJ::Function,
             # compute Jacobians
             # (α,β) -> (u,v).
             # owing to the remapping of Ω, this has an extra 2/(ωmax-ωmin)
-            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,ωmin,ωmax,vval)
+            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,vval)
 
             # (E,L) -> (α,β): this is the most expensive function here,
             # so we have pre-tabulated it
@@ -142,52 +142,42 @@ function RunGfunc(ndFdJ::Function,
     # Check directory names
     CheckConfigurationDirectories([Parameters.wmatdir,Parameters.gfuncdir]) || (return 0)
 
-    # Resonance vectors
-    #nbResVec, tabResVec = MakeTabResVec(Parameters.lharmonic,Parameters.n1max,Parameters.ndim)
-
     (Parameters.VERBOSE >= 0) && println("CallAResponse.GFunc.RunGfunc: Considering $(Parameters.nbResVec) resonances.")
 
     Threads.@threads for i = 1:Parameters.nbResVec
-        n1,n2 = Parameters.tabResVec[1,i],Parameters.tabResVec[2,i]
-
+        n1, n2 = Parameters.tabResVec[1,i], Parameters.tabResVec[2,i]
 
         (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
         outputfilename = GFuncFilename(n1,n2,Parameters)
-        if isfile(outputfilename)
-            if (Parameters.OVERWRITE)
-                (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $(Parameters.nbResVec), ($n1,$n2): recomputing and overwriting.")
-            else
-                (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: file already exists for step $i of $(Parameters.nbResVec), ($n1,$n2): no computation.")
-                continue
-            end
-        end
+        # Check if the file already exist / has enough basis elements / overwritting imposed
+        # false if no computation needed, then continue
+        CheckFileNradial(outputfilename,Parameters,"CallAResponse.GFunc.RunGfunc: ($n1,$n2) resonance") || continue
 
         # load a value of tabWmat, plus (a,e) values
-        filename   = WMatFilename(n1,n2,Parameters)
-        file       = h5open(filename,"r")
-        #####
-        # !!! Add sufficient nradial verification
-        #####
-        Wdata      = WMatdata_type(read(file,"wmat"),                                                               # Basis FT
-                                   read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),    # Mappings
-                                   read(file,"jELABmat"),                                                           # Jacobians
-                                   read(file,"omgminmax"),read(file,"tabvminmax"))                                  # Mapping parameters
+        wmatfilename   = WMatFilename(n1,n2,Parameters)
+        file       = h5open(wmatfilename,"r")
+        # Check if enough basis element in this file (throw error if not)
+        (Parameters.nradial <= read(file,"ResponseParameters/nradial")) || error("Not enough basis element in WMat file for ($n1,$n2) resonance.")
+        # Construct the Wdata structure for the file
+        Wdata      = WMatdataType(read(file,"omgmin"),read(file,"omgmax"),read(file,"tabvminmax"),                  # Mapping parameters
+                                  read(file,"wmat"),                                                                # Basis FT
+                                  read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),     # Mappings
+                                  read(file,"jELABmat"))                                                            # Jacobians                                  
         close(file)
-
-        # print the size of the found files if the first processor
-        (i==1) && println("CallAResponse.GFunc.RunGfunc: Found nradial=$(Parameters.nradial),Ku=$(Parameters.Ku),Kv=$(Parameters.Kv)")
 
         # G(u) computation for this resonance number
         tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,FHT.tabu,Parameters)
 
         # Saving in file
         h5open(outputfilename, "w") do file
-        #####
-        # !!! Add some parameters informations ?
-        #####
-        write(file,"Gmat",tabGXi)
+            # Mappings parameters
+            write(file, "omgmin",Wdata.ωmin)
+            write(file, "omgmax",Wdata.ωmax)
+            # G(u)
+            write(file,"Gmat",tabGXi)
+            # Parameters
+            WriteParameters(file,Parameters)
         end
-
     end
 end

@@ -42,28 +42,18 @@ function MakeaMCoefficients(FHT::FiniteHilbertTransform.FHTtype,
     # Threads.@threads for nres in 1:nbResVec
     for nres = 1:nbResVec
 
-        n1,n2 = tabResVec[1,nres],tabResVec[2,nres]
+        n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
 
-        # don't do this loop if the file calculation already exists (unless asked)
+        (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: Starting on ($n1,$n2).")
+
         outputfilename = AxiFilename(n1,n2,Parameters)
-        if isfile(outputfilename)
+        # Check if the file already exist / has enough basis elements / overwritting imposed
+        # false if no computation needed, then continue
+        CheckFileNradial(outputfilename,Parameters,"CallAResponse.Xi.MakeaMCoefficients: ($n1,$n2) resonance") || continue
 
-            # log if requested
-            (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: file already exists for step $nres of $nbResVec, ($n1,$n2).")
-
-            # decide if we want to overwrite anyway
-            Parameters.OVERWRITE ? println("...recomputing anyway.") : continue
-        end
-
-        (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: on step $nres of $nbResVec: ($n1,$n2).")
-
-        # open the resonance file
-        filename  = GFuncFilename(n1,n2,Parameters)
-        inputfile = h5open(filename,"r")
-
-        (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.MakeaMCoefficients: opened file $filename.")
-
-        tabGXi = read(inputfile,"Gmat")
+        # Read G(u) from the GFunc file for this resonance
+        gfuncfilename  = GFuncFilename(n1,n2,Parameters)
+        tabGXi = h5read(gfuncfilename,"Gmat")
 
         for np = 1:nradial
             for nq = np:nradial
@@ -81,15 +71,17 @@ function MakeaMCoefficients(FHT::FiniteHilbertTransform.FHTtype,
             end
         end
 
-        close(inputfile)
-
+        ωmin, ωmax = h5read(gfuncfilename,"omgmin"), h5read(gfuncfilename,"omgmax")
         # this is expensive enough to compute that we will want to save these
         # with the table fully constructed, loop back through to write after opening a file for the resonance
         h5open(outputfilename, "w") do outputfile
-        #####
-        # !!! Add some parameters informations ?
-        #####
-        write(outputfile,"aXi",tabaMcoef)
+            # Mappings parameters
+            write(outputfile, "omgmin",ωmin)
+            write(outputfile, "omgmax",ωmax)
+            # M_{n1,n2} decomposition coefficients
+            write(outputfile,"aXi",tabaMcoef)
+            # Parameters
+            WriteParameters(outputfile,Parameters)
         end
 
     end # resonance vector loop
@@ -116,10 +108,7 @@ function StageaMcoef(Parameters::ResponseParameters)
 
         # retrieve the correct M table
         filename = AxiFilename(n1,n2,Parameters)
-        inputfile = h5open(filename,"r")
-
-        tmptabaMcoef = read(inputfile,"aXi")
-
+        tmptabaMcoef = h5read(filename,"aXi")
 
         for np = 1:nradial
             for nq = 1:nradial
@@ -136,6 +125,32 @@ function StageaMcoef(Parameters::ResponseParameters)
 end
 
 
+
+"""
+    Stageωminωmax(Parameters::ResponseParameters)
+
+    read the WMat HDF5 files to construct a matrix with the ωmin and ωmax values for every resonances
+"""
+function Stageωminωmax(Parameters::ResponseParameters)
+
+    nbResVec, tabResVec = Parameters.nbResVec, Parameters.tabResVec
+    tabωminωmax = zeros(Float64,2,nbResVec)
+    
+    for nres = 1:nbResVec
+        # get current resonance numbers (n1,n2)
+        n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
+
+        # get already computed ωmin and ωmax values
+        filename = AxiFilename(n1,n2,Parameters)
+        ωmin = h5read(filename,"omgmin")
+        ωmax = h5read(filename,"omgmax")
+
+        tabωminωmax[1,nres], tabωminωmax[2,nres] = ωmin, ωmax
+    end
+
+    return tabωminωmax
+end
+
 """tabM!(omg,tabM,tabaMcoef,FHT,Parameters)
 Function that computes the response matrix Xi[np,nq] for a given COMPLEX frequency omg in physical units, i.e. not (yet) rescaled by 1/Ω0.
 
@@ -146,6 +161,7 @@ See LinearTheory.jl for a similar version
 function tabM!(ω::Complex{Float64},
                tabM::Matrix{Complex{Float64}},
                tabaMcoef::Array{Float64,4},
+               tabωminωmax::Matrix{Float64},
                FHT::FiniteHilbertTransform.FHTtype,
                Parameters::ResponseParameters)
 
@@ -153,6 +169,7 @@ function tabM!(ω::Complex{Float64},
     nbResVec, tabResVec = Parameters.nbResVec, Parameters.tabResVec
     KuTruncation = Parameters.KuTruncation
     nradial  = Parameters.nradial
+    VERBOSE  = Parameters.VERBOSE
     Ku       = FHT.Ku
 
     if KuTruncation < Ku
@@ -164,7 +181,7 @@ function tabM!(ω::Complex{Float64},
     fill!(tabM,0.0 + 0.0*im)
 
     # Rescale to get dimensionless frequency
-    ωnodim = ω/Parameters.Ω₀
+    ωnodim = ω/Parameters.OEparams.Ω₀
 
     # loop over the resonances: no threading here because we parallelise over frequencies
     for nres = 1:nbResVec
@@ -172,14 +189,11 @@ function tabM!(ω::Complex{Float64},
         # get current resonance numbers (n1,n2)
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
 
-        # get already computed (stored in WMat file) ωmin and ωmax values
-        filename = WMatFilename(n1,n2,Parameters)
-        file = h5open(filename, "r")
-        ωminmax= read(file,"omgminmax")
-        close(file)
+        # get ωmin and ωmax values
+        ωmin, ωmax = tabωminωmax[1,nres], tabωminωmax[2,nres]
 
         # get the rescaled frequency
-        ϖ = OrbitalElements.Getϖ(ωnodim,ωminmax[1],ωminmax[2])
+        ϖ = OrbitalElements.Getϖ(ωnodim,ωmin,ωmax)
 
         # get the integration values
         FiniteHilbertTransform.GettabD!(ϖ,FHT)
@@ -280,11 +294,14 @@ function RunM(ωlist::Array{Complex{Float64}},
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: Loading tabaMcoef...")
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(Parameters)
+    tabaMcoef = StageaMcoef(Parameters)
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
 
     (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.RunM: computing $nω frequency values.")
+
+    # load ωmin, ωmax values
+    tabωminωmax = Stageωminωmax(Parameters)
 
     # loop through all frequencies
     Threads.@threads for i = 1:nω
@@ -292,22 +309,22 @@ function RunM(ωlist::Array{Complex{Float64}},
         k = Threads.threadid()
 
         if (i==2) && (Parameters.VERBOSE>0) # skip the first in case there is compile time built in
-            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,FHTlist[k],Parameters)
+            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],Parameters)
         else
-            tabM!(ωlist[i],tabMlist[k],tabaMcoef,FHTlist[k],Parameters)
+            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],Parameters)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
     end
 
     WriteDeterminant(DetFilename(Parameters),ωlist,tabdetXi)
-
+    WriteParameters(DetFilename(Parameters),Parameters)
     return tabdetXi
 end
 
 
 
-"""FindZeroCrossing(Ωguess,ηguess,dψ,d2ψ,gfuncdir,modedir,FHT,Kv,Kw,basis,lharmonic,n1max,Ω₀,modelname,dfname,rb,rmin::Float64,rmax[,NITER,eta,ACCURACY=1.0e-10,VERBOSE=0,OVERWRITE=false])
+"""FindZeroCrossing(Ωguess,ηguess,FHT,params[,NITER,eta,ACCURACY=1.0e-10])
 
 Newton-Raphson descent to find the zero crossing
 """
@@ -326,7 +343,10 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
     MakeaMCoefficients(FHT,Parameters)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(Parameters)
+    tabaMcoef = StageaMcoef(Parameters)
+
+    # load ωmin, ωmax values
+    tabωminωmax = Stageωminωmax(Parameters)
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
@@ -348,11 +368,11 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
         (Parameters.VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
 
-        tabM!(omgval,tabMlist,tabaMcoef,FHT,Parameters)
+        tabM!(omgval,tabMlist,tabaMcoef,tabωminωmax,FHT,Parameters)
 
         centralvalue = detXi(IMat,tabMlist)
 
-        tabM!(omgvaloff,tabMlist,tabaMcoef,FHT,Parameters)
+        tabM!(omgvaloff,tabMlist,tabaMcoef,tabωminωmax,FHT,Parameters)
 
         offsetvalue = detXi(IMat,tabMlist)
 
