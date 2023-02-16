@@ -52,12 +52,12 @@ rmax = 1.0e5
 
 dfname = "roi1.0"
 dfname = "roi0.75"
-dfname = "roi5.0"
+#dfname = "roi5.0"
 
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,
                ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=5.0)
+               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.75)
 
     return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
 
@@ -100,19 +100,22 @@ OVERWRITE = true
 EDGE      = 0.01
 ELTOLECC  = 0.0005
 VMAPN     = 1 # exponent for v mapping (1 is linear)
+ADAPTIVEKW= false
 
+OEparams = OrbitalElements.OrbitsParametersCreate(dψ,d2ψ,Ω₀,rmin=rmin,rmax=rmax,
+                                                  EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+                                                  NINT=OrbitalElements.DEFAULT_NINT,FDIFF=OrbitalElements.DEFAULT_TOL,
+                                                  da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
+                                                  ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
-Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
+# ResponseParametersCreate(OEparams;Ku,Kv,Kw,modelname,dfname,wmatdir,gfuncdir,modedir,lharmonic,n1max,nradial,KuTruncation,VERBOSE,OVERWRITE,ndim,nmax,rbasis,VMAPN,ADAPTIVEKW)
+Parameters = CallAResponse.ResponseParametersCreate(OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
                                                     modelname=modelname,dfname=dfname,
                                                     wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
                                                     lharmonic=lharmonic,n1max=n1max,nradial=nradial,
                                                     KuTruncation=KuTruncation,
                                                     VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
-                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,
-                                                    EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
-                                                    nmax=basis.nmax,rbasis=basis.rb,VMAPN=VMAPN)
-
-
-
+                                                    ndim=ndim,
+                                                    nmax=basis.nmax,rbasis=basis.rb,VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW)
 
 # WARNING : / at the end to check !

@@ -79,7 +79,7 @@ function MakeGu(ndFdJ::Function,
             # compute Jacobians
             # (α,β) -> (u,v).
             # owing to the remapping of Ω, this has an extra 2/(ωmax-ωmin)
-            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,vval)
+            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,ωmin,ωmax,vval)
 
             # (E,L) -> (α,β): this is the most expensive function here,
             # so we have pre-tabulated it
@@ -163,7 +163,7 @@ function RunGfunc(ndFdJ::Function,
         Wdata      = WMatdataType(read(file,"omgmin"),read(file,"omgmax"),read(file,"tabvminmax"),                  # Mapping parameters
                                   read(file,"wmat"),                                                                # Basis FT
                                   read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),     # Mappings
-                                  read(file,"jELABmat"))                                                            # Jacobians                                  
+                                  read(file,"jELABmat"))                                                            # Jacobians
         close(file)
 
         # G(u) computation for this resonance number

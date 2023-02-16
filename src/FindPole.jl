@@ -20,6 +20,7 @@ function GoStep(omgval::Complex{Float64},
                 IMat::Array{Complex{Float64},2},MMat::Array{Complex{Float64},2},
                 FHT::FiniteHilbertTransform.FHTtype,
                 tabaMcoef::Array{Float64,4},
+                tabωminωmax::Matrix{Float64},
                 Parameters::ResponseParameters)
 
     nomg = 1
@@ -28,7 +29,7 @@ function GoStep(omgval::Complex{Float64},
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
     # fill the M matrix
-    tabM!(omgval,MMat,tabaMcoef,FHT,Parameters)
+    tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,Parameters)
 
     # compute the determinant of I-M
     detXival = detXi(IMat,MMat)
@@ -103,7 +104,7 @@ function FindPole(startingomg::Complex{Float64},
 
     IMat, MMat, tabaMcoef, tabωminωmax = SetupDeterminantZero(FHT,Parameters)
 
-    bestomg = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,Parameters,TOL=TOL)
+    bestomg = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,tabωminωmax,Parameters,TOL=TOL)
 
     (Parameters.VERBOSE >= 0) && println("Best O for n1max=$(Parameters.n1max),nradial=$(Parameters.nradial) == $bestomg")
 

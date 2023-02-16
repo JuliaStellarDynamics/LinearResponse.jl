@@ -27,7 +27,8 @@ function ComputeModeTables(omgval::Complex{Float64},
     # memory for the response matrices M and identity matrices
     MMat = zeros(Complex{Float64},Parameters.nradial,Parameters.nradial)
 
-    tabM!(omgval,MMat,tabaMcoef,FHT,Parameters)
+    tabωminωmax = Stageωminωmax(Parameters)
+    tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,Parameters)
 
     if Parameters.VERBOSE>0
         println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")

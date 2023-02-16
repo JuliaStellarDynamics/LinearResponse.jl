@@ -50,7 +50,9 @@ struct ResponseParameters
 
 end
 
-
+"""
+    ResponseParametersCreate(OEparams;Ku,Kv,Kw,modelname,dfname,wmatdir,gfuncdir,modedir,lharmonic,n1max,nradial,KuTruncation,VERBOSE,OVERWRITE,ndim,nmax,rbasis,VMAPN,ADAPTIVEKW)
+"""
 function ResponseParametersCreate(OEparams::OrbitalElements.OrbitsParameters;
                                   Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
                                   modelname::String="model",dfname::String="df",
