@@ -17,7 +17,6 @@ include("Utils/ParameterStructure.jl")
 
 
 # helper functions for constructing basis list, resonance list, prefactors (3d), writing utilities, and frequency tables
-include("Utils/Basis.jl")
 include("Utils/Resonances.jl")
 include("Utils/CMatrix.jl")
 include("Utils/IO.jl")
@@ -32,11 +31,14 @@ include("GFunc.jl")
 # code to compute the Hilbert transformation, including coefficient calculation
 include("Xi.jl")
 
-# code to compute the shape of the mode
-include("Mode.jl")
+# Code to compute the response matrix
+include("ResponseMatrix.jl")
 
-# code to find poles
-include("FindPole.jl")
+# Codes to extract different informations
+include("ComputationModes/Determinant.jl")
+include("ComputationModes/Matrices.jl")
+include("ComputationModes/Mode.jl")
+include("ComputationModes/FindPole.jl")
 
 # include code to compute isochrone-specific quantities:
 # the isochrone mode is a specific case that we have pre-defined
