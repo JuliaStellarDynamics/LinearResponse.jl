@@ -384,7 +384,7 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
                  Parameters::ResponseParameters)
 
     # check wmat directory before proceeding (save time if not.)
-    CheckValidDirectory(Parameters.wmatdir) || (return 0)
+    CheckDirectories(Parameters.wmatdir) || (return 0)
 
     # check the basis values against the Parameters
 
@@ -404,12 +404,12 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
 
         (Parameters.VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")
 
-        # If it has been already computed
+        # Output file name
         outputfilename = WMatFilename(n1,n2,Parameters)
 
         # Check if the file already exist / has enough basis elements / overwritting imposed
         # false if no computation needed, then continue
-        CheckFileNradial(outputfilename,Parameters,"CallAResponse.WMat.RunWMat: ($n1,$n2) resonance WMat") || continue
+        CheckFileNradial(outputfilename,Parameters,"CallAResponse.WMat.RunWMat: ($n1,$n2) resonance") || continue
 
         # compute the W matrices in UV space: timing optional
         if (Parameters.VERBOSE > 1) && (k == 1)

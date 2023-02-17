@@ -22,6 +22,7 @@ struct ResponseParameters
 
     wmatdir::String
     gfuncdir::String
+    axidir::String
     modedir::String
 
     lharmonic::Int64
@@ -56,7 +57,7 @@ end
 function ResponseParametersCreate(OEparams::OrbitalElements.OrbitsParameters;
                                   Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
                                   modelname::String="model",dfname::String="df",
-                                  wmatdir::String="",gfuncdir::String="",modedir::String="",
+                                  wmatdir::String="",gfuncdir::String="",axidir::String="",modedir::String="",
                                   lharmonic::Int64=2,n1max::Int64=10,nradial::Int64=10,
                                   KuTruncation::Int64=10000,
                                   VERBOSE::Int64=0,OVERWRITE::Bool=false,ndim::Int64=3,
@@ -67,7 +68,7 @@ function ResponseParametersCreate(OEparams::OrbitalElements.OrbitsParameters;
 
     return ResponseParameters(Ku,Kv,Kw,
                               modelname,dfname,
-                              wmatdir,gfuncdir,modedir,
+                              wmatdir,gfuncdir,axidir,modedir,
                               lharmonic,n1max,nradial,
                               nbResVec,tabResVec,
                               KuTruncation,

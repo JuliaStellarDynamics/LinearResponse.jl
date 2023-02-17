@@ -1,0 +1,134 @@
+"""
+
+VERBOSE flag rules
+0 : quiet
+1 : progress tracking
+2 : standard debug
+4 : detailed timing outputs
+
+"""
+
+
+"""
+    detXi(IMat,tabM)
+
+determinant of the susceptibility matrix I - M for known M.
+"""
+function detXi(IMat::AbstractMatrix{ComplexF64},
+               tabM::AbstractMatrix{ComplexF64})::ComplexF64
+
+    # Computing the determinant of (I-M).
+    # ATTENTION, we tell julia that the matrix is symmetric
+    val = det(Symmetric(IMat-tabM))
+
+    # only save the real portion
+    return val # Output
+end
+
+
+"""
+@TO DESCRIBE
+"""
+function RunDeterminant(ωlist::Array{ComplexF64},
+                        FHT::FiniteHilbertTransform.FHTtype,
+                        Parameters::ResponseParameters)
+
+    # Preparinng computations of the response matrices
+    tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(),FHT,Parameters)
+    IMatlist = makeIMat(Parameters.nradial,Threads.nthreads())
+
+    # how many omega values are we computing?
+    nω = length(ωlist)
+    # allocate containers for determinant and min eigenvalue
+    tabdetXi = zeros(ComplexF64,nω)
+
+    (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.RunDeterminant: computing $nω frequency values.")
+
+    # loop through all frequencies
+    Threads.@threads for i = 1:nω
+
+        k = Threads.threadid()
+
+        if (i==2) && (Parameters.VERBOSE>0) # skip the first in case there is compile time built in
+            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],Parameters)
+        else
+            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],Parameters)
+        end
+
+        tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
+    end
+
+    h5open(DetFilename(Parameters), "w") do file
+        # Frequency grids
+        write(file,"omega",real(ωlist))
+        write(file,"eta",imag(ωlist))
+        # Results
+        write(file,"det",tabdetXi)
+        # Parameters
+        WriteParameters(file,Parameters)
+    end
+    return tabdetXi
+end
+
+
+
+"""FindZeroCrossing(Ωguess,ηguess,FHT,params[,NITER,eta,ACCURACY=1.0e-10])
+
+Newton-Raphson descent to find the zero crossing
+"""
+function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
+                          FHT::FiniteHilbertTransform.FHTtype,
+                          Parameters::ResponseParameters;
+                          NITER::Int64=32,
+                          ACCURACY::Float64=1.0e-10)
+
+
+    # Preparinng computations of the response matrices
+    MMat, tabaMcoef, tabωminωmax = PrepareM(Parameters)
+    IMat = makeIMat(Parameters.nradial)
+
+    omgval = Ωguess + im*ηguess
+    domega = 1.e-4
+
+    completediterations = 0
+
+    # this must be indicative of the multiprocessing bug: Threads helps here, even for 1
+    #Threads.@threads for i = 1:NITER
+    for i = 1:NITER
+
+        # calculate the new off omega value
+        omgvaloff = omgval + im*domega
+
+        (Parameters.VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
+
+        tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,Parameters)
+
+        centralvalue = detXi(IMat,MMat)
+
+        tabM!(omgvaloff,MMat,tabaMcoef,tabωminωmax,FHT,Parameters)
+
+        offsetvalue = detXi(IMat,MMat)
+
+        # ignore the imaginary part
+        derivative = real(offsetvalue - centralvalue)/domega
+
+        # take a step in omega given the derivative
+        stepsize = real(centralvalue)/derivative
+        omgval  = omgval - im*stepsize
+
+        (Parameters.VERBOSE > 1) && println("Newomg=$omgval, cval=$centralvalue, oval=$offsetvalue")
+
+        # record iteration number
+        completediterations += 1
+
+        # check if we have gotten close enough already
+        if abs(stepsize) < ACCURACY
+            break
+        end
+
+    end
+
+    (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.FindZeroCrossing: zero found in $completediterations steps.")
+
+    return omgval
+end

@@ -140,7 +140,7 @@ function RunGfunc(ndFdJ::Function,
                   Parameters::ResponseParameters)
 
     # Check directory names
-    CheckConfigurationDirectories([Parameters.wmatdir,Parameters.gfuncdir]) || (return 0)
+    CheckDirectories(Parameters.wmatdir,Parameters.gfuncdir) || (return 0)
 
     (Parameters.VERBOSE >= 0) && println("CallAResponse.GFunc.RunGfunc: Considering $(Parameters.nbResVec) resonances.")
 

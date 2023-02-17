@@ -6,29 +6,14 @@
 for a single omega, compute the shape of the mode
 
 """
-function ComputeModeTables(omgval::Complex{Float64},
+function ComputeModeTables(omgval::ComplexF64,
                            FHT::FiniteHilbertTransform.FHTtype,
-                           basis::AstroBasis.BasisType,
                            Parameters::ResponseParameters)
 
-    # Check directory names
-    CheckConfigurationDirectories([Parameters.gfuncdir,Parameters.modedir]) || (return 0)
+    # Preparinng computations of the response matrices
+    tabM, tabaMcoef, tabωminωmax = PrepareM(Parameters)
 
-    # make the decomposition coefficients a_k
-    MakeaMCoefficients(FHT,Parameters)
-
-    # load aXi values
-    tabaMcoef = StageaMcoef(Parameters)
-
-    if Parameters.VERBOSE>0
-        println("CallAResponse.Xi.ComputeModeTables: tabaMcoef loaded.")
-    end
-
-    # memory for the response matrices M and identity matrices
-    MMat = zeros(Complex{Float64},Parameters.nradial,Parameters.nradial)
-
-    tabωminωmax = Stageωminωmax(Parameters)
-    tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,Parameters)
+    tabM!(omgval,tabM,tabaMcoef,tabωminωmax,FHT,Parameters)
 
     if Parameters.VERBOSE>0
         println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
@@ -46,7 +31,7 @@ end
 
 minimal eigenvalue of M
 """
-function mevXi(tabM::Matrix{Complex{Float64}})
+function mevXi(tabM::AbstractMatrix{ComplexF64})
 
     # these should be equal, and =nradial!
     nEig1, _ = size(tabM)
@@ -66,7 +51,7 @@ function mevXi(tabM::Matrix{Complex{Float64}})
     end
 
     # construct the mode table
-    tabEigenMode = zeros(Complex{Float64},nEig1)
+    tabEigenMode = zeros(ComplexF64,nEig1)
 
     # now fill in the eigenmode
     # loop over the number of basis elements
@@ -139,6 +124,8 @@ function GetModeShape(basis::AstroBasis.BasisType,
         write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
         write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
         write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file
+        # Parameters
+        WriteParameters(file,Parameters)
     end
 
     # return just in case we want to do something else

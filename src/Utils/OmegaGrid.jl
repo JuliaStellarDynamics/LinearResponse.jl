@@ -7,7 +7,7 @@ make an identity matrix
 @IMPROVE: where should this live?
 """
 function makeIMat(nradial::Int64)
-    IMat = zeros(Complex{Float64},nradial,nradial) # Static container for the identity matrix
+    IMat = zeros(ComplexF64,nradial,nradial) # Static container for the identity matrix
     ##########
     for np=1:nradial # Loop over the radial elements to fill in the identity matrix
         IMat[np,np] = 1.0 + 0.0im # Creating the identity matrix
@@ -15,6 +15,16 @@ function makeIMat(nradial::Int64)
     return IMat
 end
 
+"""
+make multiple identity matrices
+
+@IMPROVE: where should this live?
+"""
+function makeIMat(nradial::Int64,nthreads::Int64)
+    IMat = makeIMat(nradial)
+    IMatlist = [deepcopy(IMat) for k=1:nthreads]
+    return IMatlist
+end
 
 """
 function to make a table of omega values for frequency calculations
@@ -26,7 +36,7 @@ function gridomega(Omegamin::Float64,Omegamax::Float64,nOmega::Int64,
     nomega = nOmega*nEta
 
     # initialise the blank table
-    tabomega = zeros(Complex{Float64},nomega)
+    tabomega = zeros(ComplexF64,nomega)
 
     # table of omega for which the response matrix is computed
     tabOmega = collect(range(Omegamin,Omegamax,length=nOmega))
@@ -68,7 +78,7 @@ function lineEta(Omegamin::Float64,Omegamax::Float64,nOmega::Int64,
     nomega = nOmega
 
     # initialise the blank table
-    tabomega = zeros(Complex{Float64},nomega)
+    tabomega = zeros(ComplexF64,nomega)
 
     # table of omega for which the response matrix is computed
     tabOmega = collect(range(Omegamin,Omegamax,length=nOmega))
@@ -108,7 +118,7 @@ function lineOmega(Omegaval::Float64,
     nomega = nEta
 
     # initialise the blank table
-    tabomega = zeros(Complex{Float64},nomega)
+    tabomega = zeros(ComplexF64,nomega)
 
     # table of eta for which the response matrix is computed
     tabEta = collect(range(Etamin,Etamax,length=nEta))
