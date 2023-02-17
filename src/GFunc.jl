@@ -79,7 +79,7 @@ function MakeGu(ndFdJ::Function,
             # compute Jacobians
             # (α,β) -> (u,v).
             # owing to the remapping of Ω, this has an extra 2/(ωmax-ωmin)
-            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,ωmin,ωmax,vval)
+            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,vval)
 
             # (E,L) -> (α,β): this is the most expensive function here,
             # so we have pre-tabulated it
