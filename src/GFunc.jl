@@ -38,9 +38,6 @@ function MakeGu(ndFdJ::Function,
     # set up a blank array
     tabGXi  = zeros(Float64,nradial,nradial,Ku)
 
-    # get ωmin and ωmax
-    ωmin, ωmax = Wdata.ωmin, Wdata.ωmax
-
     # determine the step size in vp
     δvp = 1.0/Parameters.Kv
 
@@ -59,12 +56,9 @@ function MakeGu(ndFdJ::Function,
 
         for kvval = 1:Parameters.Kv
 
-            # get the current v value
+            # vp -> v
             vp = δvp*(kvval-0.5)
             vval = vFromvp(vp,vmin,vmax,Parameters.VMAPN)
-
-            # vp -> v
-            Jacvp = DvDvp(vp,vmin,vmax,Parameters.VMAPN)
 
             ####
             # (u,v) -> (a,e)
@@ -75,29 +69,35 @@ function MakeGu(ndFdJ::Function,
 
             # need (E,L): this has some relatively expensive switches
             Eval,Lval = Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval]
-
+            
+            #####
             # compute Jacobians
-            # (α,β) -> (u,v).
-            # owing to the remapping of Ω, this has an extra 2/(ωmax-ωmin)
-            Jacαβ = OrbitalElements.JacαβToUV(n1,n2,vval)
+            #####
+            # vp -> v
+            Jacv = DvDvp(vp,vmin,vmax,Parameters.VMAPN)
+            
+            # (u,v) -> (α,β).
+            # Renormalized. (2/(ωmax-ωmin) * |∂(α,β)/∂(u,v)|)
+            RenormalizedJacαβ = OrbitalElements.RenormalizedJacUVToαβ(n1,n2,uval,vval)
 
-            # (E,L) -> (α,β): this is the most expensive function here,
+            # (α,β) -> (E,L): this is the most expensive function here,
             # so we have pre-tabulated it
             JacEL = Wdata.tabJ[kvval,kuval]
 
-            #(J) -> (E,L)
+            # (E,L) -> (Jr,L)
             JacJ = (1/Ω1)
-
 
             # get the resonance vector
             ndotΩ = n1*Ω1 + n2*Ω2
-
             # compute dF/dJ: call out for value
             valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotΩ)
 
-
             # Common part of the integrand (to every np,nq)
-            integrand = pref*δvol*Jacvp*Jacαβ*JacEL*JacJ*valndFdJ
+            # True volume element (including Jacobians and normalization factors 
+            # from change of coordinates (Jr,L) ↦ (u,vp)) : 
+            #       (δvp/Ω₀) * (dv/dvp) * 2/(ωmax-ωmin) * |∂(α,β)/∂(u,v)| * |∂(E,L)/∂(α,β)| * |∂(Jr,L)/∂(E,L)|
+            # times the prefactor and n⋅∂F/∂J (integrand in (Jr,L)-space)
+            integrand = pref * δvol * Jacv * RenormalizedJacαβ * JacEL * JacJ * valndFdJ
             # In 3D, volume element to add
             integrand *= (Parameters.ndim == 3) ? Lval : 1.0
 

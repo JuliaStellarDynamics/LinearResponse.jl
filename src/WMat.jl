@@ -350,9 +350,9 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
             # save (E,L) values for later
             Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,Parameters.OEparams)
 
-            # compute the Jacobian (E,L)->(alpha,beta) here. a little more expensive, but savings in the long run
+            # compute the Jacobian of the (α,β) ↦ (E,L) mapping here. a little more expensive, but savings in the long run
 
-            Wdata.tabJ[kvval,kuval] = OrbitalElements.JacELToαβAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Parameters.OEparams)
+            Wdata.tabJ[kvval,kuval] = OrbitalElements.JacαβToELAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Parameters.OEparams)
 
             # Compute W(u,v) for every basis element using RK4 scheme
             WBasisFT(a,e,Ω₁,Ω₂,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,Parameters)
