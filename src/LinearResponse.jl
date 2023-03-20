@@ -1,4 +1,4 @@
-module CallAResponse
+module LinearResponse
 
 # bring in the external dependencies
 import OrbitalElements

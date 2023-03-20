@@ -150,7 +150,7 @@ function RunGfuncIsochrone(ndFdJ::Function,
     nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
 
     if VERBOSE > 0
-        println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Considering $nbResVec resonances.")
+        println("LinearResponse.GFuncIsochrone.RunGfuncIsochrone: Considering $nbResVec resonances.")
     end
 
 
@@ -158,14 +158,14 @@ function RunGfuncIsochrone(ndFdJ::Function,
 
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
         if VERBOSE > 0
-            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Starting on ($n1,$n2).")
+            println("LinearResponse.GFuncIsochrone.RunGfuncIsochrone: Starting on ($n1,$n2).")
         end
 
         # could compute the (u,v) boundaries here (or at least wmin,wmax)
         # compute the frequency scaling factors for this resonance
         ωmin,ωmax = OrbitalElements.FindWminWmaxIsochrone(n1,n2)
         if VERBOSE > 0
-            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: ωmin=$ωmin,ωmax=$ωmax")
+            println("LinearResponse.GFuncIsochrone.RunGfuncIsochrone: ωmin=$ωmin,ωmax=$ωmax")
         end
 
         # for some threading reason, make sure Ku is defined here
@@ -185,14 +185,14 @@ function RunGfuncIsochrone(ndFdJ::Function,
 
         # print the size of the found files if the first processor
         if (i==0) & (VERBOSE > 0)
-            println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: Found nradial=$nradial,Ku=$Ku,Kv=$Kv")
+            println("LinearResponse.GFuncIsochrone.RunGfuncIsochrone: Found nradial=$nradial,Ku=$Ku,Kv=$Kv")
         end
 
         outputfilename = GFuncFilename(gfuncdir,modelname,dfname,lharmonic,n1,n2,rb,Ku,Kv)
         if isfile(outputfilename)
 
             if VERBOSE > 0
-                println("CallAResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $i of $nbResVec, ($n1,$n2).")
+                println("LinearResponse.GFuncIsochrone.RunGfuncIsochrone: file already exists for step $i of $nbResVec, ($n1,$n2).")
             end
 
             continue

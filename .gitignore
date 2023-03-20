@@ -1,7 +1,8 @@
 
 
-# very annoying OSX hidden files
+# OSX hidden files
 *.DS_Store
+**/*.DS_Store
 
 # all example data products that we don't want to track
 examples/*/wmat

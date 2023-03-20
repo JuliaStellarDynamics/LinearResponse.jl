@@ -31,41 +31,41 @@ end
 """
 function RunDeterminant(ωlist::Array{ComplexF64},
                         FHT::FiniteHilbertTransform.FHTtype,
-                        Parameters::ResponseParameters)
+                        params::LinearParameters=LinearParameters())
 
     # Preparinng computations of the response matrices
-    tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(),FHT,Parameters)
-    IMatlist = makeIMat(Parameters.nradial,Threads.nthreads())
+    tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(),FHT,params)
+    IMatlist = makeIMat(params.nradial,Threads.nthreads())
 
     # how many omega values are we computing?
     nω = length(ωlist)
     # allocate containers for determinant and min eigenvalue
     tabdetXi = zeros(ComplexF64,nω)
 
-    (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.RunDeterminant: computing $nω frequency values.")
+    (params.VERBOSE > 0) && println("LinearResponse.Xi.RunDeterminant: computing $nω frequency values.")
 
     # loop through all frequencies
     Threads.@threads for i = 1:nω
 
         k = Threads.threadid()
 
-        if (i==2) && (Parameters.VERBOSE>0) # skip the first in case there is compile time built in
-            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],Parameters)
+        if (i==2) && (params.VERBOSE>0) # skip the first in case there is compile time built in
+            @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],params)
         else
-            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],Parameters)
+            tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],params)
         end
 
         tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
     end
 
-    h5open(DetFilename(Parameters), "w") do file
+    h5open(DetFilename(params), "w") do file
         # Frequency grids
         write(file,"omega",real(ωlist))
         write(file,"eta",imag(ωlist))
         # Results
         write(file,"det",tabdetXi)
         # Parameters
-        WriteParameters(file,Parameters)
+        WriteParameters(file,params)
     end
     return tabdetXi
 end
@@ -78,14 +78,14 @@ Newton-Raphson descent to find the zero crossing
 """
 function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
                           FHT::FiniteHilbertTransform.FHTtype,
-                          Parameters::ResponseParameters;
+                          params::LinearParameters=LinearParameters();
                           NITER::Int64=32,
                           ACCURACY::Float64=1.0e-10)
 
 
     # Preparinng computations of the response matrices
-    MMat, tabaMcoef, tabωminωmax = PrepareM(Parameters)
-    IMat = makeIMat(Parameters.nradial)
+    MMat, tabaMcoef, tabωminωmax = PrepareM(params)
+    IMat = makeIMat(params.nradial)
 
     omgval = Ωguess + im*ηguess
     domega = 1.e-4
@@ -99,13 +99,13 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
         # calculate the new off omega value
         omgvaloff = omgval + im*domega
 
-        (Parameters.VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
+        (params.VERBOSE > 1) && println("Step number $i: omega=$omgval, omegaoff=$omgvaloff")
 
-        tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,Parameters)
+        tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
         centralvalue = detXi(IMat,MMat)
 
-        tabM!(omgvaloff,MMat,tabaMcoef,tabωminωmax,FHT,Parameters)
+        tabM!(omgvaloff,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
         offsetvalue = detXi(IMat,MMat)
 
@@ -116,7 +116,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
         stepsize = real(centralvalue)/derivative
         omgval  = omgval - im*stepsize
 
-        (Parameters.VERBOSE > 1) && println("Newomg=$omgval, cval=$centralvalue, oval=$offsetvalue")
+        (params.VERBOSE > 1) && println("Newomg=$omgval, cval=$centralvalue, oval=$offsetvalue")
 
         # record iteration number
         completediterations += 1
@@ -128,7 +128,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
     end
 
-    (Parameters.VERBOSE > 0) && println("CallAResponse.Xi.FindZeroCrossing: zero found in $completediterations steps.")
+    (params.VERBOSE > 0) && println("LinearResponse.Xi.FindZeroCrossing: zero found in $completediterations steps.")
 
     return omgval
 end

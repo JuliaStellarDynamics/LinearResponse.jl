@@ -14,18 +14,18 @@ function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
                 Wdata::WMatdataType,
                 tabu::Array{Float64},
-                Parameters::ResponseParameters)
+                params::LinearParameters=LinearParameters())
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
-    if Parameters.ndim==2
+    if params.ndim==2
         # 2d prefactor, see Fouvry et al. 2015
         # ATTENTION : Landau prescription for G(u) / (u - ω) not G(u) / (ω - u)
         #             Hence the minus sign.
         pref = - (2.0*pi)^(2)
     else
         # 3d prefactor, see Hamilton et al. 2018
-        CMatrix = getCMatrix(Parameters.lharmonic)
-        pref    = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,Parameters.lharmonic,n2)^(2)/(2.0*Parameters.lharmonic+1.0)
+        CMatrix = getCMatrix(params.lharmonic)
+        pref    = -2.0*(2.0*pi)^(3)*CYlm(CMatrix,params.lharmonic,n2)^(2)/(2.0*params.lharmonic+1.0)
     end
 
     # get basic parameters
@@ -39,26 +39,26 @@ function MakeGu(ndFdJ::Function,
     tabGXi  = zeros(Float64,nradial,nradial,Ku)
 
     # determine the step size in vp
-    δvp = 1.0/Parameters.Kv
+    δvp = 1.0/params.Kv
 
     # remove dimensionality from Ω mapping
-    dimensionl = (1.0/Parameters.OEparams.Ω₀)
+    dimensionl = (1.0/params.Orbitalparams.Ω₀)
 
     # Integration step volume
     δvol = δvp * dimensionl
 
-    for kuval in 1:Parameters.Ku
+    for kuval in 1:params.Ku
 
-        (Parameters.VERBOSE>2) && println("CallAResponse.GFunc.MakeGu: Step $kuval of $(Parmeters.Ku).")
+        (params.VERBOSE>2) && println("LinearResponse.GFunc.MakeGu: Step $kuval of $(Parmeters.Ku).")
 
         uval = tabu[kuval]
         vmin, vmax = Wdata.tabvminmax[1,kuval], Wdata.tabvminmax[2,kuval]
 
-        for kvval = 1:Parameters.Kv
+        for kvval = 1:params.Kv
 
             # vp -> v
             vp = δvp*(kvval-0.5)
-            vval = vFromvp(vp,vmin,vmax,Parameters.VMAPN)
+            vval = vFromvp(vp,vmin,vmax,params.VMAPN)
 
             ####
             # (u,v) -> (a,e)
@@ -74,7 +74,7 @@ function MakeGu(ndFdJ::Function,
             # compute Jacobians
             #####
             # vp -> v
-            Jacv = DvDvp(vp,vmin,vmax,Parameters.VMAPN)
+            Jacv = DvDvp(vp,vmin,vmax,params.VMAPN)
             
             # (u,v) -> (α,β).
             # Renormalized. (2/(ωmax-ωmin) * |∂(α,β)/∂(u,v)|)
@@ -99,7 +99,7 @@ function MakeGu(ndFdJ::Function,
             # times the prefactor and n⋅∂F/∂J (integrand in (Jr,L)-space)
             integrand = pref * δvol * Jacv * RenormalizedJacαβ * JacEL * JacJ * valndFdJ
             # In 3D, volume element to add
-            integrand *= (Parameters.ndim == 3) ? Lval : 1.0
+            integrand *= (params.ndim == 3) ? Lval : 1.0
 
             # Adding step contribution to every element
             for np = 1:nradial
@@ -131,34 +131,34 @@ end
 ########################################################################
 
 """
-    RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,FHT,basis,Parameters)
+    RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,FHT,basis,params)
 
 @TO DESCRIBE
 """
 function RunGfunc(ndFdJ::Function,
                   FHT::FiniteHilbertTransform.FHTtype,
-                  Parameters::ResponseParameters)
+                  params::LinearParameters=LinearParameters())
 
     # Check directory names
-    CheckDirectories(Parameters.wmatdir,Parameters.gfuncdir) || (return 0)
+    CheckDirectories(params.wmatdir,params.gfuncdir) || (return 0)
 
-    (Parameters.VERBOSE >= 0) && println("CallAResponse.GFunc.RunGfunc: Considering $(Parameters.nbResVec) resonances.")
+    (params.VERBOSE >= 0) && println("LinearResponse.GFunc.RunGfunc: Considering $(params.nbResVec) resonances.")
 
-    Threads.@threads for i = 1:Parameters.nbResVec
-        n1, n2 = Parameters.tabResVec[1,i], Parameters.tabResVec[2,i]
+    Threads.@threads for i = 1:params.nbResVec
+        n1, n2 = params.tabResVec[1,i], params.tabResVec[2,i]
 
-        (Parameters.VERBOSE > 0) && println("CallAResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
+        (params.VERBOSE > 0) && println("LinearResponse.GFunc.RunGfunc: Starting on ($n1,$n2).")
 
-        outputfilename = GFuncFilename(n1,n2,Parameters)
+        outputfilename = GFuncFilename(n1,n2,params)
         # Check if the file already exist / has enough basis elements / overwritting imposed
         # false if no computation needed, then continue
-        CheckFileNradial(outputfilename,Parameters,"CallAResponse.GFunc.RunGfunc: ($n1,$n2) resonance") || continue
+        CheckFileNradial(outputfilename,params,"LinearResponse.GFunc.RunGfunc: ($n1,$n2) resonance") || continue
 
         # load a value of tabWmat, plus (a,e) values
-        wmatfilename   = WMatFilename(n1,n2,Parameters)
+        wmatfilename   = WMatFilename(n1,n2,params)
         file       = h5open(wmatfilename,"r")
         # Check if enough basis element in this file (throw error if not)
-        (Parameters.nradial <= read(file,"ResponseParameters/nradial")) || error("Not enough basis element in WMat file for ($n1,$n2) resonance.")
+        (params.nradial <= read(file,"LinearParameters/nradial")) || error("Not enough basis element in WMat file for ($n1,$n2) resonance.")
         # Construct the Wdata structure for the file
         Wdata      = WMatdataType(read(file,"omgmin"),read(file,"omgmax"),read(file,"tabvminmax"),                  # Mapping parameters
                                   read(file,"wmat"),                                                                # Basis FT
@@ -167,7 +167,7 @@ function RunGfunc(ndFdJ::Function,
         close(file)
 
         # G(u) computation for this resonance number
-        tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,FHT.tabu,Parameters)
+        tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,FHT.tabu,params)
 
         # Saving in file
         h5open(outputfilename, "w") do file
@@ -177,7 +177,7 @@ function RunGfunc(ndFdJ::Function,
             # G(u)
             write(file,"Gmat",tabGXi)
             # Parameters
-            WriteParameters(file,Parameters)
+            WriteParameters(file,params)
         end
     end
 end

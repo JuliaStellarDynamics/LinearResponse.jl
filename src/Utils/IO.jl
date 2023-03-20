@@ -9,7 +9,7 @@ function CheckDirectories(dirs...)
     # check that this is in fact a directory path ("/" at the end, "" return true)
     for dir in dirs
         if !isdirpath(dir)
-            println("CallAResponse.IO.CheckDirectories: $dir is not an existing directory path.")
+            println("LinearResponse.IO.CheckDirectories: $dir is not an existing directory path.")
             return false
         end
 
@@ -19,7 +19,7 @@ function CheckDirectories(dirs...)
             close(tst)
             rm(dir*"tst.dat")
         catch e
-            println("CallAResponse.IO.CheckValidDirectory: cannot write test file to $dir")
+            println("LinearResponse.IO.CheckValidDirectory: cannot write test file to $dir")
             return false
         end
     end
@@ -34,16 +34,16 @@ end
         - the old file has been created with enough basis elements (nradial sufficiently high)
 """
 function CheckFileNradial(filename::String,
-                          Parameters::ResponseParameters,
+                          params::LinearParameters=LinearParameters(),
                           preprint::String="")
         
     if isfile(filename)
-        oldnradial = try h5read(filename,"ResponseParameters/nradial") catch; return true end
-        if (Parameters.OVERWRITE == false) && (Parameters.nradial <= oldnradial)
-            (Parameters.VERBOSE > 0) && println(preprint*" file already exists with higher nradial: no computation.")
+        oldnradial = try h5read(filename,"LinearParameters/nradial") catch; return true end
+        if (params.OVERWRITE == false) && (params.nradial <= oldnradial)
+            (params.VERBOSE > 0) && println(preprint*" file already exists with higher nradial: no computation.")
             return false
         else
-            (Parameters.VERBOSE > 0) && println(preprint*" file already exists (possibly with lower nradial) : recomputing and overwriting.")
+            (params.VERBOSE > 0) && println(preprint*" file already exists (possibly with lower nradial) : recomputing and overwriting.")
             return true
         end
     else 
@@ -60,9 +60,9 @@ end
 
 filename for a given wmat result
 """
-function WMatFilename(n1::Int64,n2::Int64,Parameters::ResponseParameters)
+function WMatFilename(n1::Int64,n2::Int64,params::LinearParameters=LinearParameters())
 
-    return Parameters.wmatdir*"Wmat_"*Parameters.modelname*"_l_"*string(Parameters.lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(Parameters.rbasis)*"_Ku_"*string(Parameters.Ku)*"_Kv_"*string(Parameters.Kv)*"_Kw_"*string(Parameters.Kw)*".h5"
+    return params.wmatdir*"Wmat_"*params.modelname*"_l_"*string(params.lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(params.rbasis)*"_Ku_"*string(params.Ku)*"_Kv_"*string(params.Kv)*"_Kw_"*string(params.Kw)*".h5"
 end
 
 """
@@ -70,19 +70,18 @@ end
 
 filename for a given Gfunc result
 """
-function GFuncFilename(n1::Int64,n2::Int64,Parameters::ResponseParameters)
+function GFuncFilename(n1::Int64,n2::Int64,params::LinearParameters=LinearParameters())
 
-    return Parameters.gfuncdir*"Gfunc_"*Parameters.modelname*"_df_"*Parameters.dfname*"_l_"*string(Parameters.lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(Parameters.rbasis)*"_Ku_"*string(Parameters.Ku)*"_Kv_"*string(Parameters.Kv)*".h5"
+    return params.gfuncdir*"Gfunc_"*params.modelname*"_df_"*params.dfname*"_l_"*string(params.lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(params.rbasis)*"_Ku_"*string(params.Ku)*"_Kv_"*string(params.Kv)*".h5"
 end
 
 """
     AxiFilename()
 
 """
-function AxiFilename(n1::Int64,n2::Int64,
-                     Parameters::ResponseParameters)
+function AxiFilename(n1::Int64,n2::Int64,params::LinearParameters=LinearParameters())
 
-    return Parameters.axidir*"Axi_"*Parameters.modelname*"_df_"*Parameters.dfname*"_l_"*string(Parameters.lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(Parameters.rbasis)*"_Ku_"*string(Parameters.Ku)*"_Kv_"*string(Parameters.Kv)*".h5"
+    return params.axidir*"Axi_"*params.modelname*"_df_"*params.dfname*"_l_"*string(params.lharmonic)*"_n1_"*string(n1)*"_n2_"*string(n2)*"_rb_"*string(params.rbasis)*"_Ku_"*string(params.Ku)*"_Kv_"*string(params.Kv)*".h5"
 end
 
 ##############################################
@@ -91,18 +90,18 @@ end
 """
     OutputsEnd()
 """
-function OutputsEnd(Parameters::ResponseParameters)
+function OutputsEnd(params::LinearParameters=LinearParameters())
 
-    return Parameters.modelname*"_df_"*Parameters.dfname*"_l_"*string(Parameters.lharmonic)*"_n1_"*string(Parameters.n1max)*"_rb_"*string(Parameters.rbasis)*"_Ku_"*string(Parameters.Ku)*"_Kv_"*string(Parameters.Kv)*".h5"
+    return params.modelname*"_df_"*params.dfname*"_l_"*string(params.lharmonic)*"_n1_"*string(params.n1max)*"_rb_"*string(params.rbasis)*"_Ku_"*string(params.Ku)*"_Kv_"*string(params.Kv)*".h5"
 end
 
 """
     ModeFilename()
 
 """
-function ModeFilename(Parameters::ResponseParameters)
+function ModeFilename(params::LinearParameters=LinearParameters())
 
-    return Parameters.modedir*"ModeShape_"*OutputsEnd(Parameters)
+    return params.modedir*"ModeShape_"*OutputsEnd(params)
 end
 
 
@@ -110,18 +109,18 @@ end
     DetFilename()
 
 """
-function DetFilename(Parameters::ResponseParameters)
+function DetFilename(params::LinearParameters=LinearParameters())
 
-    return Parameters.modedir*"Determinant_"*OutputsEnd(Parameters)
+    return params.modedir*"Determinant_"*OutputsEnd(params)
 end
 
 """
     MFilename()
 
 """
-function MatFilename(Parameters::ResponseParameters)
+function MatFilename(params::LinearParameters=LinearParameters())
 
-    return Parameters.modedir*"Matrices_"*OutputsEnd(Parameters)
+    return params.modedir*"Matrices_"*OutputsEnd(params)
 end
 
 
@@ -133,26 +132,26 @@ end
 write all the parameters to a file
 """
 function WriteParameters(filename::String,
-                         Parameters::ResponseParameters,
+                         params::LinearParameters=LinearParameters(),
                          mode::String="r+")
 
     h5open(filename, mode) do file
-        WriteParameters(file,Parameters)
+        WriteParameters(file,params)
     end
 end
 
 function WriteParameters(file::HDF5.File,
-                         Parameters::ResponseParameters)
+                         params::LinearParameters=LinearParameters())
 
-    group = create_group(file,"ResponseParameters")
-    for i = 1:fieldcount(ResponseParameters)
-        varname = string(fieldname(ResponseParameters,i))
+    group = create_group(file,"LinearParameters")
+    for i = 1:fieldcount(LinearParameters)
+        varname = string(fieldname(LinearParameters,i))
         if (varname == "tabResVec")
             continue
-        elseif (varname == "OEparams")
-            OrbitalElements.WriteParameters(file,Parameters.OEparams)
+        elseif (varname == "Orbitalparams")
+            OrbitalElements.WriteParameters(file,params.Orbitalparams)
         else
-            try write(group,varname,getfield(Parameters,i)) catch; println("Unable to write parameter: "*varname) end
+            try write(group,varname,getfield(params,i)) catch; println("Unable to write parameter: "*varname) end
         end
     end
 end

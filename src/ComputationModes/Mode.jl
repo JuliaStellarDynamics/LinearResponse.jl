@@ -8,15 +8,15 @@ for a single omega, compute the shape of the mode
 """
 function ComputeModeTables(omgval::ComplexF64,
                            FHT::FiniteHilbertTransform.FHTtype,
-                           Parameters::ResponseParameters)
+                           params::LinearParameters=LinearParameters())
 
     # Preparinng computations of the response matrices
-    tabM, tabaMcoef, tabωminωmax = PrepareM(Parameters)
+    tabM, tabaMcoef, tabωminωmax = PrepareM(params)
 
-    tabM!(omgval,tabM,tabaMcoef,tabωminωmax,FHT,Parameters)
+    tabM!(omgval,tabM,tabaMcoef,tabωminωmax,FHT,params)
 
-    if Parameters.VERBOSE>0
-        println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
+    if params.VERBOSE>0
+        println("LinearResponse.Mode.ComputeModeTables: MMat constructed.")
     end
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
@@ -81,7 +81,7 @@ function GetModeShape(basis::AstroBasis.BasisType,
                       Rmin::Float64,Rmax::Float64,
                       nRMode::Int64,
                       EigenMode::Vector,
-                      Parameters::ResponseParameters)
+                      params::LinearParameters=LinearParameters())
 
     # table of R for which the mode is computed
     radiusvals = LinRange(Rmin,Rmax,nRMode)
@@ -92,7 +92,7 @@ function GetModeShape(basis::AstroBasis.BasisType,
     ModePotentialShape = zeros(eigentype,nRMode)
     ModeDensityShape   = zeros(eigentype,nRMode)
 
-    (Parameters.VERBOSE > 1) && println("CallAResponse.Mode.GetModeShape: Starting radius loop...")
+    (params.VERBOSE > 1) && println("LinearResponse.Mode.GetModeShape: Starting radius loop...")
 
     # at each radius, compute the shape of the mode response
     for irad=1:nRMode
@@ -105,11 +105,11 @@ function GetModeShape(basis::AstroBasis.BasisType,
         dval = 0.0
 
         # for each basis element, add the coefficient contribution
-        for np=1:Parameters.nradial
+        for np=1:params.nradial
 
             # add the contribution from the basis elements.
-            pval += EigenMode[np]*AstroBasis.getUln(basis,Parameters.lharmonic,np-1,R)
-            dval += EigenMode[np]*AstroBasis.getDln(basis,Parameters.lharmonic,np-1,R)
+            pval += EigenMode[np]*AstroBasis.getUln(basis,params.lharmonic,np-1,R)
+            dval += EigenMode[np]*AstroBasis.getDln(basis,params.lharmonic,np-1,R)
 
         end
 
@@ -120,12 +120,12 @@ function GetModeShape(basis::AstroBasis.BasisType,
 
     end
 
-    h5open(ModeFilename(Parameters), "w") do file
+    h5open(ModeFilename(params), "w") do file
         write(file,"ModeRadius",ModeRadius)         # write tabRMode to file
         write(file,"ModePotentialShape",ModePotentialShape) # write tabShapeMode to file
         write(file,"ModeDensityShape",ModeDensityShape) # write tabShapeMode to file
         # Parameters
-        WriteParameters(file,Parameters)
+        WriteParameters(file,params)
     end
 
     # return just in case we want to do something else

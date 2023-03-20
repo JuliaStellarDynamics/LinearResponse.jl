@@ -514,7 +514,7 @@ function RunWmatIsochrone(wmatdir::String,
 
     # check if we can cover the specified radial orders
     if nradialmax > nradial
-        println("CallAResponse.WMat.RunWmatIsochrone: the input basis does not have sufficient nradial ($nradialmax) for the requested value ($nradial).")
+        println("LinearResponse.WMat.RunWmatIsochrone: the input basis does not have sufficient nradial ($nradialmax) for the requested value ($nradial).")
         return 0
     end
 
@@ -529,22 +529,22 @@ function RunWmatIsochrone(wmatdir::String,
     nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
 
     # print the length of the list of resonance vectors
-    println("CallAResponse.WMatIsochrone.RunWmatIsochrone: Number of resonances to compute: $nbResVec")
+    println("LinearResponse.WMatIsochrone.RunWmatIsochrone: Number of resonances to compute: $nbResVec")
 
     Threads.@threads for i = 1:nbResVec
         k = Threads.threadid()
         n1,n2 = tabResVec[1,i],tabResVec[2,i]
 
-        (VERBOSE > 0) && println("CallAResponse.WMatIsochrone.RunWmatIsochrone: Computing W for the ($n1,$n2) resonance.")
+        (VERBOSE > 0) && println("LinearResponse.WMatIsochrone.RunWmatIsochrone: Computing W for the ($n1,$n2) resonance.")
 
         if isfile(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw))
             file = h5open(WMatFilename(wmatdir,modelname,lharmonic,n1,n2,rb,Ku,Kv,Kw), "r")
             oldnradial = read(file,"nradial")
             if (OVERWRITE == false) && (nradial <= oldnradial)
-                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
+                (VERBOSE > 0) && println("LinearResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with higher nradial: no computation.")
                 continue
             else
-                (VERBOSE > 0) && println("CallAResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
+                (VERBOSE > 0) && println("LinearResponse.WMat.RunWmat: ($n1,$n2) resonanance WMat file already exists with lower nradial: recomputing and overwritting.")
             end
             close(file)
         end

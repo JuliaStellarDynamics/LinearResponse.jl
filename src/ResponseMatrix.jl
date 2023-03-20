@@ -13,7 +13,7 @@ VERBOSE flag rules
 ########################################################
 
 """
-    tabM!(ω,tabM,tabaMcoef,tabωminωmax,FHT,Parameters)
+    tabM!(ω,tabM,tabaMcoef,tabωminωmax,FHT,params)
 
 computes the response matrix M(ω) for a given COMPLEX frequency ω in physical units, i.e. not (yet) rescaled by 1/Ω0.
 
@@ -26,25 +26,25 @@ function tabM!(ω::ComplexF64,
                tabaMcoef::Array{Float64,4},
                tabωminωmax::Matrix{Float64},
                FHT::FiniteHilbertTransform.FHTtype,
-               Parameters::ResponseParameters)
+               params::LinearParameters=LinearParameters())
 
     # get dimensions from the relevant tables
-    nbResVec, tabResVec = Parameters.nbResVec, Parameters.tabResVec
-    KuTruncation = Parameters.KuTruncation
-    nradial  = Parameters.nradial
-    VERBOSE  = Parameters.VERBOSE
+    nbResVec, tabResVec = params.nbResVec, params.tabResVec
+    KuTruncation = params.KuTruncation
+    nradial  = params.nradial
+    VERBOSE  = params.VERBOSE
     Ku       = FHT.Ku
 
     if KuTruncation < Ku
         Ku = KuTruncation
-        (VERBOSE > 2) && println("CallAResponse.Xi.tabM!: truncating Ku series from $(FHT.Ku) to $Ku.")
+        (VERBOSE > 2) && println("LinearResponse.Xi.tabM!: truncating Ku series from $(FHT.Ku) to $Ku.")
     end
 
     # initialise the array to 0.
     fill!(tabM,0.0 + 0.0*im)
 
     # Rescale to get dimensionless frequency
-    ωnodim = ω/Parameters.OEparams.Ω₀
+    ωnodim = ω/params.Orbitalparams.Ω₀
 
     # loop over the resonances: no threading here because we parallelise over frequencies
     for nres = 1:nbResVec
@@ -78,7 +78,7 @@ function tabM!(ω::ComplexF64,
                     if !isnan(val)
                         res += val
                     else
-                        (k==1) && (VERBOSE>1) && println("CallAResponse.Xi.tabM!: NaN found for n=($n1,$n2), npnq=($np,$nq), k=$k")
+                        (k==1) && (VERBOSE>1) && println("LinearResponse.Xi.tabM!: NaN found for n=($n1,$n2), npnq=($np,$nq), k=$k")
                     end
 
 
@@ -116,25 +116,25 @@ for multiple threads.
 """
 function PrepareM(n::Int64,
                   FHT::FiniteHilbertTransform.FHTtype,
-                  Parameters::ResponseParameters)
+                  params::LinearParameters=LinearParameters())
 
     
     @assert n > 0
 
     # Check directory names
-    CheckDirectories(Parameters.axidir,Parameters.modedir) || (return 0)
+    CheckDirectories(params.axidir,params.modedir) || (return 0)
 
     # allocate memory for FHT structs
     FHTlist = [deepcopy(FHT) for k=1:n]
 
     # allocate memory for the response matrices M
-    nradial = Parameters.nradial
+    nradial = params.nradial
     tabMlist = [zeros(ComplexF64,nradial,nradial) for k=1:n]
 
     # load aXi values
-    tabaMcoef, tabωminωmax = StageAXi(Parameters)
+    tabaMcoef, tabωminωmax = StageAXi(params)
 
-    (Parameters.VERBOSE >= 1) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
+    (params.VERBOSE >= 1) && println("LinearResponse.Xi.RunM: tabaMcoef loaded.")
 
     return tabMlist, tabaMcoef, tabωminωmax, FHTlist
 end
@@ -144,19 +144,19 @@ end
 prepare computations for Linear Response (Determinant, eigenvalues, mode, full matrices computations...)
 for single thread.
 """
-function PrepareM(Parameters::ResponseParameters)
+function PrepareM(params::LinearParameters=LinearParameters())
 
     # Check directory names
-    CheckDirectories(Parameters.axidir,Parameters.modedir) || (return 0)
+    CheckDirectories(params.axidir,params.modedir) || (return 0)
 
     # allocate memory for the response matrice M
-    nradial = Parameters.nradial
+    nradial = params.nradial
     MMat = zeros(ComplexF64,nradial,nradial)
 
     # load aXi values
-    tabaMcoef, tabωminωmax = StageAXi(Parameters)
+    tabaMcoef, tabωminωmax = StageAXi(params)
 
-    (Parameters.VERBOSE >= 1) && println("CallAResponse.Xi.RunM: tabaMcoef loaded.")
+    (params.VERBOSE >= 1) && println("LinearResponse.Xi.RunM: tabaMcoef loaded.")
 
     return MMat, tabaMcoef, tabωminωmax
 end

@@ -37,14 +37,14 @@ function tabMIsochrone!(omg::Complex{Float64},
     if KuTruncation < Ku
         Ku = KuTruncation
         if VERBOSE > 2
-            println("CallAResponse.XiIsochrone.tabMIsochrone!: truncating Ku series from $(FHT.Ku) to $Ku.")
+            println("LinearResponse.XiIsochrone.tabMIsochrone!: truncating Ku series from $(FHT.Ku) to $Ku.")
         end
     end
 
     # initialise the array to 0.
     fill!(tabM,0.0 + 0.0*im)
 
-    #println("CallAResponse.Xi.tabM!: loop dimensions npnq=$nbnpnq, nResVec=$nbResVec, Ku=$Ku.")
+    #println("LinearResponse.Xi.tabM!: loop dimensions npnq=$nbnpnq, nResVec=$nbResVec, Ku=$Ku.")
 
     # loop over the resonances: no threading here because we parallelise over frequencies
     for nResVec=1:nbResVec
@@ -151,10 +151,10 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
     tabdetXi = zeros(Complex{Float64},nomg)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
-    println("CallAResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
+    tabaMcoef = LinearResponse.StageaMcoef(tabResVec,tabnpnq,Ku,Kv,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    println("LinearResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
 
-    println("CallAResponse.Xi.RunMIsochrone: computing $nomglist frequency values.")
+    println("LinearResponse.Xi.RunMIsochrone: computing $nomglist frequency values.")
 
     # loop through all frequencies
     Threads.@threads for i = 1:nomg
@@ -214,7 +214,7 @@ function ComputeModeTablesIsochrone(inputfile,
 
     # load aXi values
     tabaMcoef =  StageaMcoef(tabResVec,tabnpnq,Ku,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
-    println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+    println("LinearResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # struct for Dk(omega) computation
     structtabLeglist = FiniteHilbertTransform.structtabLegcreate(Ku)
@@ -229,7 +229,7 @@ function ComputeModeTablesIsochrone(inputfile,
 
     #tabM!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,structtabLeglist,dψ,d2ψ,nradial,Ω₀)
     tabMIsochrone!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,structtabLeglist,nradial,Ω₀)
-    println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
+    println("LinearResponse.Mode.ComputeModeTables: MMat constructed.")
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
     EV,EF,EM = mevXi(MMat)
@@ -259,7 +259,7 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
 
     # check directories
     if !(isdir(gfuncdir) && isdir(modedir))
-        error("CallAResponse.Xi.jl: gfuncdir or modedir not found.")
+        error("LinearResponse.Xi.jl: gfuncdir or modedir not found.")
     end
 
     # get basis parameters
@@ -281,9 +281,9 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
     MakeaMCoefficients(tabResVec,tabnpnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,nradial,
+    tabaMcoef = LinearResponse.StageaMcoef(tabResVec,tabnpnq,Ku,nradial,
                                           modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
-    println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+    println("LinearResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # Structs for Dk(omega) computation
     structtabLeglist = FiniteHilbertTransform.structtabLegcreate(Ku)
@@ -339,7 +339,7 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
     end
 
     if VERBOSE > 0
-        println("CallAResponse.Xi.FindZeroCrossingIsochrone: zero found in $completediterations steps.")
+        println("LinearResponse.Xi.FindZeroCrossingIsochrone: zero found in $completediterations steps.")
     end
 
     return omgval
@@ -388,8 +388,8 @@ function ComputeModeTablesIsochrone(omgval::Complex{Float64},
     MakeaMCoefficients(tabResVec,tabnpnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modelname,dfname,lharmonic,nradial,rb,VERBOSE=VERBOSE)
 
     # load aXi values
-    tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tabnpnq,Ku,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
-    println("CallAResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
+    tabaMcoef = LinearResponse.StageaMcoef(tabResVec,tabnpnq,Ku,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+    println("LinearResponse.Xi.FindZeroCrossing: tabaMcoef loaded.")
 
     # struct for Dk(omega) computation
     structtabLeglist = FiniteHilbertTransform.structtabLegcreate(Ku)
@@ -403,7 +403,7 @@ function ComputeModeTablesIsochrone(omgval::Complex{Float64},
     tabmevXi = zeros(Float64,nomg) # minimal eigenvalue at each frequency
 
     tabMIsochrone!(omgval,MMat,tabaMcoef,tabResVec,tabnpnq,structtabLeglist,nradial,Omega0,rb)
-    println("CallAResponse.Mode.ComputeModeTables: MMat constructed.")
+    println("LinearResponse.Mode.ComputeModeTables: MMat constructed.")
 
     # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
     EV,EF,EM = mevXi(MMat)
