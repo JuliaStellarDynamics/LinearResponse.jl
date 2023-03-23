@@ -11,7 +11,7 @@ inputfile = "SellwoodStable.jl"
 include(inputfile)
 
 # call the function to construct W matrices
-LinearResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,d4ψ,FHT,basis,params)
+LinearResponse.RunWmat(ψ,dψ,d2ψ,FHT,basis,params)
 
 # call the function to compute G(u) functions
 LinearResponse.RunGfunc(ndFdJ,FHT,params)

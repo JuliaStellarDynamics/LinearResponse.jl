@@ -138,14 +138,14 @@ end
 
 run the full linear response (Basis FT, G(u) computation and coefficient decomposition)
 """
-function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
-                            ndFdJ::Function,
+function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,
+                            ndFdJ::F3,
                             FHT::FiniteHilbertTransform.FHTtype,
                             basis::AstroBasis.BasisType,
-                            params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
+                            params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
     
     # call the function to construct W matrices
-    RunWmat(ψ,dψ,d2ψ,d3ψ,d4ψ,FHT,basis,params)
+    RunWmat(ψ,dψ,d2ψ,FHT,basis,params)
 
     # call the function to compute G(u) functions
     RunGfunc(ndFdJ,FHT,params)
