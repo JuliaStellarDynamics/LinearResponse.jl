@@ -11,18 +11,18 @@ function ComputeModeTables(omgval::ComplexF64,
                            params::LinearParameters=LinearParameters())
 
     # Preparinng computations of the response matrices
-    tabM, tabaMcoef, tabωminωmax = PrepareM(params)
+    MMat, tabaMcoef, tabωminωmax = PrepareM(params)
 
-    tabM!(omgval,tabM,tabaMcoef,tabωminωmax,FHT,params)
+    tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
     if params.VERBOSE>0
         println("LinearResponse.Mode.ComputeModeTables: MMat constructed.")
     end
 
-    # eigenvalue, eigenfunction (eigenvector), eigenmode (for basis projection)
-    EV,EF,EM = mevXi(MMat)
+    # eigenvalue, eigenvector (for basis projection)
+    EV, EM = mevXi(MMat)
 
-    return EV,EF,EM
+    return EV, EM
 end
 
 
@@ -50,20 +50,8 @@ function mevXi(tabM::AbstractMatrix{ComplexF64})
         end
     end
 
-    # construct the mode table
-    tabEigenMode = zeros(ComplexF64,nEig1)
-
-    # now fill in the eigenmode
-    # loop over the number of basis elements
-    for np=1:nEig1
-
-        # extract the eigenvector
-        # tabeigvecs is the matrix whose COLUMNS are eigenvectors
-        tabEigenMode[np] = tabeigvecs[np,indEig]
-    end
-
     # output
-    return tabeigvals[indEig],tabeigvecs[:,indEig],tabEigenMode
+    return tabeigvals[indEig], tabeigvecs[:,indEig]
 end
 
 

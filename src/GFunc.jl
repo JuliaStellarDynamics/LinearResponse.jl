@@ -6,7 +6,7 @@
 ########################################################################
 
 """
-    MakeGu(ndFdJ,n1,n2,Wdata,tabu,params)
+    MakeGu(ndFdJ,n1,n2,Wdata,tabu[,params])
 
 function to compute G(u)
 """
@@ -131,7 +131,7 @@ end
 ########################################################################
 
 """
-    RunGfunc(ψ,dψ,d2ψ,d3ψ,d4ψ,ndFdJ,FHT,basis,params)
+    RunGfunc(ndFdJ,FHT,basis[,params])
 
 @TO DESCRIBE
 """

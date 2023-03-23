@@ -38,10 +38,10 @@ end
 """
 @TO DESCRIBE
 """
-function WMatdataCreate(dψ::Function,d2ψ::Function,
+function WMatdataCreate(dψ::F1,d2ψ::F2,
                         n1::Int64,n2::Int64,
                         basis::AstroBasis.BasisType,
-                        params::LinearParameters=LinearParameters())
+                        params::LinearParameters=LinearParameters()) where {F1 <: Function, F2 <: Function}
 
     # compute the frequency scaling factors for this resonance
     ωmin, ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,params.Orbitalparams)
@@ -291,15 +291,16 @@ end
 """
 @TO DESCRIBE
 """
-function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,βc::Function,
+function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
                     n1::Int64,n2::Int64,
                     tabu::Vector{Float64},
                     basisFT::BasisFTtype,
-                    params::LinearParameters=LinearParameters())
+                    params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
 
-    Ω₀ = params.Orbitalparams.Ω₀
-    
     @assert length(tabu) == params.Ku "LinearResponse.WMat.MakeWmatUV: tabu length is not Ku."
+
+    Orbitalparams = params.Orbitalparams
+    Ω₀ = Orbitalparams.Ω₀
 
     # allocate the results matrices
     Wdata = WMatdataCreate(dψ,d2ψ,n1,n2,basisFT.basis,params)
@@ -314,7 +315,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
         (params.VERBOSE > 2) && println("LinearResponse.WMat.MakeWMat: on step $kuval of $Ku: u=$uval.")
 
         # get the corresponding v boundary values
-        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,βc,params.Orbitalparams)
+        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,dψ,d2ψ,ωmin,ωmax,Orbitalparams)
 
         # saving them
         Wdata.tabvminmax[1,kuval], Wdata.tabvminmax[2,kuval] = vmin, vmax
@@ -337,7 +338,7 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
             # (α,β) -> (Ω1,Ω2)
             Ω₁, Ω₂ = OrbitalElements.FrequenciesFromαβ(α,β,Ω₀)
             # (Ω1,Ω2) -> (a,e)
-            a,e = OrbitalElements.ComputeAEFromFrequencies(ψ,dψ,d2ψ,d3ψ,d4ψ,Ω₁,Ω₂,params.Orbitalparams)
+            a,e = OrbitalElements.ComputeAEFromFrequencies(ψ,dψ,d2ψ,d3ψ,d4ψ,Ω₁,Ω₂,Orbitalparams)
 
             (params.VERBOSE > 2) && print("v=$kvval,o1=$Ω1,o2=$Ω2;")
 
@@ -348,11 +349,11 @@ function MakeWmatUV(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4�
             # save (a,e) values for later
             Wdata.tabAE[1,kvval,kuval], Wdata.tabAE[2,kvval,kuval] = a, e
             # save (E,L) values for later
-            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,params.Orbitalparams)
+            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,Orbitalparams)
 
             # compute the Jacobian of the (α,β) ↦ (E,L) mapping here. a little more expensive, but savings in the long run
 
-            Wdata.tabJ[kvval,kuval] = OrbitalElements.JacαβToELAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,params.Orbitalparams)
+            Wdata.tabJ[kvval,kuval] = OrbitalElements.JacαβToELAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Orbitalparams)
 
             # Compute W(u,v) for every basis element using RK4 scheme
             WBasisFT(a,e,Ω₁,Ω₂,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,params)
@@ -374,14 +375,14 @@ end
 ########################################################################
 
 """
-    RunWmat(ψ,dψ,d2ψ,d3ψ,wmatdir,Ku,Kv,Kw,basis,lharmonic,n1max,nradial,Ω₀,modelname,rb,rmin,rmax[,VERBOSE,OVERWRITE])
+    RunWmat(ψ,dψ,d2ψ,d3ψ,d4ψ,FHT,basis[,params])
 
 @TO DESCRIBE
 """
-function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::Function,
+function RunWmat(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
                  FHT::FiniteHilbertTransform.FHTtype,
                  basis::AstroBasis.BasisType,
-                 params::LinearParameters=LinearParameters())
+                 params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
 
     # check wmat directory before proceeding (save time if not.)
     CheckDirectories(params.wmatdir) || (return 0)
@@ -391,9 +392,6 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
     # FT bases prep.
     basisFT = BasisFTcreate(basis)
     basesFT = [deepcopy(basisFT) for k=1:Threads.nthreads()]
-
-    # define a function for βcircular
-    βc(αc::Float64)::Float64 = OrbitalElements.βcirc(αc,dψ,d2ψ,params.Orbitalparams)
 
     # print the length of the list of resonance vectors
     (params.VERBOSE > 0) && println("LinearResponse.WMat.RunWmat: Number of resonances to compute: $(params.nbResVec)")
@@ -413,11 +411,11 @@ function RunWmat(ψ::Function,dψ::Function,d2ψ::Function,d3ψ::Function,d4ψ::
 
         # compute the W matrices in UV space: timing optional
         if (params.VERBOSE > 1) && (k == 1)
-            @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,βc,
+            @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,
                                      n1,n2,FHT.tabu,
                                      basesFT[k],params)
         else
-            Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,βc,
+            Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,
                                n1,n2,FHT.tabu,
                                basesFT[k],params)
         end
