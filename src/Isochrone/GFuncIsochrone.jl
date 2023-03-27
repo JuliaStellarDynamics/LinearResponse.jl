@@ -125,7 +125,7 @@ end
 function RunGfuncIsochrone(ndFdJ::Function,
                            wmatdir::String,gfuncdir::String,
                            Ku::Int64,Kv::Int64,Kw::Int64,
-                           basis::AstroBasis.BasisType,
+                           basis::AstroBasis.AbstractAstroBasis,
                            lharmonic::Int64,
                            n1max::Int64,
                            nradial::Int64,

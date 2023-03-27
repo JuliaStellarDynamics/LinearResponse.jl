@@ -12,7 +12,7 @@ VERBOSE flag rules
 @TO DESCRIBE
 """
 function RunMatrices(ωlist::Array{ComplexF64},
-                     FHT::FiniteHilbertTransform.FHTtype,
+                     FHT::FiniteHilbertTransform.AbstractFHT,
                      params::LinearParameters=LinearParameters())
 
     # Preparinng computations of the response matrices

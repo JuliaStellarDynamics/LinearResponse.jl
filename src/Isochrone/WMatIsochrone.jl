@@ -24,7 +24,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                              Kuvals::Matrix{Float64},
                              Kv::Int64,
                              lharmonic::Int64,
-                             basis::AstroBasis.BasisType,
+                             basis::AstroBasis.AbstractAstroBasis,
                              Ω₀::Float64=1.,
                              Kw::Int64=20;
                              bc::Float64=1.0,M::Float64=1.0,G::Float64=1.0,EDGE::Float64=0.01)
@@ -210,7 +210,7 @@ function IntegrateOverOrbit!(Wvals::Array{Float64},T1::Float64,T2::Float64,
                              Ω1::Float64,Ω2::Float64,
                              lharmonic::Int64,
                              n1::Int64,n2::Int64,
-                             basis::AstroBasis.BasisType,
+                             basis::AstroBasis.AbstractAstroBasis,
                              Kw::Int64=100;
                              bc::Float64=1.,Ω₀::Float64=1.0,M::Float64=1.0,G::Float64=1.0)
 
@@ -353,7 +353,7 @@ function IntegrateOverOrbitAllSteps!(Wvals::Array{Float64,2},
                                      Ω1::Float64,Ω2::Float64,
                                      lharmonic::Int64,
                                      n1::Int64,n2::Int64,
-                                     basis::AstroBasis.BasisType,
+                                     basis::AstroBasis.AbstractAstroBasis,
                                      Kw::Int64=100;
                                      bc::Float64=1.,Ω₀::Float64=1.0,M::Float64=1.0,G::Float64=1.0)
 
@@ -494,7 +494,7 @@ end
 """
 function RunWmatIsochrone(wmatdir::String,
                           Ku::Int64,Kv::Int64,Kw::Int64,
-                          basis::AstroBasis.BasisType,
+                          basis::AstroBasis.AbstractAstroBasis,
                           lharmonic::Int64,
                           n1max::Int64,
                           nradial::Int64,

@@ -7,7 +7,7 @@ for a single omega, compute the shape of the mode
 
 """
 function ComputeModeTables(omgval::ComplexF64,
-                           FHT::FiniteHilbertTransform.FHTtype,
+                           FHT::FiniteHilbertTransform.AbstractFHT,
                            params::LinearParameters=LinearParameters())
 
     # Preparinng computations of the response matrices
@@ -65,7 +65,7 @@ Function that computes the radial shape of a given mode
 
 
 """
-function GetModeShape(basis::AstroBasis.BasisType,
+function GetModeShape(basis::AstroBasis.AbstractAstroBasis,
                       Rmin::Float64,Rmax::Float64,
                       nRMode::Int64,
                       EigenMode::Vector,

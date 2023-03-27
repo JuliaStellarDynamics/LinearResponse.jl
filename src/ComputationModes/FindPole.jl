@@ -3,7 +3,7 @@
 
 function GoStep(omgval::ComplexF64,
                 IMat::Array{ComplexF64,2},MMat::Array{ComplexF64,2},
-                FHT::FiniteHilbertTransform.FHTtype,
+                FHT::FiniteHilbertTransform.AbstractFHT,
                 tabaMcoef::Array{Float64,4},
                 tabωminωmax::Matrix{Float64},
                 params::LinearParameters=LinearParameters())
@@ -48,7 +48,7 @@ end
 
 function FindDeterminantZero(startingomg::ComplexF64,
                              IMat::Array{ComplexF64,2},MMat::Array{ComplexF64,2},
-                             FHT::FiniteHilbertTransform.FHTtype,
+                             FHT::FiniteHilbertTransform.AbstractFHT,
                              tabaMcoef::Array{Float64,4},
                              tabωminωmax::Matrix{Float64},
                              params::LinearParameters=LinearParameters();
@@ -73,7 +73,7 @@ end
 
 
 function FindPole(startingomg::ComplexF64,
-                  FHT::FiniteHilbertTransform.FHTtype,
+                  FHT::FiniteHilbertTransform.AbstractFHT,
                   params::LinearParameters=LinearParameters(),
                   TOL::Float64=1.e-12)
 
