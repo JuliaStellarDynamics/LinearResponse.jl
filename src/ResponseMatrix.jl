@@ -25,7 +25,7 @@ function tabM!(ω::ComplexF64,
                tabM::AbstractMatrix{ComplexF64},
                tabaMcoef::Array{Float64,4},
                tabωminωmax::Matrix{Float64},
-               FHT::FiniteHilbertTransform.FHTtype,
+               FHT::FiniteHilbertTransform.AbstractFHT,
                params::LinearParameters=LinearParameters())
 
     # get dimensions from the relevant tables
@@ -115,7 +115,7 @@ prepare computations for Linear Response (Determinant, eigenvalues, mode, full m
 for multiple threads.
 """
 function PrepareM(n::Int64,
-                  FHT::FiniteHilbertTransform.FHTtype,
+                  FHT::FiniteHilbertTransform.AbstractFHT,
                   params::LinearParameters=LinearParameters())
 
     

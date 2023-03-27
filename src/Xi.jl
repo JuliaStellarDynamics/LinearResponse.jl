@@ -18,7 +18,7 @@ these values do not depend on the frequency being evaluated: which makes them go
 
 is this struggling from having to pass around a gigantic array? what if we did more splitting?
 """
-function RunAXi(FHT::FiniteHilbertTransform.FHTtype,
+function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
                 params::LinearParameters=LinearParameters())
 
     # Check directory names
@@ -140,8 +140,8 @@ run the full linear response (Basis FT, G(u) computation and coefficient decompo
 """
 function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,
                             ndFdJ::F3,
-                            FHT::FiniteHilbertTransform.FHTtype,
-                            basis::AstroBasis.BasisType,
+                            FHT::FiniteHilbertTransform.AbstractFHT,
+                            basis::AstroBasis.AbstractAstroBasis,
                             params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
     
     # call the function to construct W matrices

@@ -8,12 +8,12 @@
 """
 structure to store Fourier Transform values of basis elements
 """
-struct BasisFTtype
-    basis::AstroBasis.BasisType
+struct BasisFTtype{BT<:AstroBasis.AbstractAstroBasis}
+    basis::BT
     UFT::Array{Float64}
 end
 
-function BasisFTcreate(basis::AstroBasis.BasisType)
+function BasisFTcreate(basis::BT) where {BT<:AstroBasis.AbstractAstroBasis}
 
     return BasisFTtype(basis,zeros(Float64,basis.nmax))
 end
@@ -40,7 +40,7 @@ end
 """
 function WMatdataCreate(dψ::F1,d2ψ::F2,
                         n1::Int64,n2::Int64,
-                        basis::AstroBasis.BasisType,
+                        basis::AstroBasis.AbstractAstroBasis,
                         params::LinearParameters=LinearParameters()) where {F1 <: Function, F2 <: Function}
 
     # compute the frequency scaling factors for this resonance
@@ -100,7 +100,7 @@ function Wintegrand(w::Float64,
                     a::Float64,e::Float64,L::Float64,
                     Ω1::Float64,Ω2::Float64,
                     ψ::F0,dψ::F1,d2ψ::F2,
-                    basis::AstroBasis.BasisType,
+                    basis::AstroBasis.AbstractAstroBasis,
                     params::LinearParameters=LinearParameters())::Tuple{Float64,Float64} where {F0 <: Function, F1 <: Function, F2 <: Function}
 
 
@@ -128,7 +128,7 @@ function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
                   ψ::F0,dψ::F1,d2ψ::F2,
-                  basis::AstroBasis.BasisType,
+                  basis::AstroBasis.AbstractAstroBasis,
                   restab::Vector{Float64},
                   params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
@@ -380,8 +380,8 @@ end
 @TO DESCRIBE
 """
 function RunWmat(ψ::F0,dψ::F1,d2ψ::F2,
-                 FHT::FiniteHilbertTransform.FHTtype,
-                 basis::AstroBasis.BasisType,
+                 FHT::FiniteHilbertTransform.AbstractFHT,
+                 basis::AstroBasis.AbstractAstroBasis,
                  params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
     # check wmat directory before proceeding (save time if not.)

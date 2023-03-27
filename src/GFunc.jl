@@ -136,7 +136,7 @@ end
 @TO DESCRIBE
 """
 function RunGfunc(ndFdJ::Function,
-                  FHT::FiniteHilbertTransform.FHTtype,
+                  FHT::FiniteHilbertTransform.AbstractFHT,
                   params::LinearParameters=LinearParameters())
 
     # Check directory names
