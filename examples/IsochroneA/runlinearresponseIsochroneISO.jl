@@ -6,7 +6,7 @@ inputfile = "ModelParamIsochroneISO.jl"
 include(inputfile)
 
 
-import CallAResponse
+import LinearResponse
 using HDF5
 
 
@@ -14,7 +14,7 @@ using HDF5
 
 
 # compute the Fourier-transformed basis elements
-CallAResponse.RunWmatIsochrone(wmatdir,
+LinearResponse.RunWmatIsochrone(wmatdir,
                                Ku,Kv,Kw,
                                basis,
                                lharmonic,
@@ -28,7 +28,7 @@ CallAResponse.RunWmatIsochrone(wmatdir,
 
 
 # compute the G(u) functions
-CallAResponse.RunGfuncIsochrone(ndFdJ,
+LinearResponse.RunGfuncIsochrone(ndFdJ,
                                 wmatdir,gfuncdir,
                                 Ku,Kv,Kw,
                                 basis,
@@ -43,9 +43,9 @@ CallAResponse.RunGfuncIsochrone(ndFdJ,
 
 
 # make a grid of omegas to test
-tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
+tabomega = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 
-tabdet = CallAResponse.RunMIsochrone(tabomega,
+tabdet = LinearResponse.RunMIsochrone(tabomega,
                                      gfuncdir,modedir,
                                      Ku,Kv,Kw,
                                      basis,
@@ -65,7 +65,7 @@ tabdet = CallAResponse.RunMIsochrone(tabomega,
 
 
  # for the minimum, go back and compute the mode shape
- EV,EF,EM = CallAResponse.ComputeModeTables(bestomg,ψ,dψ,d2ψ,
+ EV,EF,EM = LinearResponse.ComputeModeTables(bestomg,ψ,dψ,d2ψ,
                                             gfuncdir,modedir,
                                             Ku,Kv,Kw,
                                             basis,
@@ -77,7 +77,7 @@ tabdet = CallAResponse.RunMIsochrone(tabomega,
                                             rb,
                                             VERBOSE=1)
 
- ModeRadius,ModePotentialShape,ModeDensityShape = CallAResponse.GetModeShape(basis,lharmonic,
+ ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,lharmonic,
                                                                              0.01,15.,100,EM,VERBOSE=1)
 
 """
