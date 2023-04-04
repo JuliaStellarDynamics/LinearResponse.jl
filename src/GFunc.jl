@@ -10,11 +10,11 @@
 
 function to compute G(u)
 """
-function MakeGu(ndFdJ::Function,
+function MakeGu(ndFdJ::F5,
                 n1::Int64,n2::Int64,
                 Wdata::WMatdataType,
                 tabu::Array{Float64},
-                params::LinearParameters=LinearParameters())
+                params::LinearParameters=LinearParameters()) where {F5 <: Function}
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
     if params.ndim==2
@@ -135,9 +135,9 @@ end
 
 @TO DESCRIBE
 """
-function RunGfunc(ndFdJ::Function,
+function RunGfunc(ndFdJ::F5,
                   FHT::FiniteHilbertTransform.AbstractFHT,
-                  params::LinearParameters=LinearParameters())
+                  params::LinearParameters=LinearParameters()) where {F5 <: Function}
 
     # Check directory names
     CheckDirectories(params.wmatdir,params.gfuncdir) || (return 0)

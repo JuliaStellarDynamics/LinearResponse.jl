@@ -139,7 +139,7 @@ end
 run the full linear response (Basis FT, G(u) computation and coefficient decomposition)
 """
 function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
-                            ndFdJ::Function,
+                            ndFdJ::F5,
                             FHT::FiniteHilbertTransform.AbstractFHT,
                             basis::AstroBasis.AbstractAstroBasis,
                             params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
