@@ -17,7 +17,7 @@ Must include:
 import OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
-import CallAResponse
+import LinearResponse
 using HDF5
 
 
@@ -109,7 +109,7 @@ ELTOLECC  = 0.0005
 VMAPN     = 1 # exponent for v mapping (1 is linear)
 
 
-Parameters = CallAResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
                                                     modelname=modelname,dfname=dfname,
                                                     wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
                                                     lharmonic=lharmonic,n1max=n1max,nradial=nradial,

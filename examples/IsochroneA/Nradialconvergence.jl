@@ -3,7 +3,7 @@
 import OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
-import CallAResponse
+import LinearResponse
 using HDF5
 
 function RunNIsochroneConvergence(inputfile::String,
@@ -17,7 +17,7 @@ function RunNIsochroneConvergence(inputfile::String,
     # Check directories names
     #####
     if !(isdir(gfuncdir) && isdir(modedir))
-        error("CallAResponse.Xi.RunMIsochrone: gfuncdir or modedir not found.")
+        error("LinearResponse.Xi.RunMIsochrone: gfuncdir or modedir not found.")
     end
 
     # pick some fiducial n1val
@@ -25,19 +25,19 @@ function RunNIsochroneConvergence(inputfile::String,
 
     for nradial=1:100
         # calculate the number of resonance vectors
-        nbResVec = CallAResponse.get_nbResVec(lharmonic,n1val,ndim)
+        nbResVec = LinearResponse.get_nbResVec(lharmonic,n1val,ndim)
 
         # fill in the array of resonance vectors (n1,n2)
-        tabResVec = CallAResponse.maketabResVec(lharmonic,n1val,ndim)
+        tabResVec = LinearResponse.maketabResVec(lharmonic,n1val,ndim)
 
         # get all weights
         tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(K_u)
 
         # make the (np,nq) vectors that we need to evaluate
-        tab_npnq = CallAResponse.makeTabnpnq(nradial)
+        tab_npnq = LinearResponse.makeTabnpnq(nradial)
 
         # make the decomposition coefficients a_k
-        CallAResponse.MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,rb=rb)
+        LinearResponse.MakeaMCoefficients(tabResVec,tab_npnq,tabwGLquad,tabPGLquad,tabINVcGLquad,gfuncdir,modedir,modelname,dfname,lharmonic,nradial,VERBOSE=VERBOSE,OVERWRITE=false,rb=rb)
 
         # allocate structs for D_k(omega) computation
         struct_tabLeglist = FiniteHilbertTransform.struct_tabLeg_create(K_u)
@@ -46,26 +46,26 @@ function RunNIsochroneConvergence(inputfile::String,
         tabM = zeros(Complex{Float64},nradial,nradial)
 
         # make identity matrix and copies
-        IMat = CallAResponse.makeIMat(nradial)
+        IMat = LinearResponse.makeIMat(nradial)
 
         # load aXi values
-        tabaMcoef = CallAResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
-        println("CallAResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
+        tabaMcoef = LinearResponse.StageaMcoef(tabResVec,tab_npnq,K_u,nradial,modedir=modedir,modelname=modelname,dfname=dfname,lharmonic=lharmonic,rb=rb)
+        println("LinearResponse.Xi.RunMIsochrone: tabaMcoef loaded.")
 
         # chop the matrix down here and re-specify nradial
 
         # make the (np,nq) vectors that we need to evaluate
-        tab_npnq = CallAResponse.makeTabnpnq(nradial)
+        tab_npnq = LinearResponse.makeTabnpnq(nradial)
 
         # loop through all frequencies
         omgval = 0.0143 - 0.00142im # min for n1max=10; no .1. label
         #omgval = 0.01 - 0.00073im # min for n1max=16; .2. label
 
-        #println("CallAResponse.Xi.RunMIsochrone: computing $nomglist frequency values.")
+        #println("LinearResponse.Xi.RunMIsochrone: computing $nomglist frequency values.")
 
-        @time CallAResponse.tabMIsochrone!(omgval,tabM,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,nradial,Omega0)
+        @time LinearResponse.tabMIsochrone!(omgval,tabM,tabaMcoef,tabResVec,tab_npnq,struct_tabLeglist,nradial,Omega0)
 
-        detXival = CallAResponse.detXi(IMat,tabM)
+        detXival = LinearResponse.detXi(IMat,tabM)
         println("o=$omgval,nradial=$nradial,det=$detXival")
 
         h5open(modedir*"Mtab_n1max_"*string(n1val)*"_nradial_"*string(nradial)*".2.hdf5", "w") do file
@@ -82,6 +82,6 @@ end
 inputfile = "ModelParamIsochrone_damped.jl"
 
 include(inputfile)
-tabomega = CallAResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
+tabomega = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 
 RunNIsochroneConvergence(inputfile,tabomega)

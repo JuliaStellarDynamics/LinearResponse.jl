@@ -13,12 +13,10 @@ Must include:
 
 """
 
-
-
 import OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
-import CallAResponse
+import LinearResponse
 using HDF5
 
 #####
@@ -109,7 +107,7 @@ OEparams = OrbitalElements.OrbitsParametersCreate(dψ,d2ψ,Ω₀,rmin=rmin,rmax=
                                                   ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 # ResponseParametersCreate(OEparams;Ku,Kv,Kw,modelname,dfname,wmatdir,gfuncdir,modedir,lharmonic,n1max,nradial,KuTruncation,VERBOSE,OVERWRITE,ndim,nmax,rbasis,VMAPN,ADAPTIVEKW)
-Parameters = CallAResponse.ResponseParametersCreate(OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.ResponseParametersCreate(OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
                                                     modelname=modelname,dfname=dfname,
                                                     wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
                                                     lharmonic=lharmonic,n1max=n1max,nradial=nradial,
