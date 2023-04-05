@@ -127,7 +127,7 @@ function PrepareM(n::Int64,
     @assert n > 0
 
     # Check directory names
-    CheckDirectories(params.axidir,params.modedir) || (return 0)
+    CheckDirectories(params.axidir,params.modedir)
 
     # allocate memory for FHT structs
     FHTlist = [deepcopy(FHT) for k=1:n]
