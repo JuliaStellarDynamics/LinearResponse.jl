@@ -21,9 +21,10 @@ is this struggling from having to pass around a gigantic array? what if we did m
 function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
                 params::LinearParameters=LinearParameters())
 
-    # Check directory names
-    CheckDirectories(params.gfuncdir,params.axidir) || (return 0)
-
+    # check the directories + FHT values against the Parameters
+    CheckDirectories(params.gfuncdir,params.axidir)
+    CheckFHTCompatibility(FHT,params)
+    
     # get relevant sizes
     nbResVec, tabResVec = params.nbResVec, params.tabResVec
     nradial  = params.nradial
@@ -95,8 +96,8 @@ reads the decomposition's coefficients and extremal frequencies from HDF5 files
 """
 function StageAXi(params::LinearParameters=LinearParameters())
 
-    # Check directory names
-    CheckDirectories(params.axidir) || (return 0)
+    # check the directories + basis and FHT values against the Parameters
+    CheckDirectories(params.axidir)
 
     # get dimensions from the relevant tables
     nbResVec, tabResVec = params.nbResVec, params.tabResVec
@@ -142,7 +143,7 @@ function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
                             ndFdJ::F5,
                             FHT::FiniteHilbertTransform.AbstractFHT,
                             basis::AstroBasis.AbstractAstroBasis,
-                            params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
+                            params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function, F5 <: Function}
     
     # call the function to construct W matrices
     RunWmat(ψ,dψ,d2ψ,d3ψ,d4ψ,FHT,basis,params)

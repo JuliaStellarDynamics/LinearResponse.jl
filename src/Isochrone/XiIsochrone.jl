@@ -124,10 +124,10 @@ function RunMIsochrone(omglist::Array{Complex{Float64}},
     CheckConfigurationDirectories([gfuncdir,modedir]) || (return 0)
 
     # get basis parameters
-    ndim = basis.dimension
+    dimension = basis.dimension
 
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,dimension)
 
 
     # make the (np,nq) vectors that we need to evaluate
@@ -197,10 +197,10 @@ function ComputeModeTablesIsochrone(inputfile,
 
     # Construct the table of needed resonance vectors
     # Number of resonance vectors
-    nbResVec = getnbResVec(lharmonic,n1max,ndim)
+    nbResVec = getnbResVec(lharmonic,n1max,dimension)
 
     # fill in the array of resonance vectors (n1,n2)
-    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+    tabResVec = maketabResVec(lharmonic,n1max,dimension)
 
     # get all Legendre weights
     tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(Ku)
@@ -263,13 +263,13 @@ function FindZeroCrossingIsochrone(Ωguess::Float64,Etaguess::Float64,
     end
 
     # get basis parameters
-    ndim = basis.dimension
+    dimension = basis.dimension
 
     #####
     # Construct the table of needed resonance vectors
     #####
-    nbResVec = getnbResVec(lharmonic,n1max,ndim) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
-    tabResVec = maketabResVec(lharmonic,n1max,ndim) # Filling in the array of resonance vectors (n1,n2)
+    nbResVec = getnbResVec(lharmonic,n1max,dimension) # Number of resonance vectors. ATTENTION, it is for the harmonics lharmonic
+    tabResVec = maketabResVec(lharmonic,n1max,dimension) # Filling in the array of resonance vectors (n1,n2)
 
     # get all weights
     tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(Ku)
@@ -373,10 +373,10 @@ function ComputeModeTablesIsochrone(omgval::Complex{Float64},
 
     # Construct the table of needed resonance vectors
     # Number of resonance vectors
-    nbResVec = getnbResVec(lharmonic,n1max,ndim)
+    nbResVec = getnbResVec(lharmonic,n1max,dimension)
 
     # fill in the array of resonance vectors (n1,n2)
-    tabResVec = maketabResVec(lharmonic,n1max,ndim)
+    tabResVec = maketabResVec(lharmonic,n1max,dimension)
 
     # get all Legendre weights
     tabuGLquad,tabwGLquad,tabINVcGLquad,tabPGLquad = FiniteHilbertTransform.tabGLquad(Ku)

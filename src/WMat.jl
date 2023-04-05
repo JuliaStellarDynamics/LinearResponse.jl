@@ -15,7 +15,7 @@ end
 
 function BasisFTcreate(basis::BT) where {BT<:AstroBasis.AbstractAstroBasis}
 
-    return BasisFTtype(basis,zeros(Float64,basis.nmax))
+    return BasisFTtype(basis,zeros(Float64,basis.nradial))
 end
 
 
@@ -40,18 +40,17 @@ end
 """
 function WMatdataCreate(dψ::F1,d2ψ::F2,
                         n1::Int64,n2::Int64,
-                        basis::AstroBasis.AbstractAstroBasis,
                         params::LinearParameters=LinearParameters()) where {F1 <: Function, F2 <: Function}
 
     # compute the frequency scaling factors for this resonance
     ωmin, ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,params.Orbitalparams)
 
     # Useful parameters
-    nmax = basis.nmax
+    nradial = params.nradial
     Ku, Kv = params.Ku, params.Kv
 
     return WMatdataType(ωmin,ωmax,zeros(Float64,2,Ku),
-                        zeros(Float64,nmax,Kv,Ku),
+                        zeros(Float64,nradial,Kv,Ku),
                         zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
                         zeros(Float64,Kv,Ku))
 end
@@ -132,7 +131,7 @@ function WBasisFT(a::Float64,e::Float64,
                   restab::Vector{Float64},
                   params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
 
-    @assert length(restab) == basis.nmax "LinearResponse.WBasisFT: FT array not of the same size as the basis"
+    @assert length(restab) == basis.nradial "LinearResponse.WBasisFT: FT array not of the same size as the basis"
 
     # Integration step
     Kwp = (params.ADAPTIVEKW) ? ceil(Int64,params.Kw/(0.1+(1-e))) : params.Kw
@@ -165,7 +164,7 @@ function WBasisFT(a::Float64,e::Float64,
         pref1 = (1.0/6.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*θ1 + n2*θ2)
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             @inbounds restab[np] += pref1*basis.tabUl[np]
         end
 
@@ -204,7 +203,7 @@ function WBasisFT(a::Float64,e::Float64,
 
         # Loop over the radial indices to sum basis contributions
         # Contribution of steps 2 and 3 together
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             @inbounds restab[np] += (pref2+pref3)*basis.tabUl[np]
         end
 
@@ -226,7 +225,7 @@ function WBasisFT(a::Float64,e::Float64,
         pref4 = (1.0/6.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*(θ1+dθ1_3) + n2*(θ2+dθ2_3))
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             @inbounds restab[np] += pref4*basis.tabUl[np]
         end
 
@@ -242,7 +241,7 @@ function WBasisFT(a::Float64,e::Float64,
     end # RK4 integration
     
     # -1 factor (reverse integration)
-    for np=1:basis.nmax
+    for np=1:basis.nradial
         @inbounds restab[np] *= -1.0
     end
 
@@ -303,7 +302,7 @@ function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
     Ω₀ = Orbitalparams.Ω₀
 
     # allocate the results matrices
-    Wdata = WMatdataCreate(dψ,d2ψ,n1,n2,basisFT.basis,params)
+    Wdata = WMatdataCreate(dψ,d2ψ,n1,n2,params)
     ωmin, ωmax = Wdata.ωmin, Wdata.ωmax
 
     # start the loop
@@ -358,7 +357,7 @@ function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
             # Compute W(u,v) for every basis element using RK4 scheme
             WBasisFT(a,e,Ω₁,Ω₂,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,params)
 
-            for np = 1:basisFT.basis.nmax
+            for np = 1:basisFT.basis.nradial
                 Wdata.tabW[np,kvval,kuval] = basisFT.UFT[np]
             end
         end
@@ -384,10 +383,10 @@ function RunWmat(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
                  basis::AstroBasis.AbstractAstroBasis,
                  params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
 
-    # check wmat directory before proceeding (save time if not.)
-    CheckDirectories(params.wmatdir) || (return 0)
-
-    # check the basis values against the Parameters
+    # check the directories + basis and FHT values against the Parameters
+    CheckDirectories(params.wmatdir)
+    CheckBasisCompatibility(basis,params)
+    CheckFHTCompatibility(FHT,params)
 
     # FT bases prep.
     basisFT = BasisFTcreate(basis)
