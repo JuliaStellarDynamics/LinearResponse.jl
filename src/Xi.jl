@@ -21,9 +21,10 @@ is this struggling from having to pass around a gigantic array? what if we did m
 function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
                 params::LinearParameters=LinearParameters())
 
-    # Check directory names
-    CheckDirectories(params.gfuncdir,params.axidir) || (return 0)
-
+    # check the directories + FHT values against the Parameters
+    CheckDirectories(params.gfuncdir,params.axidir)
+    CheckFHTCompatibility(FHT,params)
+    
     # get relevant sizes
     nbResVec, tabResVec = params.nbResVec, params.tabResVec
     nradial  = params.nradial
@@ -95,8 +96,8 @@ reads the decomposition's coefficients and extremal frequencies from HDF5 files
 """
 function StageAXi(params::LinearParameters=LinearParameters())
 
-    # Check directory names
-    CheckDirectories(params.axidir) || (return 0)
+    # check the directories + basis and FHT values against the Parameters
+    CheckDirectories(params.axidir)
 
     # get dimensions from the relevant tables
     nbResVec, tabResVec = params.nbResVec, params.tabResVec

@@ -11,23 +11,23 @@ println(tabResVec)
 """
 
 
-function GetNbResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
-    if ndim == 2
+function GetNbResVec(lharmonic::Int64,n1max::Int64,dimension::Int64=3)
+    if dimension == 2
         return GetNbResVec2d(lharmonic,n1max)
-    elseif ndim == 3
+    elseif dimension == 3
         return GetNbResVec3d(lharmonic,n1max)
     else
         error("Unknow dimension in GetNbResVec")
     end
 end
 
-function MakeTabResVec(lharmonic::Int64,n1max::Int64,ndim::Int64=3)
-    if ndim == 2
+function MakeTabResVec(lharmonic::Int64,n1max::Int64,dimension::Int64=3)
+    if dimension == 2
         return MakeTabResVec2d(lharmonic,n1max)
-    elseif ndim == 3
+    elseif dimension == 3
         return MakeTabResVec3d(lharmonic,n1max)
     else
-        error("Unknow dimension in get_nbResVec")
+        error("Unknow dimension in MakeTabResVec")
     end
 end
 

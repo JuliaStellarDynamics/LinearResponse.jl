@@ -15,11 +15,11 @@ function MakeGuIsochrone(ndFdJ::Function,
                          ωmin::Float64,ωmax::Float64,
                          vminarr::Array{Float64},vmaxarr::Array{Float64},
                          lharmonic::Int64;
-                         ndim::Int64,
+                         dimension::Int64=3,
                          Ω₀::Float64=1.,bc::Float64=1.,M::Float64=1.,G::Float64=1.)
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
-    if ndim==2
+    if dimension==2
         pref = (2pi)^2
     else
         # this is averaging over the sphere already
@@ -93,7 +93,7 @@ function MakeGuIsochrone(ndFdJ::Function,
                     Wp = tabWMat[np,kuval,kvval]
                     Wq = tabWMat[nq,kuval,kvval]
 
-                    if ndim==2
+                    if dimension==2
                         # Local increment in the location (u,v)
                         res += deltav*pref*(dimensionl*Jacαβ*JacEL*JacJ*valndFdJ)*Wp*Wq
 
@@ -140,14 +140,14 @@ function RunGfuncIsochrone(ndFdJ::Function,
     CheckConfigurationDirectories([wmatdir,gfuncdir]) || (return 0)
 
     # get basis parameters
-    ndim = basis.dimension
+    dimension = basis.dimension
 
     # legendre integration prep
     tabuGLquadtmp,tabwGLquad = FiniteHilbertTransform.tabuwGLquad(Ku)
     tabuGLquad = reshape(tabuGLquadtmp,Ku,1)
 
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,dimension)
 
     if VERBOSE > 0
         println("LinearResponse.GFuncIsochrone.RunGfuncIsochrone: Considering $nbResVec resonances.")
@@ -210,7 +210,7 @@ function RunGfuncIsochrone(ndFdJ::Function,
                                                ωmin,ωmax,
                                                vminarr,vmaxarr,
                                                lharmonic,
-                                               ndim=ndim,Ω₀=Ω₀)
+                                               dimension=dimension,Ω₀=Ω₀)
 
             write(file, "GXinp"*string(np)*"nq"*string(nq),tabGXi)
 
