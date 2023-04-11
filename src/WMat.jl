@@ -40,7 +40,7 @@ end
 """
 function WMatdataCreate(dψ::F1,d2ψ::F2,
                         n1::Int64,n2::Int64,
-                        params::LinearParameters=LinearParameters()) where {F1 <: Function, F2 <: Function}
+                        params::LinearParameters) where {F1 <: Function, F2 <: Function}
 
     # compute the frequency scaling factors for this resonance
     ωmin, ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,params.Orbitalparams)
@@ -100,7 +100,7 @@ function Wintegrand(w::Float64,
                     Ω1::Float64,Ω2::Float64,
                     ψ::F0,dψ::F1,d2ψ::F2,
                     basis::AstroBasis.AbstractAstroBasis,
-                    params::LinearParameters=LinearParameters())::Tuple{Float64,Float64} where {F0 <: Function, F1 <: Function, F2 <: Function}
+                    params::LinearParameters)::Tuple{Float64,Float64} where {F0 <: Function, F1 <: Function, F2 <: Function}
 
 
     # Current location of the radius, r=r(w)
@@ -129,7 +129,7 @@ function WBasisFT(a::Float64,e::Float64,
                   ψ::F0,dψ::F1,d2ψ::F2,
                   basis::AstroBasis.AbstractAstroBasis,
                   restab::Vector{Float64},
-                  params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function}
+                  params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
     @assert length(restab) == basis.nradial "LinearResponse.WBasisFT: FT array not of the same size as the basis"
 
@@ -257,7 +257,7 @@ function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   ψ::F0,dψ::F1,d2ψ::F2,
                   basisFT::BasisFTtype,
-                  params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function}
+                  params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
     # Basis FT
     WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,basisFT.basis,basisFT.UFT,params)
@@ -270,7 +270,7 @@ function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   ψ::F0,dψ::F1,d2ψ::F2,
                   basisFT::BasisFTtype,
-                  params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function}
+                  params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
     # Frequencies
     Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,a,e,params.Orbitalparams)
@@ -294,7 +294,7 @@ function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,
                     n1::Int64,n2::Int64,
                     tabu::Vector{Float64},
                     basisFT::BasisFTtype,
-                    params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function}
+                    params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
     
     @assert length(tabu) == params.Ku "LinearResponse.WMat.MakeWmatUV: tabu length is not Ku."
 
@@ -381,7 +381,7 @@ end
 function RunWmat(ψ::F0,dψ::F1,d2ψ::F2,
                  FHT::FiniteHilbertTransform.AbstractFHT,
                  basis::AstroBasis.AbstractAstroBasis,
-                 params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function}
+                 params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
     # check the directories + basis and FHT values against the Parameters
     CheckDirectories(params.wmatdir)

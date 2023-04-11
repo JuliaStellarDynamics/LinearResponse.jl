@@ -26,7 +26,7 @@ function tabM!(ω::ComplexF64,
                tabaMcoef::Array{Float64,4},
                tabωminωmax::Matrix{Float64},
                FHT::FiniteHilbertTransform.AbstractFHT,
-               params::LinearParameters=LinearParameters())
+               params::LinearParameters)
 
     # get dimensions from the relevant tables
     nbResVec, tabResVec = params.nbResVec, params.tabResVec
@@ -121,7 +121,7 @@ for multiple threads.
 """
 function PrepareM(n::Int64,
                   FHT::FiniteHilbertTransform.AbstractFHT,
-                  params::LinearParameters=LinearParameters())
+                  params::LinearParameters)
 
     
     @assert n > 0
@@ -149,7 +149,7 @@ end
 prepare computations for Linear Response (Determinant, eigenvalues, mode, full matrices computations...)
 for single thread.
 """
-function PrepareM(params::LinearParameters=LinearParameters())
+function PrepareM(params::LinearParameters)
 
     # check the directories
     CheckDirectories(params.axidir,params.modedir)

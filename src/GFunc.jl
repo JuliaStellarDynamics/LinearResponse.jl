@@ -14,7 +14,7 @@ function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
                 Wdata::WMatdataType,
                 tabu::Vector{Float64},
-                params::LinearParameters=LinearParameters())
+                params::LinearParameters)
 
     @assert length(tabu) == params.Ku "Imcompatible tabu length and parameters"
 
@@ -139,7 +139,7 @@ end
 """
 function RunGfunc(ndFdJ::Function,
                   FHT::FiniteHilbertTransform.AbstractFHT,
-                  params::LinearParameters=LinearParameters())
+                  params::LinearParameters)
 
     # check the directories + FHT values against the Parameters
     CheckDirectories(params.wmatdir,params.gfuncdir)

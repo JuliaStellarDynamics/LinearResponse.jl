@@ -48,17 +48,20 @@ struct LinearParameters
 end
 
 """
-    LinearParameters(;Orbitalparams,Basisparams,Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,modelname,dfname,wmatdir,gfuncdir,modedir,OVERWRITE,lharmonic,n1max,VERBOSE)
+    LinearParameters(basis;Orbitalparams,Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,modelname,dfname,wmatdir,gfuncdir,modedir,OVERWRITE,lharmonic,n1max,VERBOSE)
 """
-function LinearParameters(;Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),
-                           Basisparams::Dict{String,Union{String,Number}}=Dict{String,Union{String,Number}}("name"=>"CB73","dimension"=>3,"lmax"=>0,"nradial"=>1,"G"=>1.,"rb"=>1.),
-                           Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
-                           VMAPN::Int64=2,ADAPTIVEKW::Bool=false,KuTruncation::Int64=10000,
-                           modelname::String="model",dfname::String="df",
-                           wmatdir::String="",gfuncdir::String="",axidir::String="",modedir::String="",OVERWRITE::Bool=false,
-                           lharmonic::Int64=2,n1max::Int64=10,
-                           VERBOSE::Int64=0)
+function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
+                          Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),
+                          Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
+                          VMAPN::Int64=2,ADAPTIVEKW::Bool=false,KuTruncation::Int64=10000,
+                          modelname::String="model",dfname::String="df",
+                          wmatdir::String="",gfuncdir::String="",axidir::String="",modedir::String="",OVERWRITE::Bool=false,
+                          lharmonic::Int64=2,n1max::Int64=10,
+                          VERBOSE::Int64=0)
 
+    # Basis parameters
+    Basisparams = AstroBasis.GetParameters(basis)
+    
     # Basis parameters
     dimension = Basisparams["dimension"]
     nradial = Basisparams["nradial"]
@@ -72,24 +75,4 @@ function LinearParameters(;Orbitalparams::OrbitalElements.OrbitalParameters=Orbi
                             wmatdir,gfuncdir,axidir,modedir,OVERWRITE,
                             lharmonic,n1max,nbResVec,tabResVec,
                             VERBOSE)
-end
-
-function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
-                          Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),
-                          Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
-                          VMAPN::Int64=2,ADAPTIVEKW::Bool=false,KuTruncation::Int64=10000,
-                          modelname::String="model",dfname::String="df",
-                          wmatdir::String="",gfuncdir::String="",axidir::String="",modedir::String="",OVERWRITE::Bool=false,
-                          lharmonic::Int64=2,n1max::Int64=10,
-                          VERBOSE::Int64=0)
-
-    # Basis parameters
-    Basisparams = AstroBasis.GetParameters(basis)
-
-    return LinearParameters(Orbitalparams=Orbitalparams,Basisparams=Basisparams,
-                            Ku=Ku,Kv=Kv,Kw=Kw,VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW,KuTruncation=KuTruncation,
-                            modelname=modelname,dfname=dfname,
-                            wmatdir=wmatdir,gfuncdir=gfuncdir,axidir=axidir,modedir=modedir,OVERWRITE=OVERWRITE,
-                            lharmonic=lharmonic,n1max=n1max,
-                            VERBOSE=VERBOSE)
 end

@@ -19,7 +19,7 @@ these values do not depend on the frequency being evaluated: which makes them go
 is this struggling from having to pass around a gigantic array? what if we did more splitting?
 """
 function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
-                params::LinearParameters=LinearParameters())
+                params::LinearParameters)
 
     # check the directories + FHT values against the Parameters
     CheckDirectories(params.gfuncdir,params.axidir)
@@ -94,7 +94,7 @@ end
     
 reads the decomposition's coefficients and extremal frequencies from HDF5 files
 """
-function StageAXi(params::LinearParameters=LinearParameters())
+function StageAXi(params::LinearParameters)
 
     # check the directories + basis and FHT values against the Parameters
     CheckDirectories(params.axidir)
@@ -143,7 +143,7 @@ function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,
                             ndFdJ::F3,
                             FHT::FiniteHilbertTransform.AbstractFHT,
                             basis::AstroBasis.AbstractAstroBasis,
-                            params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
+                            params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
     
     # call the function to construct W matrices
     RunWmat(ψ,dψ,d2ψ,FHT,basis,params)

@@ -31,7 +31,7 @@ end
         - the old file has been created with enough basis elements (nradial sufficiently high)
 """
 function CheckFileNradial(filename::String,
-                          params::LinearParameters=LinearParameters(),
+                          params::LinearParameters,
                           preprint::String="")
         
     if isfile(filename)
