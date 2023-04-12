@@ -23,12 +23,11 @@ using HDF5
 # basis parameters
 G  = 1.
 rb = 4.0
-lmax,nmax = 1,20 # number of basis functions
+lmax,nradial = 1,20 # number of basis functions
 
-# automatically set up the basis parameters
-basis   = AstroBasis.CB73BasisCreate(lmax=lmax, nmax=nmax,G=G,rb=rb)
-ndim    = basis.dimension
-nradial = basis.nmax
+# CB73Basis([name, dimension, lmax, nradial, G, rb, filename])
+basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
+
 
 rmin = 1.0e-5
 rmax = 1.0e5
@@ -40,8 +39,6 @@ bc, M = 1.,1.
 ψ(r::Float64)::Float64   = OrbitalElements.ψPlummer(r,bc,M,G)
 dψ(r::Float64)::Float64  = OrbitalElements.dψPlummer(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψPlummer(r,bc,M,G)
-d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψPlummer(r,bc,M,G)
-d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψPlummer(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Plummer(bc,M,G)
 
 #dfname = "isotropic"
@@ -67,7 +64,7 @@ Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 KuTruncation = 10000
 
 # define the helper for the Finite Hilbert Transform
-FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
+FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 
 lharmonic = 1
@@ -84,6 +81,7 @@ Etamax   = 0.3
 
 
 
+
 # output directories
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
@@ -91,23 +89,26 @@ modedir  = "xifunc/"
 
 
 VERBOSE   = 2
-OVERWRITE = false
+OVERWRITE = true
 EDGE      = 0.01
 ELTOLECC  = 0.0005
 VMAPN     = 1 # exponent for v mapping (1 is linear)
+ADAPTIVEKW= false
+
+OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,rmin=rmin,rmax=rmax,
+                                             EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+                                             NINT=OrbitalElements.DEFAULT_NINT,
+                                             da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
+                                             ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
-                                                    modelname=modelname,dfname=dfname,
-                                                    wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
-                                                    lharmonic=lharmonic,n1max=n1max,nradial=nradial,
-                                                    KuTruncation=KuTruncation,
-                                                    VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
-                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,
-                                                    EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
-                                                    nmax=basis.nmax,rbasis=basis.rb,VMAPN=VMAPN)
-
-
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
+                                             modelname=modelname,dfname=dfname,
+                                             wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
+                                             lharmonic=lharmonic,n1max=n1max,
+                                             KuTruncation=KuTruncation,
+                                             VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
+                                             VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW)
 
 
 # WARNING : / at the end to check !

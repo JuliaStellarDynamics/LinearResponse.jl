@@ -10,16 +10,20 @@ import LinearResponse
 using HDF5
 
 # call the function to construct W matrices
-#LinearResponse.RunWmat(ψ,dψ,d2ψ,d3ψ,d4ψ,FHT,basis,Parameters)
+#LinearResponse.RunWmat(ψ,dψ,d2ψ,FHT,basis,Parameters)
 
 # run the G function calculation
-LinearResponse.RunGfunc(ndFdJ,FHT,Parameters)
+#LinearResponse.RunGfunc(ndFdJ,FHT,Parameters)
+
+# compute the matrix response at each location in tabomega
+#tabdet = LinearResponse.RunAXi(FHT,Parameters)
+
+# combine all three steps into one wrapper:
+LinearResponse.RunLinearResponse(ψ,dψ,d2ψ,ndFdJ,FHT,basis,Parameters)
 
 # construct a grid of frequencies to probe
 tabomega = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
-
-# compute the matrix response at each location in tabomega
-tabdet = LinearResponse.RunM(tabomega,FHT,Parameters)
+tabRMreal, tabRMimag = LinearResponse.RunMatrices(tabomega,FHT,Parameters)
 
 # find a pole by using gradient descent
 startingomg = 0.0 + 0.2im
@@ -29,7 +33,7 @@ bestomg = LinearResponse.FindPole(startingomg,FHT,Parameters,1.e-12)
 println("The zero-crossing frequency is $bestomg.")
 
 # for the minimum, go back and compute the mode shape
-EV,EF,EM = LinearResponse.ComputeModeTables(bestomg,FHT,basis,Parameters)
+EV,EM = LinearResponse.ComputeModeTables(bestomg,FHT,Parameters)
 
 
 modeRmin = 0.01

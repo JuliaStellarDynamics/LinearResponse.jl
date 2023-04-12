@@ -26,10 +26,10 @@ using HDF5
 #####
 G         = 1.
 rb        = 15.0
-lmax,nmax = 1,30
-basis     = AstroBasis.CB73BasisCreate(lmax=lmax, nmax=nmax,G=G,rb=rb)
-ndim      = basis.dimension
-nradial   = basis.nmax
+lmax,nradial = 1,20 # number of basis functions
+
+# CB73Basis([name, dimension, lmax, nradial, G, rb, filename])
+basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 #########
 # Model Potential
@@ -40,8 +40,6 @@ bc, M = 1.,1.
 ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
 dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
-d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
-d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
 
 rmin = 1.0e-5 # minimum radius to consider for frequency calculation
@@ -69,7 +67,7 @@ Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 KuTruncation = 10000 # if limiting Ku for sum, specify here
 
-FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
+FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 #########
 # Considered resonance parameters
@@ -88,33 +86,34 @@ Etamin   = -0.005
 Etamax   = 0.0
 
 
-#########
+
 # output directories
-#########
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
 
-#########
-# control parameters
-#########
-VERBOSE   = 2       # how much reporting?
-OVERWRITE = false   # if true, recompute tables regardless of whether parameters match
-EDGE      = 0.01    # set the edge boundary in u integration (i.e. |1-EDGE| switches to expansions)
-ELTOLECC  = 0.0005  # eccenticity tolerance for
-VMAPN     = 1 #2    # exponent for v mapping (1 is linear)
-ADAPTIVEKW= false#true
 
-Parameters = LinearResponse.ResponseParametersCreate(dψ,d2ψ,Ku=Ku,Kv=Kv,Kw=Kw,
-                                                    modelname=modelname,dfname=dfname,
-                                                    wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,
-                                                    lharmonic=lharmonic,n1max=n1max,nradial=nradial,
-                                                    KuTruncation=KuTruncation,
-                                                    VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
-                                                    Ω₀=Ω₀,rmin=rmin,rmax=rmax,
-                                                    EDGE=EDGE,ELTOLECC=ELTOLECC,ndim=ndim,
-                                                    nmax=basis.nmax,rbasis=basis.rb,VMAPN=VMAPN)
+VERBOSE   = 2
+OVERWRITE = true
+EDGE      = 0.01
+ELTOLECC  = 0.0005
+VMAPN     = 1 # exponent for v mapping (1 is linear)
+ADAPTIVEKW= false
 
+OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,rmin=rmin,rmax=rmax,
+                                             EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+                                             NINT=OrbitalElements.DEFAULT_NINT,
+                                             da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
+                                             ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
+
+
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
+                                             modelname=modelname,dfname=dfname,
+                                             wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
+                                             lharmonic=lharmonic,n1max=n1max,
+                                             KuTruncation=KuTruncation,
+                                             VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
+                                             VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW)
 
 
 
