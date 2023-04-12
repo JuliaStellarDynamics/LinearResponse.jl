@@ -31,7 +31,7 @@ end
 """
 function RunDeterminant(ωlist::Array{ComplexF64},
                         FHT::FiniteHilbertTransform.AbstractFHT,
-                        params::LinearParameters=LinearParameters())
+                        params::LinearParameters)
 
     # Preparinng computations of the response matrices
     tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(),FHT,params)
@@ -78,7 +78,7 @@ Newton-Raphson descent to find the zero crossing
 """
 function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
                           FHT::FiniteHilbertTransform.AbstractFHT,
-                          params::LinearParameters=LinearParameters();
+                          params::LinearParameters;
                           NITER::Int64=32,
                           ACCURACY::Float64=1.0e-10)
 

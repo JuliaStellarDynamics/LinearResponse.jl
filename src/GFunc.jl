@@ -13,11 +13,13 @@ function to compute G(u)
 function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
                 Wdata::WMatdataType,
-                tabu::Array{Float64},
-                params::LinearParameters=LinearParameters())
+                tabu::Vector{Float64},
+                params::LinearParameters)
+
+    @assert length(tabu) == params.Ku "Imcompatible tabu length and parameters"
 
     # calculate the prefactor based on the dimensionality (defaults to 3d)
-    if params.ndim==2
+    if params.dimension==2
         # 2d prefactor, see Fouvry et al. 2015
         # ATTENTION : Landau prescription for G(u) / (u - ω) not G(u) / (ω - u)
         #             Hence the minus sign.
@@ -99,7 +101,7 @@ function MakeGu(ndFdJ::Function,
             # times the prefactor and n⋅∂F/∂J (integrand in (Jr,L)-space)
             integrand = pref * δvol * Jacv * RenormalizedJacαβ * JacEL * JacJ * valndFdJ
             # In 3D, volume element to add
-            integrand *= (params.ndim == 3) ? Lval : 1.0
+            integrand *= (params.dimension == 3) ? Lval : 1.0
 
             # Adding step contribution to every element
             for np = 1:nradial
@@ -137,10 +139,11 @@ end
 """
 function RunGfunc(ndFdJ::Function,
                   FHT::FiniteHilbertTransform.AbstractFHT,
-                  params::LinearParameters=LinearParameters())
+                  params::LinearParameters)
 
-    # Check directory names
-    CheckDirectories(params.wmatdir,params.gfuncdir) || (return 0)
+    # check the directories + FHT values against the Parameters
+    CheckDirectories(params.wmatdir,params.gfuncdir)
+    CheckFHTCompatibility(FHT,params)
 
     (params.VERBOSE >= 0) && println("LinearResponse.GFunc.RunGfunc: Considering $(params.nbResVec) resonances.")
 

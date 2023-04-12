@@ -20,6 +20,7 @@ include("Utils/ParameterStructure.jl")
 include("Utils/Resonances.jl")
 include("Utils/CMatrix.jl")
 include("Utils/IO.jl")
+include("Utils/Compatibilities.jl")
 include("Utils/OmegaGrid.jl")
 
 # code to compute the Fourier transform basis functions

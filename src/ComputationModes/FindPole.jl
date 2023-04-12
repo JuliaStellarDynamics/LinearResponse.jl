@@ -6,7 +6,7 @@ function GoStep(omgval::ComplexF64,
                 FHT::FiniteHilbertTransform.AbstractFHT,
                 tabaMcoef::Array{Float64,4},
                 tabωminωmax::Matrix{Float64},
-                params::LinearParameters=LinearParameters())
+                params::LinearParameters)
 
     # fill the M matrix
     tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
@@ -51,7 +51,7 @@ function FindDeterminantZero(startingomg::ComplexF64,
                              FHT::FiniteHilbertTransform.AbstractFHT,
                              tabaMcoef::Array{Float64,4},
                              tabωminωmax::Matrix{Float64},
-                             params::LinearParameters=LinearParameters();
+                             params::LinearParameters;
                              TOL::Float64=1.e-12)
 
     # initial values
@@ -74,7 +74,7 @@ end
 
 function FindPole(startingomg::ComplexF64,
                   FHT::FiniteHilbertTransform.AbstractFHT,
-                  params::LinearParameters=LinearParameters(),
+                  params::LinearParameters,
                   TOL::Float64=1.e-12)
 
     # Preparinng computations of the response matrices

@@ -6,17 +6,26 @@ TODO:
 
 struct LinearParameters
 
-    # basis needs to be separate (for multiple copies)
-    #nmax::Int64
+    # Orbital Elements parameters
+    Orbitalparams::OrbitalElements.OrbitalParameters
+
+    # Basis parameters
+    # dimension and nradial are repeated (for allocation issues - intensively called)
+    dimension::Int64
+    nradial::Int64
+    Basisparams::Dict{String,Union{String,Number}}
 
     # integration parameters
     Ku::Int64
     Kv::Int64
     Kw::Int64
 
-    # Vector{Float64} == Array{Float64,1}
-    #tabu::Vector{Float64}
+    VMAPN::Int64
+    ADAPTIVEKW::Bool
 
+    KuTruncation::Int64
+
+    # Files names, directories and handling
     modelname::String
     dfname::String
 
@@ -25,55 +34,45 @@ struct LinearParameters
     axidir::String
     modedir::String
 
-    lharmonic::Int64
-    n1max::Int64
-    nradial::Int64
-
-    # Matrix{Float64} == Array{Float64,2}
-    nbResVec::Int64
-    tabResVec::Matrix{Int64}
-
-    KuTruncation::Int64
-
-    VERBOSE::Int64
     OVERWRITE::Bool
 
-    # Orbital Elements parameters
-    Orbitalparams::OrbitalElements.OrbitalParameters
+    # Resonances parameters
+    lharmonic::Int64
+    n1max::Int64
 
-    # all Basis parameters should be copied here
-    nmax::Int64
-    rbasis::Float64
-    ndim::Int64
+    nbResVec::Int64
+    tabResVec::Matrix{Int64} # Matrix{Float64} == Array{Float64,2}
 
-    VMAPN::Int64
-    ADAPTIVEKW::Bool
-
+    # Other parameters
+    VERBOSE::Int64
 end
 
 """
-    LinearParameters(;Orbitalparams,Ku,Kv,Kw,modelname,dfname,wmatdir,gfuncdir,modedir,lharmonic,n1max,nradial,KuTruncation,VERBOSE,OVERWRITE,ndim,nmax,rbasis,VMAPN,ADAPTIVEKW)
+    LinearParameters(basis;Orbitalparams,Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,modelname,dfname,wmatdir,gfuncdir,modedir,OVERWRITE,lharmonic,n1max,VERBOSE)
 """
-function LinearParameters(;Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),
-                                  Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
-                                  modelname::String="model",dfname::String="df",
-                                  wmatdir::String="",gfuncdir::String="",axidir::String="",modedir::String="",
-                                  lharmonic::Int64=2,n1max::Int64=10,nradial::Int64=10,
-                                  KuTruncation::Int64=10000,
-                                  VERBOSE::Int64=0,OVERWRITE::Bool=false,ndim::Int64=3,
-                                  nmax::Int64,rbasis::Float64,VMAPN::Int64=2,ADAPTIVEKW::Bool=false)
+function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
+                          Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),
+                          Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
+                          VMAPN::Int64=2,ADAPTIVEKW::Bool=false,KuTruncation::Int64=10000,
+                          modelname::String="model",dfname::String="df",
+                          wmatdir::String="",gfuncdir::String="",axidir::String="",modedir::String="",OVERWRITE::Bool=false,
+                          lharmonic::Int64=2,n1max::Int64=10,
+                          VERBOSE::Int64=0)
+
+    # Basis parameters
+    Basisparams = AstroBasis.GetParameters(basis)
+    
+    # Basis parameters
+    dimension = Basisparams["dimension"]
+    nradial = Basisparams["nradial"]
 
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,dimension)
 
-    return LinearParameters(Ku,Kv,Kw,
-                              modelname,dfname,
-                              wmatdir,gfuncdir,axidir,modedir,
-                              lharmonic,n1max,nradial,
-                              nbResVec,tabResVec,
-                              KuTruncation,
-                              VERBOSE,OVERWRITE,
-                              Orbitalparams,
-                              nmax,rbasis,ndim,
-                              VMAPN,ADAPTIVEKW)
+    return LinearParameters(Orbitalparams,dimension,nradial,Basisparams,
+                            Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,
+                            modelname,dfname,
+                            wmatdir,gfuncdir,axidir,modedir,OVERWRITE,
+                            lharmonic,n1max,nbResVec,tabResVec,
+                            VERBOSE)
 end

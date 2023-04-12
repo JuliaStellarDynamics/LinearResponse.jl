@@ -41,8 +41,6 @@ const R0, V0 = 20., 1.
 const ψ(r::Float64)   = OrbitalElements.ψMestel(r,R0,V0)
 const dψ(r::Float64)  = OrbitalElements.dψMestel(r,R0,V0)
 const d2ψ(r::Float64) = OrbitalElements.d2ψMestel(r,R0,V0)
-const d3ψ(r::Float64) = OrbitalElements.d3ψMestel(r,R0,V0)
-const d4ψ(r::Float64) = OrbitalElements.d4ψMestel(r,R0,V0)
 const Ω₀ = OrbitalElements.Ω₀Mestel(R0,V0)
 
 ##############################

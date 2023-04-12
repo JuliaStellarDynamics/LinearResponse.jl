@@ -19,11 +19,12 @@ these values do not depend on the frequency being evaluated: which makes them go
 is this struggling from having to pass around a gigantic array? what if we did more splitting?
 """
 function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
-                params::LinearParameters=LinearParameters())
+                params::LinearParameters)
 
-    # Check directory names
-    CheckDirectories(params.gfuncdir,params.axidir) || (return 0)
-
+    # check the directories + FHT values against the Parameters
+    CheckDirectories(params.gfuncdir,params.axidir)
+    CheckFHTCompatibility(FHT,params)
+    
     # get relevant sizes
     nbResVec, tabResVec = params.nbResVec, params.tabResVec
     nradial  = params.nradial
@@ -93,10 +94,10 @@ end
     
 reads the decomposition's coefficients and extremal frequencies from HDF5 files
 """
-function StageAXi(params::LinearParameters=LinearParameters())
+function StageAXi(params::LinearParameters)
 
-    # Check directory names
-    CheckDirectories(params.axidir) || (return 0)
+    # check the directories + basis and FHT values against the Parameters
+    CheckDirectories(params.axidir)
 
     # get dimensions from the relevant tables
     nbResVec, tabResVec = params.nbResVec, params.tabResVec
@@ -138,14 +139,14 @@ end
 
 run the full linear response (Basis FT, G(u) computation and coefficient decomposition)
 """
-function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
-                            ndFdJ::Function,
+function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,
+                            ndFdJ::F3,
                             FHT::FiniteHilbertTransform.AbstractFHT,
                             basis::AstroBasis.AbstractAstroBasis,
-                            params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
+                            params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
     
     # call the function to construct W matrices
-    RunWmat(ψ,dψ,d2ψ,d3ψ,d4ψ,FHT,basis,params)
+    RunWmat(ψ,dψ,d2ψ,FHT,basis,params)
 
     # call the function to compute G(u) functions
     RunGfunc(ndFdJ,FHT,params)

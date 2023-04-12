@@ -30,14 +30,14 @@ const G  = 1.
 # Clutton-Brock (1972) basis
 const basisname = "CluttonBrock"
 const rb = 5.
-const lmax,nmax = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
-const basis = AstroBasis.CB72BasisCreate(lmax=lmax,nmax=nmax,G=G,rb=rb) 
+const lmax,nradial = 2,10 # Usually lmax corresponds to the considered harmonics lharmonic
+const basis = AstroBasis.CB72Basis(lmax=lmax,nradial=nradial,G=G,rb=rb) 
 
 # # Kalnajs (1976) basis
 # basisname = "Kalnajs"
 # rb, kKA = 5., 7
 # lmax,nmax = 2,7
-# basis = AstroBasis.K76Basis_create(lmax=lmax,nmax=nmax,G=G,rb=rb,kKA=kKA)
+# basis = AstroBasis.K76Basis(lmax=lmax,nradial=nradial,G=G,rb=rb,kKA=kKA)
 
 ##############################
 # Model Potential
@@ -48,8 +48,6 @@ const R0, V0 = 20., 1.
 const ψ(r::Float64)   = OrbitalElements.ψMestel(r,R0,V0)
 const dψ(r::Float64)  = OrbitalElements.dψMestel(r,R0,V0)
 const d2ψ(r::Float64) = OrbitalElements.d2ψMestel(r,R0,V0)
-const d3ψ(r::Float64) = OrbitalElements.d3ψMestel(r,R0,V0)
-const d4ψ(r::Float64) = OrbitalElements.d4ψMestel(r,R0,V0)
 const Ω₀ = OrbitalElements.Ω₀Mestel(R0,V0)
 
 ##############################
@@ -92,32 +90,33 @@ const Orbitalparams = OrbitalElements.OrbitalParameters(;Ω₀=Ω₀,rmin=rmin,r
 
 
 const Ku = 200           # number of u integration sample points
-const FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
+const FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 const Kv = 201    # number of allocations is directly proportional to this
 const Kw = 202    # number of allocations is insensitive to this (also time, largely?
+
+const VMAPN = 2
+const KuTruncation=1000
 
 const lharmonic = 2
 const n1max = 1  # maximum number of radial resonances to consider
 
 
 ####
-const nradial = basis.nmax
-const KuTruncation=10000
+
 const VERBOSE = 1
-const OVERWRITE = false
+const OVERWRITE = true
 
 ####
 
 
 const ADAPTIVEKW = true
 
-params = LinearResponse.LinearParameters(;Orbitalparams=Orbitalparams,
+params = LinearResponse.LinearParameters(basis;Orbitalparams=Orbitalparams,
                                          Ku=Ku,Kv=Kv,Kw=Kw,
+                                         VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW,KuTruncation=KuTruncation,
                                          modelname=modelname,dfname=dfname,
                                          wmatdir=wmatdir,gfuncdir=gfuncdir,axidir=axidir,modedir=modedir,
-                                         lharmonic=lharmonic,n1max=n1max,nradial=nradial,
-                                         KuTruncation=KuTruncation,
-                                         VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
-                                         ndim=basis.dimension,
-                                         nmax=basis.nmax,rbasis=basis.rb,ADAPTIVEKW=ADAPTIVEKW)
+                                         OVERWRITE=OVERWRITE,
+                                         lharmonic=lharmonic,n1max=n1max,
+                                         VERBOSE=VERBOSE)

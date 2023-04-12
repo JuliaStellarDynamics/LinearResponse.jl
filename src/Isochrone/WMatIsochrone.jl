@@ -36,7 +36,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
     wmin,wmax = OrbitalElements.FindWminWmaxIsochrone(n1,n2)
 
     # allocate the results matrix
-    tabWMat = zeros(basis.nmax,Ku,Kv)
+    tabWMat = zeros(basis.nradial,Ku,Kv)
     tabaMat = zeros(Ku,Kv)
     tabeMat = zeros(Ku,Kv)
 
@@ -106,7 +106,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                 pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
 
                 # Loop over the radial indices to sum basis contributions
-                for np=1:basis.nmax
+                for np=1:basis.nradial
                     tabWMat[np,kuval,kvval] += pref1*basis.tabUl[np]
                 end
 
@@ -136,7 +136,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                 pref2 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k11) + n2*(theta2+0.5*k21))
 
                 # Loop over the radial indices to sum basis contributions
-                #for np=1:basis.nmax
+                #for np=1:basis.nradial
                 #    tabWMat[np,kuval,kvval] += pref2*basis.tabUl[np]
                 #end
 
@@ -155,7 +155,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
 
 
                 # Loop over the radial indices to sum basis contributions
-                for np=1:basis.nmax
+                for np=1:basis.nradial
                     #tabWMat[np,kuval,kvval] += pref3*basis.tabUl[np]
                     tabWMat[np,kuval,kvval] += (pref2+pref3)*basis.tabUl[np]
                 end
@@ -185,7 +185,7 @@ function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                 pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k13) + n2*(theta2+k23))
 
                 # Loop over the radial indices to sum basis contributions
-                for np=1:basis.nmax
+                for np=1:basis.nradial
                     tabWMat[np,kuval,kvval] += pref4*basis.tabUl[np]
                 end
 
@@ -250,7 +250,7 @@ function IntegrateOverOrbit!(Wvals::Array{Float64},T1::Float64,T2::Float64,
         pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             Wvals[np] += pref1*basis.tabUl[np]
         end
 
@@ -293,7 +293,7 @@ function IntegrateOverOrbit!(Wvals::Array{Float64},T1::Float64,T2::Float64,
         pref3 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k12) + n2*(theta2+0.5*k22))
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             #tabWMat[np,kuval,kvval] += pref3*basis.tabUl[np]
             Wvals[np] += (pref2+pref3)*basis.tabUl[np]
         end
@@ -323,7 +323,7 @@ function IntegrateOverOrbit!(Wvals::Array{Float64},T1::Float64,T2::Float64,
         pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k13) + n2*(theta2+k23))
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             Wvals[np] += pref4*basis.tabUl[np]
         end
 
@@ -391,7 +391,7 @@ function IntegrateOverOrbitAllSteps!(Wvals::Array{Float64,2},
         pref1 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*theta1 + n2*theta2)
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             Wvals[np,wstep] = pref1*basis.tabUl[np]
         end
 
@@ -434,7 +434,7 @@ function IntegrateOverOrbitAllSteps!(Wvals::Array{Float64,2},
         pref3 = (1.0/3.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+0.5*k12) + n2*(theta2+0.5*k22))
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             #tabWMat[np,kuval,kvval] += pref3*basis.tabUl[np]
             Wvals[np,wstep] += (pref2+pref3)*basis.tabUl[np]
         end
@@ -464,7 +464,7 @@ function IntegrateOverOrbitAllSteps!(Wvals::Array{Float64,2},
         pref4 = (1.0/6.0)*duWMat*(1.0/(pi))*dt1du*cos(n1*(theta1+k13) + n2*(theta2+k23))
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             Wvals[np,wstep] += pref4*basis.tabUl[np]
         end
 
@@ -509,8 +509,8 @@ function RunWmatIsochrone(wmatdir::String,
     CheckConfigurationDirectories([wmatdir]) || (return 0)
 
     # get basis parameters
-    ndim = basis.dimension
-    nradialmax = basis.nmax
+    dimension = basis.dimension
+    nradialmax = basis.nradial
 
     # check if we can cover the specified radial orders
     if nradialmax > nradial
@@ -526,7 +526,7 @@ function RunWmatIsochrone(wmatdir::String,
     tabuGLquad = reshape(tabuGLquadtmp,Ku,1)
 
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,ndim)
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,dimension)
 
     # print the length of the list of resonance vectors
     println("LinearResponse.WMatIsochrone.RunWmatIsochrone: Number of resonances to compute: $nbResVec")

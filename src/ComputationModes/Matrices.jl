@@ -13,7 +13,7 @@ VERBOSE flag rules
 """
 function RunMatrices(ωlist::Array{ComplexF64},
                      FHT::FiniteHilbertTransform.AbstractFHT,
-                     params::LinearParameters=LinearParameters())
+                     params::LinearParameters)
 
     # Preparinng computations of the response matrices
     tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(),FHT,params)

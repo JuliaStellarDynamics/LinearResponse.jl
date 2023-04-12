@@ -15,7 +15,7 @@ end
 
 function BasisFTcreate(basis::BT) where {BT<:AstroBasis.AbstractAstroBasis}
 
-    return BasisFTtype(basis,zeros(Float64,basis.nmax))
+    return BasisFTtype(basis,zeros(Float64,basis.nradial))
 end
 
 
@@ -40,18 +40,17 @@ end
 """
 function WMatdataCreate(dψ::F1,d2ψ::F2,
                         n1::Int64,n2::Int64,
-                        basis::AstroBasis.AbstractAstroBasis,
-                        params::LinearParameters=LinearParameters()) where {F1 <: Function, F2 <: Function}
+                        params::LinearParameters) where {F1 <: Function, F2 <: Function}
 
     # compute the frequency scaling factors for this resonance
     ωmin, ωmax = OrbitalElements.Findωminωmax(n1,n2,dψ,d2ψ,params.Orbitalparams)
 
     # Useful parameters
-    nmax = basis.nmax
+    nradial = params.nradial
     Ku, Kv = params.Ku, params.Kv
 
     return WMatdataType(ωmin,ωmax,zeros(Float64,2,Ku),
-                        zeros(Float64,nmax,Kv,Ku),
+                        zeros(Float64,nradial,Kv,Ku),
                         zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
                         zeros(Float64,Kv,Ku))
 end
@@ -99,16 +98,16 @@ Integrand computation/update for FT of basis elements
 function Wintegrand(w::Float64,
                     a::Float64,e::Float64,L::Float64,
                     Ω1::Float64,Ω2::Float64,
-                    ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,
+                    ψ::F0,dψ::F1,d2ψ::F2,
                     basis::AstroBasis.AbstractAstroBasis,
-                    params::LinearParameters=LinearParameters())::Tuple{Float64,Float64} where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
+                    params::LinearParameters)::Tuple{Float64,Float64} where {F0 <: Function, F1 <: Function, F2 <: Function}
 
 
     # Current location of the radius, r=r(w)
     rval = OrbitalElements.ru(w,a,e)
 
     # Current value of the radial frequency integrand (almost dθ/dw)
-    gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,d3ψ,w,a,e,params.Orbitalparams)
+    gval = OrbitalElements.ΘAE(ψ,dψ,d2ψ,w,a,e,params.Orbitalparams)
 
 
     # collect the basis elements (in place!)
@@ -127,12 +126,12 @@ result stored in place
 function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,
+                  ψ::F0,dψ::F1,d2ψ::F2,
                   basis::AstroBasis.AbstractAstroBasis,
                   restab::Vector{Float64},
-                  params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
+                  params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
-    @assert length(restab) == basis.nmax "LinearResponse.WBasisFT: FT array not of the same size as the basis"
+    @assert length(restab) == basis.nradial "LinearResponse.WBasisFT: FT array not of the same size as the basis"
 
     # Integration step
     Kwp = (params.ADAPTIVEKW) ? ceil(Int64,params.Kw/(0.1+(1-e))) : params.Kw
@@ -142,14 +141,14 @@ function WBasisFT(a::Float64,e::Float64,
     dw = -(2.0)/(Kwp)
 
     # need angular momentum
-    Lval = OrbitalElements.LFromAE(ψ,dψ,d2ψ,d3ψ,a,e,params.Orbitalparams)
+    Lval = OrbitalElements.LFromAE(ψ,dψ,a,e,params.Orbitalparams)
 
     # Initialise the state vectors: w, θ1, (θ2-psi)
     # Reverse integration, starting at apocenter
     w, θ1, θ2 = 1.0, pi, 0.0
 
     # Initialize integrand
-    dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,basis,params)
+    dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,ψ,dψ,d2ψ,basis,params)
 
     # Initialize container
     fill!(restab,0.0)
@@ -165,7 +164,7 @@ function WBasisFT(a::Float64,e::Float64,
         pref1 = (1.0/6.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*θ1 + n2*θ2)
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             @inbounds restab[np] += pref1*basis.tabUl[np]
         end
 
@@ -181,7 +180,7 @@ function WBasisFT(a::Float64,e::Float64,
 
         # Update integrand
 
-        dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,basis,params)
+        dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,ψ,dψ,d2ψ,basis,params)
 
         # common prefactor for all the increments
         # depends on the updated (θ1+0.5*dθ1_1,θ2+0.5*dθ2_1)
@@ -204,7 +203,7 @@ function WBasisFT(a::Float64,e::Float64,
 
         # Loop over the radial indices to sum basis contributions
         # Contribution of steps 2 and 3 together
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             @inbounds restab[np] += (pref2+pref3)*basis.tabUl[np]
         end
 
@@ -218,7 +217,7 @@ function WBasisFT(a::Float64,e::Float64,
 
         # Update integrand
 
-        dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,ψ,dψ,d2ψ,d3ψ,basis,params)
+        dθ1dw, dθ2dw = Wintegrand(w,a,e,Lval,Ω1,Ω2,ψ,dψ,d2ψ,basis,params)
 
         # Common prefactor for all the increments
         # Depends on the updated (θ1+dθ1_3,θ2+dθ2_3)
@@ -226,7 +225,7 @@ function WBasisFT(a::Float64,e::Float64,
         pref4 = (1.0/6.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*(θ1+dθ1_3) + n2*(θ2+dθ2_3))
 
         # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nmax
+        for np=1:basis.nradial
             @inbounds restab[np] += pref4*basis.tabUl[np]
         end
 
@@ -242,7 +241,7 @@ function WBasisFT(a::Float64,e::Float64,
     end # RK4 integration
     
     # -1 factor (reverse integration)
-    for np=1:basis.nmax
+    for np=1:basis.nradial
         @inbounds restab[np] *= -1.0
     end
 
@@ -256,12 +255,12 @@ with basisFT struct
 function WBasisFT(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,
+                  ψ::F0,dψ::F1,d2ψ::F2,
                   basisFT::BasisFTtype,
-                  params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
+                  params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
     # Basis FT
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,params)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,basisFT.basis,basisFT.UFT,params)
 end
 
 """
@@ -269,16 +268,16 @@ without Ω1, Ω2
 """
 function WBasisFT(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
-                  ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,
+                  ψ::F0,dψ::F1,d2ψ::F2,
                   basisFT::BasisFTtype,
-                  params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
+                  params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
     # Frequencies
-    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,d3ψ,a,e,params.Orbitalparams)
+    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(ψ,dψ,d2ψ,a,e,params.Orbitalparams)
 
     # Basis FT
 
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT.basis,basisFT.UFT,params)
+    WBasisFT(a,e,Ω1,Ω2,n1,n2,ψ,dψ,d2ψ,basisFT.basis,basisFT.UFT,params)
 end
 
 
@@ -291,19 +290,19 @@ end
 """
 @TO DESCRIBE
 """
-function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
+function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,
                     n1::Int64,n2::Int64,
                     tabu::Vector{Float64},
                     basisFT::BasisFTtype,
-                    params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
-
+                    params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
+    
     @assert length(tabu) == params.Ku "LinearResponse.WMat.MakeWmatUV: tabu length is not Ku."
 
     Orbitalparams = params.Orbitalparams
     Ω₀ = Orbitalparams.Ω₀
 
     # allocate the results matrices
-    Wdata = WMatdataCreate(dψ,d2ψ,n1,n2,basisFT.basis,params)
+    Wdata = WMatdataCreate(dψ,d2ψ,n1,n2,params)
     ωmin, ωmax = Wdata.ωmin, Wdata.ωmax
 
     # start the loop
@@ -338,7 +337,7 @@ function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
             # (α,β) -> (Ω1,Ω2)
             Ω₁, Ω₂ = OrbitalElements.FrequenciesFromαβ(α,β,Ω₀)
             # (Ω1,Ω2) -> (a,e)
-            a,e = OrbitalElements.ComputeAEFromFrequencies(ψ,dψ,d2ψ,d3ψ,d4ψ,Ω₁,Ω₂,Orbitalparams)
+            a,e = OrbitalElements.ComputeAEFromFrequencies(ψ,dψ,d2ψ,Ω₁,Ω₂,Orbitalparams)
 
             (params.VERBOSE > 2) && print("v=$kvval,o1=$Ω1,o2=$Ω2;")
 
@@ -349,16 +348,16 @@ function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
             # save (a,e) values for later
             Wdata.tabAE[1,kvval,kuval], Wdata.tabAE[2,kvval,kuval] = a, e
             # save (E,L) values for later
-            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(ψ,dψ,d2ψ,d3ψ,a,e,Orbitalparams)
+            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(ψ,dψ,a,e,Orbitalparams)
 
             # compute the Jacobian of the (α,β) ↦ (E,L) mapping here. a little more expensive, but savings in the long run
 
-            Wdata.tabJ[kvval,kuval] = OrbitalElements.JacαβToELAE(ψ,dψ,d2ψ,d3ψ,d4ψ,a,e,Orbitalparams)
+            Wdata.tabJ[kvval,kuval] = OrbitalElements.JacαβToELAE(ψ,dψ,d2ψ,a,e,Orbitalparams)
 
             # Compute W(u,v) for every basis element using RK4 scheme
-            WBasisFT(a,e,Ω₁,Ω₂,n1,n2,ψ,dψ,d2ψ,d3ψ,basisFT,params)
+            WBasisFT(a,e,Ω₁,Ω₂,n1,n2,ψ,dψ,d2ψ,basisFT,params)
 
-            for np = 1:basisFT.basis.nmax
+            for np = 1:basisFT.basis.nradial
                 Wdata.tabW[np,kvval,kuval] = basisFT.UFT[np]
             end
         end
@@ -375,19 +374,19 @@ end
 ########################################################################
 
 """
-    RunWmat(ψ,dψ,d2ψ,d3ψ,d4ψ,FHT,basis[,params])
+    RunWmat(ψ,dψ,d2ψ,FHT,basis[,params])
 
 @TO DESCRIBE
 """
-function RunWmat(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
+function RunWmat(ψ::F0,dψ::F1,d2ψ::F2,
                  FHT::FiniteHilbertTransform.AbstractFHT,
                  basis::AstroBasis.AbstractAstroBasis,
-                 params::LinearParameters=LinearParameters()) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function, F4 <: Function}
+                 params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
 
-    # check wmat directory before proceeding (save time if not.)
-    CheckDirectories(params.wmatdir) || (return 0)
-
-    # check the basis values against the Parameters
+    # check the directories + basis and FHT values against the Parameters
+    CheckDirectories(params.wmatdir)
+    CheckBasisCompatibility(basis,params)
+    CheckFHTCompatibility(FHT,params)
 
     # FT bases prep.
     basisFT = BasisFTcreate(basis)
@@ -411,11 +410,11 @@ function RunWmat(ψ::F0,dψ::F1,d2ψ::F2,d3ψ::F3,d4ψ::F4,
 
         # compute the W matrices in UV space: timing optional
         if (params.VERBOSE > 1) && (k == 1)
-            @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,
+            @time Wdata = MakeWmatUV(ψ,dψ,d2ψ,
                                      n1,n2,FHT.tabu,
                                      basesFT[k],params)
         else
-            Wdata = MakeWmatUV(ψ,dψ,d2ψ,d3ψ,d4ψ,
+            Wdata = MakeWmatUV(ψ,dψ,d2ψ,
                                n1,n2,FHT.tabu,
                                basesFT[k],params)
         end
