@@ -11,6 +11,9 @@ const defaultΩ₀ = 1.
 const defaultrmin = 1.0e-6
 const defaultrmax = 1.0e4
 
+# Access to Symmetric
+using LinearAlgebra
+
 
 # structure to hold all parameters
 include("Utils/ParameterStructure.jl")
@@ -44,7 +47,5 @@ include("ComputationModes/FindPole.jl")
 # include code to compute isochrone-specific quantities:
 # the isochrone mode is a specific case that we have pre-defined
 include("Isochrone/WMatIsochrone.jl")
-include("Isochrone/GFuncIsochrone.jl")
-include("Isochrone/XiIsochrone.jl")
 
 end # module

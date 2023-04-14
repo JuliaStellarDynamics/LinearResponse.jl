@@ -6,6 +6,7 @@ driven by run_linearresponseIsochrone_damped.jl
 import OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
+import LinearResponse
 using HDF5
 
 # choose a basis for computation of the Fourier-transformed basis elements

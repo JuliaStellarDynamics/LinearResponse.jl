@@ -51,7 +51,7 @@ dfname = "roi1.0"
 
 function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
 
-    Q = OrbitalElements.isochrone_Q_ROI(E,L,Ra,bc,M,astronomicalG)
+    Q = OrbitalElements.isochroneQROI(E,L,Ra,bc,M,astronomicalG)
 
     # If Q is outside of the [0,1]--range, we set the function to 0.0
     # ATTENTION, this is a lazy implementation -- it would have been much better to restrict the integration domain
@@ -59,8 +59,8 @@ function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::
         return 0.0 # Outside of the physically allowed orbital domain
     end
 
-    dFdQ = OrbitalElements.isochrone_Saha_dDFdQ(Q,Ra,bc,M,astronomicalG) # Value of dF/dQ
-    dQdE, dQdL = OrbitalElements.isochrone_dQdE_ROI(E,L,Ra,bc,M,astronomicalG), OrbitalElements.isochrone_dQdL_ROI(E,L,Ra,bc,M,astronomicalG) # Values of dQ/dE, dQ/dL
+    dFdQ = OrbitalElements.isochroneSahadDFdQ(Q,Ra,bc,M,astronomicalG) # Value of dF/dQ
+    dQdE, dQdL = OrbitalElements.isochronedQdEROI(E,L,Ra,bc,M,astronomicalG), OrbitalElements.isochronedQdLROI(E,L,Ra,bc,M,astronomicalG) # Values of dQ/dE, dQ/dL
     #####
     res = dFdQ*(dQdE*ndotOmega + n2*dQdL) # Value of n.dF/dJ
 

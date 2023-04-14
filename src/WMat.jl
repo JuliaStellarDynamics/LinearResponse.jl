@@ -239,7 +239,7 @@ function WBasisFT(a::Float64,e::Float64,
         # clean or check nans?
 
     end # RK4 integration
-    
+
     # -1 factor (reverse integration)
     for np=1:basis.nradial
         @inbounds restab[np] *= -1.0
@@ -295,7 +295,7 @@ function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,
                     tabu::Vector{Float64},
                     basisFT::BasisFTtype,
                     params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
-    
+
     @assert length(tabu) == params.Ku "LinearResponse.WMat.MakeWmatUV: tabu length is not Ku."
 
     Orbitalparams = params.Orbitalparams
@@ -351,7 +351,6 @@ function MakeWmatUV(ψ::F0,dψ::F1,d2ψ::F2,
             Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(ψ,dψ,a,e,Orbitalparams)
 
             # compute the Jacobian of the (α,β) ↦ (E,L) mapping here. a little more expensive, but savings in the long run
-
             Wdata.tabJ[kvval,kuval] = OrbitalElements.JacαβToELAE(ψ,dψ,d2ψ,a,e,Orbitalparams)
 
             # Compute W(u,v) for every basis element using RK4 scheme
