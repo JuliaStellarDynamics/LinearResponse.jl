@@ -51,9 +51,9 @@ end
     ModeFilename()
 
 """
-function ModeFilename(params::LinearParameters)
+function ModeFilename(params::LinearParameters;ξ::Float64=1.0)
 
-    return params.modedir*"ModeShape_"*OutputsEnd(params)
+    return params.modedir*"ModeShape_xi_"*string(ξ)*"_"*OutputsEnd(params)
 end
 
 
@@ -61,9 +61,9 @@ end
     DetFilename()
 
 """
-function DetFilename(params::LinearParameters)
+function DetFilename(params::LinearParameters;ξ::Float64=1.0)
 
-    return params.modedir*"Determinant_"*OutputsEnd(params)
+    return params.modedir*"Determinant_xi_"*string(ξ)*"_"*OutputsEnd(params)
 end
 
 """

@@ -10,16 +10,18 @@ VERBOSE flag rules
 
 
 """
-    detXi(IMat,tabM)
+    detXi(IMat,tabM[,ξ])
 
-determinant of the susceptibility matrix I - M for known M.
+determinant of the susceptibility matrix I - ξ*M(ω) 
+for known M(ω) and active fraction ξ (default 1).
 """
 function detXi(IMat::AbstractMatrix{ComplexF64},
-               tabM::AbstractMatrix{ComplexF64})::ComplexF64
+               tabM::AbstractMatrix{ComplexF64};
+               ξ::Float64=1.0)::ComplexF64
 
     # Computing the determinant of (I-M).
     # ATTENTION, we tell julia that the matrix is symmetric
-    val = det(Symmetric(IMat-tabM))
+    val = det(Symmetric(IMat-ξ*tabM))
 
     # only save the real portion
     return val # Output
@@ -31,7 +33,8 @@ end
 """
 function RunDeterminant(ωlist::Array{ComplexF64},
                         FHT::FiniteHilbertTransform.AbstractFHT,
-                        params::LinearParameters)
+                        params::LinearParameters;
+                        ξ::Float64=1.0)
 
     # Preparinng computations of the response matrices
     tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(),FHT,params)
@@ -55,10 +58,12 @@ function RunDeterminant(ωlist::Array{ComplexF64},
             tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],params)
         end
 
-        tabdetXi[i] = detXi(IMatlist[k],tabMlist[k])
+        tabdetXi[i] = detXi(IMatlist[k],tabMlist[k],ξ=ξ)
     end
 
-    h5open(DetFilename(params), "w") do file
+    h5open(DetFilename(params,ξ=ξ), "w") do file
+        # Active fraction   
+        write(file,"xi",ξ)
         # Frequency grids
         write(file,"omega",real(ωlist))
         write(file,"eta",imag(ωlist))
@@ -72,13 +77,14 @@ end
 
 
 
-"""FindZeroCrossing(Ωguess,ηguess,FHT,params[,NITER,eta,ACCURACY=1.0e-10])
+"""FindZeroCrossing(Ωguess,ηguess,FHT,params[,ξ,NITER,ACCURACY])
 
 Newton-Raphson descent to find the zero crossing
 """
 function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
                           FHT::FiniteHilbertTransform.AbstractFHT,
                           params::LinearParameters;
+                          ξ::Float64=1.0,
                           NITER::Int64=32,
                           ACCURACY::Float64=1.0e-10)
 
@@ -103,11 +109,11 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
         tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
-        centralvalue = detXi(IMat,MMat)
+        centralvalue = detXi(IMat,MMat,ξ=ξ)
 
         tabM!(omgvaloff,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
-        offsetvalue = detXi(IMat,MMat)
+        offsetvalue = detXi(IMat,MMat,ξ=ξ)
 
         # ignore the imaginary part
         derivative = real(offsetvalue - centralvalue)/domega

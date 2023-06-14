@@ -6,23 +6,24 @@ function GoStep(omgval::ComplexF64,
                 FHT::FiniteHilbertTransform.AbstractFHT,
                 tabaMcoef::Array{Float64,4},
                 tabωminωmax::Matrix{Float64},
-                params::LinearParameters)
+                params::LinearParameters;
+                ξ::Float64=1.0)
 
     # fill the M matrix
     tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
     # compute the determinant of I-M
-    detXival = detXi(IMat,MMat)
+    detXival = detXi(IMat,MMat,ξ=ξ)
 
     # now compute a Jacobian via finite differences
     riomgval = omgval + 1.e-5
     upomgval = omgval + 1.e-5im
 
     tabM!(riomgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
-    detXivalri = detXi(IMat,MMat)
+    detXivalri = detXi(IMat,MMat,ξ=ξ)
 
     tabM!(upomgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
-    detXivalup = detXi(IMat,MMat)
+    detXivalup = detXi(IMat,MMat,ξ=ξ)
 
     dXirir = real(detXivalri-detXival)/1.e-5
     dXirii = imag(detXivalri-detXival)/1.e-5
@@ -52,6 +53,7 @@ function FindDeterminantZero(startingomg::ComplexF64,
                              tabaMcoef::Array{Float64,4},
                              tabωminωmax::Matrix{Float64},
                              params::LinearParameters;
+                             ξ::Float64=1.0,
                              TOL::Float64=1.e-12)
 
     # initial values
@@ -60,7 +62,7 @@ function FindDeterminantZero(startingomg::ComplexF64,
 
     while abs(detXival)^2 > TOL
 
-        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params)
+        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,ξ=ξ)
 
         if abs(detXival) > 1.0
             break
@@ -74,14 +76,15 @@ end
 
 function FindPole(startingomg::ComplexF64,
                   FHT::FiniteHilbertTransform.AbstractFHT,
-                  params::LinearParameters,
+                  params::LinearParameters;
+                  ξ::Float64=1.0,
                   TOL::Float64=1.e-12)
 
     # Preparinng computations of the response matrices
     MMat, tabaMcoef, tabωminωmax = PrepareM(params)
     IMat = makeIMat(params.nradial)
 
-    bestomg = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,TOL=TOL)
+    bestomg = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,ξ=ξ,TOL=TOL)
 
     (params.VERBOSE >= 0) && println("Best O for n1max=$(params.n1max),nradial=$(params.nradial) == $bestomg")
 
