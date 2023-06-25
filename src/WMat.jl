@@ -91,7 +91,7 @@ end
 ########################################################################
 
 """
-    Wintegrand(u,a,e)
+    Wintegrand(w,a,e,L,Ω1,Ω2,ψ,dψ,d2ψ,basis,params)
 
 Integrand computation/update for FT of basis elements
 """

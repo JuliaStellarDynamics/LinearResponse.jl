@@ -39,10 +39,10 @@ include("Xi.jl")
 include("ResponseMatrix.jl")
 
 # Codes to extract different informations
-include("ComputationModes/Determinant.jl")
-include("ComputationModes/Matrices.jl")
-include("ComputationModes/Mode.jl")
-include("ComputationModes/FindPole.jl")
+include("ModeComputation/Determinant.jl")
+include("ModeComputation/Matrices.jl")
+include("ModeComputation/Mode.jl")
+include("ModeComputation/FindPole.jl")
 
 # include code to compute isochrone-specific quantities:
 # the isochrone mode is a specific case that we have pre-defined
