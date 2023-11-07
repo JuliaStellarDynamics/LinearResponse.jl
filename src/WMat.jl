@@ -240,6 +240,9 @@ function WBasisFT(a::Float64,e::Float64,
 
     end # RK4 integration
 
+    # check the state of θ1,θ2:
+    #println("(a,e)=",a," ",e," T1=",θ1," T2=",θ2)
+
     # -1 factor (reverse integration)
     for np=1:basis.nradial
         @inbounds restab[np] *= -1.0

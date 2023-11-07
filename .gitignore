@@ -1,4 +1,9 @@
+# all h5 output files
+*.h5
 
+# all example plotting routines and figures
+examples/*/*.py
+examples/*/*.png
 
 # OSX hidden files
 *.DS_Store

@@ -33,15 +33,29 @@ end
 
 
 """
-# Function that returns the total number
-# of resonances bn=(n1,n2) to consider
-# for the harmonics lharmonic
-# There a few constraints to satisfy:
-# + |n2| <= lharmonic
-# + (lharmonic-n2) even
-# + |n1| <= n1max
-# + (n1,n2) = (0,0) does not contribute
-# ATTENTION, the (n1,n2) are determined for l=lharmonic
+    GetNbResVec3d(lharmonic::Int64, n1max::Int64)
+
+Calculate the total number of resonances (bn = (n1, n2)) to consider for the harmonics `lharmonic`.
+
+This function calculates the number of resonance vectors (bn) that satisfy the following constraints:
+- |n2| <= lharmonic
+- (lharmonic - n2) must be even
+- |n1| <= n1max
+- (n1, n2) = (0, 0) does not contribute
+
+# Arguments:
+- `lharmonic::Int64`: Harmonics for which the resonances are calculated.
+- `n1max::Int64`: Maximum value for the component n1.
+
+# Returns:
+- `Int64`: Total number of allowed resonance vectors.
+
+# Example:
+```julia
+lharmonic = 3
+n1max = 2
+resonance_count = GetNbResVec3d(lharmonic, n1max)  # Returns the number of resonances for lharmonic=3 and n1max=2
+```
 """
 function GetNbResVec3d(lharmonic::Int64,n1max::Int64)
     count = 0 # Initialisation of the counter
