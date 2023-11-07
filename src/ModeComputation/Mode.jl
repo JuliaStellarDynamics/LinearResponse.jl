@@ -8,7 +8,8 @@ for a single omega, compute the shape of the mode
 """
 function ComputeModeTables(omgval::ComplexF64,
                            FHT::FiniteHilbertTransform.AbstractFHT,
-                           params::LinearParameters)
+                           params::LinearParameters;
+                           ξ::Float64=1.0)
 
     # Preparinng computations of the response matrices
     MMat, tabaMcoef, tabωminωmax = PrepareM(params)
@@ -20,7 +21,7 @@ function ComputeModeTables(omgval::ComplexF64,
     end
 
     # eigenvalue, eigenvector (for basis projection)
-    EV, EM = mevXi(MMat)
+    EV, EM = mevXi(MMat,ξ=ξ)
 
     return EV, EM
 end
@@ -31,14 +32,15 @@ end
 
 minimal eigenvalue of M
 """
-function mevXi(tabM::AbstractMatrix{ComplexF64})
+function mevXi(tabM::AbstractMatrix{ComplexF64};
+               ξ::Float64=1.0)
 
     # these should be equal, and =nradial!
     nEig1, _ = size(tabM)
 
     # Computing the eigenvalue that is closest to 1
-    tabeigvals = eigvals(tabM)
-    tabeigvecs = eigvecs(tabM)
+    tabeigvals = ξ * eigvals(tabM)
+    tabeigvecs = ξ * eigvecs(tabM)
 
     indEig = 1
     for indrad = 1:nEig1

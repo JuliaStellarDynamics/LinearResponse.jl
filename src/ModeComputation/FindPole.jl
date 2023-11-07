@@ -7,13 +7,14 @@ function GoStep(omgval::ComplexF64,
                 tabaMcoef::Array{Float64,4},
                 tabωminωmax::Matrix{Float64},
                 params::LinearParameters;
+                ξ::Float64=1.0,
                 DSIZE::Float64=1.e-4)
 
     # fill the M matrix
     tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
     # compute the determinant of I-M
-    detXival = detXi(IMat,MMat)
+    detXival = detXi(IMat,MMat,ξ=ξ)
     # if this value is bad, should immediately break
 
     # now compute a Jacobian via finite differences
@@ -21,10 +22,10 @@ function GoStep(omgval::ComplexF64,
     upomgval = omgval + DSIZE*1im
 
     tabM!(riomgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
-    detXivalri = detXi(IMat,MMat)
+    detXivalri = detXi(IMat,MMat,ξ=ξ)
 
     tabM!(upomgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
-    detXivalup = detXi(IMat,MMat)
+    detXivalup = detXi(IMat,MMat,ξ=ξ)
 
     dXirir = real(detXivalri-detXival)/DSIZE
     dXirii = imag(detXivalri-detXival)/DSIZE
@@ -54,6 +55,7 @@ function FindDeterminantZero(startingomg::ComplexF64,
                              tabaMcoef::Array{Float64,4},
                              tabωminωmax::Matrix{Float64},
                              params::LinearParameters;
+                             ξ::Float64=1.0,
                              TOL::Float64=1.e-12,
                              DSIZE::Float64=1.e-4,
                              NSEARCH::Int64=100)
@@ -65,9 +67,8 @@ function FindDeterminantZero(startingomg::ComplexF64,
 
     while abs(detXival) > TOL
 
-        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,DSIZE=DSIZE)
+        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,ξ=ξ,DSIZE=DSIZE)
 
-        # this seems like a bad solution?
         if abs(detXival) > 1.0
             break
         end
@@ -77,7 +78,7 @@ function FindDeterminantZero(startingomg::ComplexF64,
         if stepnum > NSEARCH
             break
         end
-
+        
     end
 
     # what happens when this goes wrong?
@@ -91,7 +92,8 @@ end
 
 function FindPole(startingomg::ComplexF64,
                   FHT::FiniteHilbertTransform.AbstractFHT,
-                  params::LinearParameters,
+                  params::LinearParameters;
+                  ξ::Float64=1.0,
                   TOL::Float64=1.e-12,
                   DSIZE::Float64=1.e-4)
 
@@ -99,7 +101,7 @@ function FindPole(startingomg::ComplexF64,
     MMat, tabaMcoef, tabωminωmax = PrepareM(params)
     IMat = makeIMat(params.nradial)
 
-    bestomg,detval = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,TOL=TOL,DSIZE=DSIZE)
+    bestomg,detval = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,ξ=ξ,TOL=TOL,DSIZE=DSIZE)
 
     (params.VERBOSE >= 0) && println("Best O for n1max=$(params.n1max),nradial=$(params.nradial) == $bestomg")
 
