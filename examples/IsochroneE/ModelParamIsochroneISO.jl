@@ -25,8 +25,8 @@ using HDF5
 # Basis
 #####
 G         = 1.
-rb        = 15.0
-lmax,nradial = 1,20 # number of basis functions
+rb        = 5.0
+lmax,nradial = 1,100 # number of basis functions
 
 # CB73Basis([name, dimension, lmax, nradial, G, rb, filename])
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
@@ -42,8 +42,8 @@ dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
 
-rmin = 1.0e-5 # minimum radius to consider for frequency calculation
-rmax = 1.0e5  # maximum radius to consider for frequency calculation
+rmin = 0.0 # minimum radius to consider for frequency calculation
+rmax = Inf  # maximum radius to consider for frequency calculation
 
 
 #########
@@ -52,7 +52,7 @@ rmax = 1.0e5  # maximum radius to consider for frequency calculation
 dfname = "isotropic"
 
 function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
-    dFdE = OrbitalElements.isochrone_isotropic_dDFdE(E,bc,M,astronomicalG) # Current value of dF/E. ATTENTION, the DF is assumed to be isotropic
+    dFdE = OrbitalElements.isochroneisotropicdDFdE(E,bc,M,astronomicalG) # Current value of dF/E. ATTENTION, the DF is assumed to be isotropic
     res = ndotOmega*dFdE # Current value of n.dF/dJ. ATTENTION, the DF is assumed to be isotropic
     #####
     return res
@@ -62,7 +62,7 @@ end
 #########
 # Integration parameters
 #########
-Ku = 203    # number of Legendre integration sample points
+Ku = 202    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 KuTruncation = 10000 # if limiting Ku for sum, specify here
@@ -73,7 +73,7 @@ FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 # Considered resonance parameters
 #########
 lharmonic = 1
-n1max     = 5  # maximum number of radial resonances to consider
+n1max     = 20  # maximum number of radial resonances to consider
 
 #########
 # Frequencies to probe
@@ -94,7 +94,7 @@ modedir  = "xifunc/"
 
 
 VERBOSE   = 2
-OVERWRITE = true
+OVERWRITE = false
 EDGE      = 0.01
 ELTOLECC  = 0.0005
 VMAPN     = 1 # exponent for v mapping (1 is linear)

@@ -23,8 +23,8 @@ using HDF5
 # Basis
 #####
 G  = 1.
-rb = 4.0
-lmax,nradial = 2,20 # Usually lmax corresponds to the considered harmonics lharmonic
+rb = 20.0
+lmax,nradial = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
 
 # CB73Basis([name, dimension, lmax, nradial, G, rb, filename])
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
@@ -48,7 +48,7 @@ rmax = 1.0e5
 
 
 dfname = "roi1.0"
-dfname = "roi0.75"
+#dfname = "roi0.75"
 #dfname = "roi5.0"
 
 function ndFdJ(n1::Int64,n2::Int64,
@@ -72,8 +72,8 @@ KuTruncation = 10000
 FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 
-lharmonic = 2
-n1max = 2  # maximum number of radial resonances to consider
+lharmonic = lmax
+n1max = 1  # maximum number of radial resonances to consider
 
 # Mode of response matrix computation
 # Frequencies to probe
