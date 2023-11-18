@@ -25,11 +25,11 @@ println(ndFdJplaceholder(-1,2,-1.,1.,1.))
 
 minmode = 0.75
 
-startinggammas = [1.e-5,0.01,0.02,0.05]
+startinggammas = [1.e-5,0.01,0.05,0.1]
 
 # open the file
 #open("mode"*string(startinggamma)*"a.txt","w") do io
-open("mode_adjust2b_nrad"*string(basis.nradial)*".txt","w") do io
+open("mode_fiducial_nrad"*string(basis.nradial)*".txt","w") do io
 
     for rastep=1:60
 

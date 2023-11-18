@@ -19,7 +19,7 @@ LinearResponse.RunLinearResponse(ψ,dψ,d2ψ,ndFdJ,FHT,basis,Parameters)
 #tabRMreal, tabRMimag = LinearResponse.RunMatrices(tabomega,FHT,Parameters)
 
 # find a pole by using gradient descent
-startingomg = 0.01 + 0.001im
+startingomg = 0.02 - 0.002im
 bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
 
 #bestomg = 0.0 + 0.02271406012170436im

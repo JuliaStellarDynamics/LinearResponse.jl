@@ -30,7 +30,7 @@ LinearResponse.RunLinearResponse(ψ,dψ,d2ψ,ndFdJ,FHT,basis,Parameters)
 #tabdetXi = LinearResponse.RunDeterminant(tabomega,FHT,Parameters)
 
 # find a pole by using gradient descent
-startingomg = 0.45 + 0.002im
+startingomg = 0.045 - 0.0002im
 bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
 
 #bestomg = 0.0 + 0.02271406012170436im
