@@ -3,7 +3,7 @@ for the Isochrone isotropic model: compute linear response theory
 """
 
 # bring in all parameters from the input file
-inputfile = "ModelParamIsochroneISO.jl"
+inputfile = "ModelParamIsochroneISOFiducial.jl"
 include(inputfile)
 
 import LinearResponse
@@ -17,8 +17,8 @@ tabomega = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
 tabRMreal, tabRMimag = LinearResponse.RunMatrices(tabomega,FHT,Parameters)
 
 # find a pole by using gradient descent
-startingomg = 0.0 + 0.2im
-bestomg = LinearResponse.FindPole(startingomg,FHT,Parameters,1.e-12)
+startingomg = 0.01 + 0.001im
+bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
 
 #bestomg = 0.0 + 0.02271406012170436im
 println("The zero-crossing frequency is $bestomg.")

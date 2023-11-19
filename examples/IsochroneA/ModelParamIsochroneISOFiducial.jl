@@ -1,18 +1,7 @@
 """
-an example input file for running all steps in estimating the Linear Response for a given model
-
-Must include:
--potential
--dpotential
--ddpotential
--basis
--ndim
--nradial
--ndFdJ
-
-
+an input file which reproduces the Fouvry & Prunet (2022) damped l=1 mode calculation
+driven by run_linearresponseIsochrone_damped.jl
 """
-
 
 import OrbitalElements
 import AstroBasis
@@ -20,87 +9,63 @@ import FiniteHilbertTransform
 import LinearResponse
 using HDF5
 
-
-#####
-# Basis
-#####
-G         = 1.
-rb        = 15.0
-lmax,nradial = 1,20 # number of basis functions
-
-# CB73Basis([name, dimension, lmax, nradial, G, rb, filename])
+# choose a basis for computation of the Fourier-transformed basis elements
+G         = 1.     # the gravitational constant
+rb        = 20.0   # the scale for the basis elements
+lmax,nradial = 1,100  # usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
-#########
-# Model Potential
-#########
-modelname = "IsochroneE"
+# choose a model potential
+modelname = "IsochroneA"
 
 bc, M = 1.,1.
 ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
 dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
+d3ψ(r::Float64)::Float64 = OrbitalElements.d3ψIsochrone(r,bc,M,G)
+d4ψ(r::Float64)::Float64 = OrbitalElements.d4ψIsochrone(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
 
-rmin = 1.0e-5 # minimum radius to consider for frequency calculation
-rmax = 1.0e5  # maximum radius to consider for frequency calculation
 
 
-#########
-# Distribution Function
-#########
+# choose a distribution function for G(u) calculation
 dfname = "isotropic"
 
 function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
-    dFdE = OrbitalElements.isochrone_isotropic_dDFdE(E,bc,M,astronomicalG) # Current value of dF/E. ATTENTION, the DF is assumed to be isotropic
-    res = ndotOmega*dFdE # Current value of n.dF/dJ. ATTENTION, the DF is assumed to be isotropic
-    #####
+    dFdE = OrbitalElements.isochroneisotropicdDFdE(E,bc,M,astronomicalG)
+    res = ndotOmega*dFdE
     return res
 end
 
 
-#########
-# Integration parameters
-#########
-Ku = 203    # number of Legendre integration sample points
+# output directories
+wmatdir    = "wmat/"
+gfuncdir   = "gfunc/"
+modedir    = "xifunc/"
+
+
+Ku = 200    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
-KuTruncation = 10000 # if limiting Ku for sum, specify here
+KuTruncation = 10000
 
+# define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
-#########
-# Considered resonance parameters
-#########
 lharmonic = 1
-n1max     = 5  # maximum number of radial resonances to consider
-
-#########
-# Frequencies to probe
-#########
-nOmega   = 51
-Omegamin = 0.0
-Omegamax = 0.05
-nEta     = 50
-Etamin   = -0.005
-Etamax   = 0.0
-
-
+n1max     = 10  # maximum number of radial resonances to consider
 
 # output directories
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
 
-
 VERBOSE   = 2
-OVERWRITE = true
-EDGE      = 0.01
-ELTOLECC  = 0.0005
-VMAPN     = 1 # exponent for v mapping (1 is linear)
+OVERWRITE = false
+VMAPN     = 1
 ADAPTIVEKW= false
 
-OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,rmin=rmin,rmax=rmax,
+OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,
                                              EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
@@ -114,8 +79,3 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,
                                              KuTruncation=KuTruncation,
                                              VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
                                              VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW)
-
-
-
-
-# WARNING : / at the end to check !

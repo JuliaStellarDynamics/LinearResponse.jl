@@ -14,7 +14,6 @@ examples/*/wmat
 examples/*/gfunc
 examples/*/xifunc
 examples/*/figures
-examples/*/mode*
 examples/*/*.ipynb
 
 # log on cluster

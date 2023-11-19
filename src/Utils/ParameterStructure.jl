@@ -53,7 +53,7 @@ end
 function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
                           Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),
                           Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
-                          VMAPN::Int64=2,ADAPTIVEKW::Bool=false,KuTruncation::Int64=10000,
+                          VMAPN::Int64=1,ADAPTIVEKW::Bool=false,KuTruncation::Int64=10000,
                           modelname::String="model",dfname::String="df",
                           wmatdir::String="",gfuncdir::String="",axidir::String="",modedir::String="",OVERWRITE::Bool=false,
                           lharmonic::Int64=2,n1max::Int64=10,
@@ -61,7 +61,7 @@ function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
 
     # Basis parameters
     Basisparams = AstroBasis.GetParameters(basis)
-    
+
     # Basis parameters
     dimension = Basisparams["dimension"]
     nradial = Basisparams["nradial"]

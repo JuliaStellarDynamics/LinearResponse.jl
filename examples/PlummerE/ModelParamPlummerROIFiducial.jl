@@ -1,18 +1,6 @@
 """
-an example input file for running all steps in estimating the Linear Response for a given model
-
-Must include:
--potential
--dpotential
--ddpotential
--basis
--ndim
--nradial
--ndFdJ
-
-
+the input file to compute the radial orbit instability in the Plummer sphere, using Fiducial parameters
 """
-
 
 import OrbitalElements
 import AstroBasis
@@ -20,67 +8,47 @@ import FiniteHilbertTransform
 import LinearResponse
 using HDF5
 
-# basis parameters
+# Basis
 G  = 1.
-rb = 4.0
-lmax,nradial = 1,20 # number of basis functions
-
-# CB73Basis([name, dimension, lmax, nradial, G, rb, filename])
+rb = 5.0
+lmax,nradial = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 
-rmin = 1.0e-5
-rmax = 1.0e5
-
-
-# model Potential
-modelname = "PlummerE"
-bc, M = 1.,1.
+# Model Potential
+const modelname = "PlummerE"
+const bc, M = 1.,1. # G is defined above: must agree with basis!
 ψ(r::Float64)::Float64   = OrbitalElements.ψPlummer(r,bc,M,G)
 dψ(r::Float64)::Float64  = OrbitalElements.dψPlummer(r,bc,M,G)
 d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψPlummer(r,bc,M,G)
 Ω₀ = OrbitalElements.Ω₀Plummer(bc,M,G)
 
-#dfname = "isotropic"
-
-dfname = "roiinf"
+# Model Distribution Function
+dfname = "roi0.75"
 
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,
                ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=10000.0)
+               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.75)
 
-    #return OrbitalElements.plummer_ISO_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG)
     return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
 
 end
 
 
-# integration parameters
-
-Ku = 202    # number of Legendre integration sample points
+# Linear Response integration parameters
+Ku = 200    # number of Legendre integration sample points
 Kv = 200    # number of allocations is directly proportional to this
 Kw = 200    # number of allocations is insensitive to this (also time, largely)?
 KuTruncation = 10000
 
-# define the helper for the Finite Hilbert Transform
+# Define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 
-lharmonic = 1
-n1max = 8  # maximum number of radial resonances to consider
-
-# Mode of response matrix computation
-# Frequencies to probe
-nOmega   = 101
-Omegamin = -0.5
-Omegamax = 0.5
-nEta     = 100
-Etamin   = -0.05
-Etamax   = 0.3
-
-
-
+lharmonic = lmax
+n1max = 10  # maximum number of radial resonances to consider
+n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
 
 # output directories
 wmatdir  = "wmat/"
@@ -89,13 +57,11 @@ modedir  = "xifunc/"
 
 
 VERBOSE   = 2
-OVERWRITE = true
-EDGE      = 0.01
-ELTOLECC  = 0.0005
-VMAPN     = 1 # exponent for v mapping (1 is linear)
+OVERWRITE = false
+VMAPN     = 1
 ADAPTIVEKW= false
 
-OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,rmin=rmin,rmax=rmax,
+OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,
                                              EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
@@ -109,6 +75,5 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,
                                              KuTruncation=KuTruncation,
                                              VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
                                              VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW)
-
 
 # WARNING : / at the end to check !

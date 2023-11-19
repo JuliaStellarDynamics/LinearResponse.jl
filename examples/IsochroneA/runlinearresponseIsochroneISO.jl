@@ -1,83 +1,29 @@
 
-# this input file is set up to mimic the Fouvry & Prunet (2022) damped mode result exactly
-inputfile = "ModelParamIsochroneISO.jl"
-
-# need this to get the parameters...
+# to mimic Fouvry & Prunet exactly
+inputfile = "ModelParamIsochroneISOFiducial.jl"
 include(inputfile)
-
 
 import LinearResponse
 using HDF5
 
-
-"""
-
-
 # compute the Fourier-transformed basis elements
-LinearResponse.RunWmatIsochrone(wmatdir,
-                               Ku,Kv,Kw,
-                               basis,
-                               lharmonic,
-                               n1max,
-                               nradial,
-                               Ω₀,
-                               modelname,
-                               rb,
-                               VERBOSE=-2)
-
-
+LinearResponse.RunWmatIsochrone(FHT,bc,M,G,basis,Parameters)
 
 # compute the G(u) functions
-LinearResponse.RunGfuncIsochrone(ndFdJ,
-                                wmatdir,gfuncdir,
-                                Ku,Kv,Kw,
-                                basis,
-                                lharmonic,
-                                n1max,
-                                nradial,
-                                Ω₀,
-                                modelname,dfname,
-                                rb,
-                                VERBOSE=-1)
+LinearResponse.RunGfunc(ndFdJ,FHT,Parameters)
 
+# compute the matrix response at each location in tabomega
+tabdet = LinearResponse.RunAXi(FHT,Parameters)
 
+# find a pole by using gradient descent
+startingomg = 0.014 + 0.0001im
+bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
+println("The zero-crossing frequency is $bestomg.")
 
-# make a grid of omegas to test
-tabomega = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
+# for the minimum, go back and compute the mode shape
+EV,EM = LinearResponse.ComputeModeTables(bestomg,FHT,Parameters)
 
-tabdet = LinearResponse.RunMIsochrone(tabomega,
-                                     gfuncdir,modedir,
-                                     Ku,Kv,Kw,
-                                     basis,
-                                     FHT,
-                                     lharmonic,
-                                     n1max,
-                                     nradial,
-                                     Ω₀,
-                                     modelname,dfname,
-                                     rb,
-                                     VERBOSE=1,KuTruncation=30)
-
- # for the minimum, go back and compute the mode shape
- #bestomg = 0.0143 - 0.00141im # for n1max = 10
- #bestomg = 0.01 - 0.000733im # for n1max = 12
- bestomg = 0.00838706563046674 - 0.0005277615331419046im
-
-
- # for the minimum, go back and compute the mode shape
- EV,EF,EM = LinearResponse.ComputeModeTables(bestomg,ψ,dψ,d2ψ,
-                                            gfuncdir,modedir,
-                                            Ku,Kv,Kw,
-                                            basis,
-                                            lharmonic,
-                                            n1max,
-                                            nradial,
-                                            Ω₀,
-                                            modelname,dfname,
-                                            rb,
-                                            VERBOSE=1)
-
- ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,lharmonic,
-                                                                             0.01,15.,100,EM,VERBOSE=1)
-
-"""
+modeRmin = 0.01
+modeRmax = 15.0
+nmode = 100
+ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)

@@ -1,7 +1,7 @@
 name = "LinearResponse"
 uuid = "b55f3ae4-0c12-11ed-076a-67f81ab2b5b1"
-authors = ["Mike Petersen <petersen@iap.fr>", "Mathieu Roule <roule@iap.fr>"]
-version = "0.2.3"
+authors = ["Mike Petersen <michael.petersen@roe.ac.uk>", "Mathieu Roule <roule@iap.fr>"]
+version = "0.9.0"
 
 [deps]
 AstroBasis = "f9f069e8-36d3-4f22-8c0d-26ca7e8540d8"
