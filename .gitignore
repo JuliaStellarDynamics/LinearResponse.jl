@@ -27,3 +27,6 @@ examples/cleanup.sh
 src/Transform.jl
 src/Xi_legacy.jl
 src/GFuncRetro.jl
+
+# Documentation (avoid committing generated content)
+docs/build/
