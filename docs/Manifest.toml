@@ -2,7 +2,7 @@
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "9fc654a9004e658455f4fe69498867641722e47f"
+project_hash = "5ca26117e6f6f8ef12d76a717d9335ac5a9d5484"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -29,7 +29,9 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[deps.AstroBasis]]
 deps = ["HDF5", "Memoize", "SpecialFunctions"]
-path = "../../AstroBasis"
+git-tree-sha1 = "673e04093c773abfd640879a6ff338a87417fe30"
+repo-rev = "main"
+repo-url = "https://github.com/JuliaStellarDynamics/AstroBasis.jl.git"
 uuid = "f9f069e8-36d3-4f22-8c0d-26ca7e8540d8"
 version = "0.2.0"
 
@@ -118,16 +120,18 @@ version = "3.3.10+0"
 
 [[deps.FastGaussQuadrature]]
 deps = ["LinearAlgebra", "SpecialFunctions", "StaticArrays"]
-git-tree-sha1 = "58d83dd5a78a36205bdfddb82b1bb67682e64487"
+git-tree-sha1 = "93ff6a4d5e7bfe27732259bfabbdd19940d8af1f"
 uuid = "442a2c76-b920-505d-bb47-c5924d526838"
-version = "0.4.9"
+version = "1.0.0"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
 [[deps.FiniteHilbertTransform]]
 deps = ["FFTW", "FastGaussQuadrature", "HDF5"]
-path = "../../FiniteHilbertTransform"
+git-tree-sha1 = "e9f5ec07cdaa8b80483ee83a3b4ef78c1f202984"
+repo-rev = "main"
+repo-url = "https://github.com/JuliaStellarDynamics/FiniteHilbertTransform.jl.git"
 uuid = "68cdf181-988b-4042-8999-0b9541c1c3c2"
 version = "0.9.0"
 
@@ -372,7 +376,9 @@ version = "0.5.5+0"
 
 [[deps.OrbitalElements]]
 deps = ["HDF5", "HypergeometricFunctions", "SpecialFunctions"]
-path = "../../OrbitalElements"
+git-tree-sha1 = "1fe791e56f5ccde18ff934836b34c764026598fb"
+repo-rev = "main"
+repo-url = "https://github.com/JuliaStellarDynamics/OrbitalElements.jl.git"
 uuid = "a3b07092-bde3-4843-b84f-c597d614ec7b"
 version = "1.9.1"
 
