@@ -1,6 +1,8 @@
 
 # LinearResponse.jl
-## Version 0.9 (missing documentation)
+## Version 0.9
+
+[![image](https://github.com/JuliaStellarDynamics/LinearResponse.jl/actions/workflows/documentation.yml/badge.svg?branch=documentation)](https://juliastellardynamics.github.io/LinearResponse.jl/)
 
 `LinearResponse.jl` is a package written in Julia to perform Linear Response calculations. The software is described in Petersen, Roule, Fouvry, Pichon, Tep (2024; PRFPT24). To see an example of the results from the software, see the repository https://github.com/michael-petersen/LinearResponse-paper/tree/main, which reproduces all the figures from PRFPT24.
 
