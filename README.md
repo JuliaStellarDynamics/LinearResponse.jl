@@ -3,7 +3,7 @@
 
 [![image](https://github.com/JuliaStellarDynamics/LinearResponse.jl/actions/workflows/documentation.yml/badge.svg?branch=documentation)](https://juliastellardynamics.github.io/LinearResponse.jl/)
 
-**LinearResponse.jl** is a package written in Julia to perform Linear Response calculations. The software is described in [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract). To see an example of the results from the software, see [this repository[(https://github.com/JuliaStellarDynamics/LinearResponse-paper/tree/main), which reproduces all the figures from Petersen et al. (2024).
+**LinearResponse.jl** is a package written in Julia to perform Linear Response calculations. The software is described in [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract). To see an example of the results from the software, see [this repository](https://github.com/JuliaStellarDynamics/LinearResponse-paper/tree/main), which reproduces all the figures from Petersen et al. (2024).
 
 ---
 ## Installation
@@ -20,9 +20,7 @@ The libraries under the JuliaStellarDynamics organisation are currently unregist
     add "git@github.com:JuliaStellarDynamics/LinearResponse.jl.git"
     ```
 or at the command line
-
-    ```bash
-    $ julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaStellarDynamics/OrbitalElements.jl.git")'
+    ```$ julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaStellarDynamics/OrbitalElements.jl.git")'
     $ julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaStellarDynamics/AstroBasis.jl.git")'
     $ julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaStellarDynamics/FiniteHilbertTransform.jl.git")'
     $ julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaStellarDynamics/LinearResponse.jl.git")'
