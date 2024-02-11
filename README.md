@@ -40,6 +40,11 @@ This example will first install some required libraries (`Plots`). These install
 The resulting plot will be created with the name `examples/PlummerE/ROIdeterminant.png`.
 
 ![`Plummer ROI demonstration`](examples/PlummerE/ROIdeterminant.png)
+In this image and test, we are highlighting two key results:
+
+1. **Measurement of an unstable mode**, which is the pole located at $\omega=0.0+0.043i$. This mode location is verified against $N$-body simulations in [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract).
+
+2. **False poles in the lower half-plane**. All poles in the lower half-plane for this model are false poles owing to approximation of the function for linear response. We include them in this example as a caution against interpreting poles without validating via convergence tests.
 
 An extension of this script, where the growth rate is computed for a range of radial anisotropy parameters, is Figure 1 in [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract).
 
