@@ -3,7 +3,7 @@
 
 [![image](https://github.com/JuliaStellarDynamics/LinearResponse.jl/actions/workflows/documentation.yml/badge.svg?branch=documentation)](https://juliastellardynamics.github.io/LinearResponse.jl/)
 
-**LinearResponse.jl** is a package written in Julia to perform Linear Response calculations. The software is described in [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract). To see an example of the results from the software, see [this repository](https://github.com/JuliaStellarDynamics/LinearResponse-paper/tree/main), which reproduces all the figures from Petersen et al. (2024).
+**LinearResponse.jl** is a package written in Julia to perform Linear Response calculations. The software is described in [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract). To see an example of the results from the software, see [this repository](https://github.com/michael-petersen/LinearResponse-paper/tree/main), which reproduces all the figures from Petersen et al. (2024).
 
 ---
 ## Installation
@@ -40,6 +40,7 @@ This example will first install some required libraries (`Plots`). These install
 The resulting plot will be created with the name `examples/PlummerE/ROIdeterminant.png`.
 
 ![`Plummer ROI demonstration`](examples/PlummerE/ROIdeterminant.png)
+
 In this image and test, we are highlighting two key results:
 
 1. **Measurement of an unstable mode**, which is the pole located at $\omega=0.0+0.043i$. This mode location is verified against $N$-body simulations in [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract).
