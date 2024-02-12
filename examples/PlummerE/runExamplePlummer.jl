@@ -52,9 +52,9 @@ lharmonic = lmax
 n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
 
 # output directories
-wmatdir  = "wmat/"
-gfuncdir = "gfunc/"
-modedir  = "xifunc/"
+wmatdir  = "./"
+gfuncdir = "./"
+modedir  = "./"
 
 # Mode of response matrix computation
 # Frequencies to probe

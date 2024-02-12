@@ -12,12 +12,12 @@ To fully use **LinearResponse.jl**, you will need **OrbitalElements.jl**, **Fini
 
 The libraries under the JuliaStellarDynamics organisation are currently unregistered[^1]. To add them to your julia[^2] registry, follow these steps:
 
-1. **Add Packages:** Use the package manager (`julia` at the command line, and then `]` in the interpreter) and execute the following command inside julia:
+1. **Add Packages:** Use the package manager (`julia` at the command line, and then `]` in the interpreter) and execute the following command inside julia[^3]:
     ```julia
-    add "git@github.com:JuliaStellarDynamics/OrbitalElements.jl.git"
-    add "git@github.com:JuliaStellarDynamics/AstroBasis.jl.git"
-    add "git@github.com:JuliaStellarDynamics/FiniteHilbertTransform.jl.git"
-    add "git@github.com:JuliaStellarDynamics/LinearResponse.jl.git"
+    add "https://github.com/JuliaStellarDynamics/OrbitalElements.jl.git"
+    add "https://github.com/JuliaStellarDynamics/AstroBasis.jl.git"
+    add "https://github.com/JuliaStellarDynamics/FiniteHilbertTransform.jl.git"
+    add "https://github.com/JuliaStellarDynamics/LinearResponse.jl.git"
     ```
 
 2. **Verify Version:** Confirm the current version with `status LinearResponse` in the julia package manager.
@@ -28,7 +28,7 @@ The libraries under the JuliaStellarDynamics organisation are currently unregist
 ---
 ## A first example
 
-To reproduce the Plummer radial orbit instability calculation, see the example script in `examples/PlummerE/runExamplePlummer.jl`. This script will compute the location of the unstable radial orbit instability mode, using a simplified version of the calculation from [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract) (`n1max=1` instead of `n1max=10`, which results in a factor of 10 speedup). The outputs will all be cached, so re-running the example is inexpensive. This script will take approximately one minute to run.
+To reproduce the Plummer radial orbit instability calculation, see the example script in `examples/PlummerE/runExamplePlummer.jl`. This script will compute the location of the unstable radial orbit instability mode, using a simplified version of the calculation from [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract) (`n1max=1` instead of `n1max=10`, which results in a factor of 10 speedup). The outputs will all be cached (appearing as several files with the `.h5` extension in the folder where the script is run), so re-running the example is inexpensive. This script will take approximately one minute to run.
 
 Run the first example code with the following command:
 ```
@@ -65,4 +65,6 @@ Mike Petersen -  @michael-petersen - michael.petersen@roe.ac.uk
 
 [^1]: For detailed instructions, check [here](https://pkgdocs.julialang.org/v1/managing-packages/#Adding-unregistered-packages).
 
-[^2]:If you are new to `julia`, install the latest version by running this in your terminal: `$ curl -fsSL https://install.julialang.org | sh`. If you are on Windows or run into problems with `curl`-based installation, please visit [this website](https://julialang.org/downloads/).
+[^2]: If you are new to `julia`, install the latest version by running this in your terminal: `$ curl -fsSL https://install.julialang.org | sh`. If you are on Windows or run into problems with `curl`-based installation, please visit [this website](https://julialang.org/downloads/).
+
+[^3]: You may also use `git`-based interfaces to retrieve the software (e.g. `git@github.com`), but as these are public packages, that is not necessary.
