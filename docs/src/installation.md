@@ -5,6 +5,7 @@ To fully use **LinearResponse.jl**, you will need **OrbitalElements.jl**, **Fini
 The libraries under the JuliaStellarDynamics organisation are currently unregistered. To add them to your julia registry, follow these steps:
 
 You may add all the packages at once with this command:
+
 ```
 julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaStellarDynamics/OrbitalElements.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/AstroBasis.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/FiniteHilbertTransform.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/LinearResponse.jl.git")'
 ```
@@ -17,6 +18,7 @@ See [here](https://julialang.org/downloads/platform/#optional_add_julia_to_path)
 **A note on working with environments.** By default packages are added to the default environment at ~/.julia/environments/v1.#. It is however easy to create other, independent, projects. If you want to install the `LinearResponse` package in a different/test environment, first create a folder to host the environment files (Project.toml and Manifest.toml which will be created later on). Then, for every command line invoking Julia, use `julia --project=/path/to/my_env` instead of `julia` alone. Note that packages will always be cloned in ~/.julia/packages but only accessible in your project's context.
 
 You may also uninstall the libraries by removing the packages, by running
+
 ```
 julia -e 'using Pkg; Pkg.rm("OrbitalElements"); Pkg.rm("AstroBasis");Pkg.rm("FiniteHilbertTransform");Pkg.rm("LinearResponse");'
 ```
