@@ -8,16 +8,21 @@ include(inputfile)
 
 import LinearResponse
 using HDF5
+using Plots
 
 # package the Linear Response steps to compute M:
 # 1. Call the function to construct W matrices
 # 2. Run the G function calculation
 # 3. Compute the matrix coefficients
-LinearResponse.RunLinearResponse(ψ,dψ,d2ψ,ndFdJ,FHT,basis,Parameters)
+@time LinearResponse.RunLinearResponse(ψ,dψ,d2ψ,ndFdJ,FHT,basis,Parameters)
+
+# construct a grid of frequencies to probe
+tabω = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
+@time tabRMreal, tabRMimag = LinearResponse.RunMatrices(tabω,FHT,Parameters)
 
 # find a pole by using gradient descent
 startingomg = 0.0 + 0.05im
-bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
+@time bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
 println("The zero-crossing frequency is $bestomg.")
 
 # for the minimum, go back and compute the mode shape

@@ -9,7 +9,7 @@
 @TO DESCRIBE
 """
 function WMatdataCreateIsochrone(n1::Int64,n2::Int64,
-                                 params::LinearParameters) where {F1 <: Function, F2 <: Function}
+                                 params::LinearParameters)
 
     # compute the frequency scaling factors for this resonance
     ωmin, ωmax = OrbitalElements.FindWminWmaxIsochrone(n1,n2)
@@ -241,20 +241,33 @@ function WBasisFTIsochrone(a::Float64,e::Float64,
 end
 
 
-########################################################################
-#
-# Store FT on all (u,v) points for one resonance number
-#
-########################################################################
+"""
+    MakeWmatUVIsochrone(n1::Int64, n2::Int64, tabu::Vector{Float64}, basisFT::BasisFTtype, bc::Float64, M::Float64, G::Float64, params::LinearParameters)
+
+Construct the matrix `Wdata` based on the given parameters for an isochrone potential.
+
+# Arguments
+- `n1::Int64`: Integer representing some parameter.
+- `n2::Int64`: Integer representing some parameter.
+- `tabu::Vector{Float64}`: Vector of `Float64` representing values of `u`.
+- `basisFT::BasisFTtype`: Type representing some basis Fourier transform.
+- `bc::Float64`: Float representing some parameter.
+- `M::Float64`: Float representing mass.
+- `G::Float64`: Float representing gravitational constant.
+- `params::LinearParameters`: Type representing some linear parameters.
+
+# Returns
+- `Wdata`: A structure containing computed values.
+
+# Description
+`MakeWmatUVIsochrone` constructs the matrix `Wdata` based on the provided parameters. It iterates over each combination of `u` and `v` values, computes various orbital elements such as eccentricity, semi-major axis, frequencies, and more. It then computes the Jacobian of the transformation from `(α, β)` to `(E, L)` and saves it in `Wdata`. Finally, it computes `W(u, v)` for each basis element using a Runge-Kutta 4th order scheme and stores the result in `Wdata.tabW`.
 
 """
-@TO DESCRIBE
-"""
 function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
-                    tabu::Vector{Float64},
-                    basisFT::BasisFTtype,
-                    bc::Float64,M::Float64,G::Float64,
-                    params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function}
+                             tabu::Vector{Float64},
+                             basisFT::BasisFTtype,
+                             bc::Float64,M::Float64,G::Float64,
+                             params::LinearParameters)
 
     @assert length(tabu) == params.Ku "LinearResponse.WMat.MakeWmatUV: tabu length is not Ku."
 
