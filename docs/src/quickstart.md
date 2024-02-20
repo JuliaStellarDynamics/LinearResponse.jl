@@ -2,7 +2,7 @@
 
 To reproduce the Plummer radial orbit instability calculation, see the example script in `examples/PlummerE/runExamplePlummer.jl`. Download the file by running:
 ```
-wget ttps://github.com/JuliaStellarDynamics/LinearResponse.jl/blob/main/examples/PlummerE/runExamplePlummer.jl
+wget https://github.com/JuliaStellarDynamics/LinearResponse.jl/blob/main/examples/PlummerE/runExamplePlummer.jl
 ```
 This script will compute the location of the unstable radial orbit instability mode, using a simplified version of the calculation from [Petersen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2023arXiv231110630P/abstract) (`n1max=1` instead of `n1max=10`, which results in a factor of 10 speedup). The outputs will all be cached (appearing as several files with the `.h5` extension in the folder where the script is run), so re-running the example is inexpensive. This script will take approximately one minute to run.
 

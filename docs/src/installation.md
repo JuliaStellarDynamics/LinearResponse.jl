@@ -5,9 +5,9 @@ To fully use **LinearResponse.jl**, you will need **OrbitalElements.jl**, **Fini
 The libraries under the JuliaStellarDynamics organisation are currently unregistered. To add them to your julia registry, follow these steps:
 
 You may add all the packages at once with this command:
-    ```
-    julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaStellarDynamics/OrbitalElements.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/AstroBasis.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/FiniteHilbertTransform.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/LinearResponse.jl.git")'
-    ```
+```
+julia -e 'using Pkg; Pkg.add(url="https://github.com/JuliaStellarDynamics/OrbitalElements.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/AstroBasis.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/FiniteHilbertTransform.jl.git"); Pkg.add(url="https://github.com/JuliaStellarDynamics/LinearResponse.jl.git")'
+```
 
 You can confirm the current version with `status LinearResponse` in the julia package manager.
 
