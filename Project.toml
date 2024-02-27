@@ -1,15 +1,13 @@
 name = "LinearResponse"
 uuid = "b55f3ae4-0c12-11ed-076a-67f81ab2b5b1"
 authors = ["Mike Petersen <michael.petersen@roe.ac.uk>", "Mathieu Roule <roule@iap.fr>"]
-version = "0.9.0"
+version = "0.10.0"
 
 [deps]
-AstroBasis = "f9f069e8-36d3-4f22-8c0d-26ca7e8540d8"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-FiniteHilbertTransform = "68cdf181-988b-4042-8999-0b9541c1c3c2"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-OrbitalElements = "a3b07092-bde3-4843-b84f-c597d614ec7b"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 julia = "1.6.7"
