@@ -1,4 +1,4 @@
-name: Unit Test
+name: CI
 on:
   - push
 
@@ -29,23 +29,5 @@ jobs:
               using Pkg
               Pkg.develop(PackageSpec(path="/home/runner/work/LinearResponse.jl/LinearResponse.jl"))'
             julia --project=lr test/runtests.jl
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
-      - uses: julia-actions/julia-runtest@v1
-        with:
-          project: lr
-      - uses: julia-actions/julia-processcoverage@v1
-        with:
-          project: lr
-      - uses: codecov/codecov-action@v1
-        with:
-          file: lcov.info
+            
 
