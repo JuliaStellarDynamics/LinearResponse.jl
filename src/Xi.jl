@@ -35,7 +35,7 @@ function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
 
     # allocate quadrature result and warnflag tables
     restab  = zeros(Float64,Ku)
-    warntab = zeros(Float64,Ku)
+    warntab = 0#zeros(Float64,Ku)
 
 
     # loop through all resonance vectors
@@ -63,7 +63,7 @@ function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
 
                 for k=1:Ku
                     # Warning if to many Inf or Nan values
-                    (warntab[k] > 3) && println("LinearResponse.Xi.RunAXi: NaN/Inf (warnflag=$(warntab[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(restab[k]).")
+                    #(warntab[k] > 3) && println("LinearResponse.Xi.RunAXi: NaN/Inf (warnflag=$(warntab[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(restab[k]).")
 
                     # populate the symmetric matrix
                     tabaMcoef[k,nq,np] = restab[k] # Element (np,nq)
@@ -139,14 +139,14 @@ end
 
 run the full linear response (Basis FT, G(u) computation and coefficient decomposition)
 """
-function RunLinearResponse(ψ::F0,dψ::F1,d2ψ::F2,
-                            ndFdJ::F3,
+function RunLinearResponse(model::OrbitalElements.Potential,
+                            ndFdJ::F0,
                             FHT::FiniteHilbertTransform.AbstractFHT,
                             basis::AstroBasis.AbstractAstroBasis,
-                            params::LinearParameters) where {F0 <: Function, F1 <: Function, F2 <: Function, F3 <: Function}
+                            params::LinearParameters) where {F0 <: Function}
     
     # call the function to construct W matrices
-    RunWmat(ψ,dψ,d2ψ,FHT,basis,params)
+    RunWmat(model,FHT,basis,params)
 
     # call the function to compute G(u) functions
     RunGfunc(ndFdJ,FHT,params)

@@ -3,7 +3,7 @@ on:
   - push
 
 jobs:
-  Benchmark:
+  CI:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,5 +29,5 @@ jobs:
               using Pkg
               Pkg.develop(PackageSpec(path="/home/runner/work/LinearResponse.jl/LinearResponse.jl"))'
             julia --project=lr test/runtests.jl
-            
+
 

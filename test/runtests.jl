@@ -4,7 +4,7 @@ for the radially-biased Plummer model: compute linear response theory
 TEST against known values
 """
 
-import OrbitalElements
+using OrbitalElements
 import AstroBasis
 import FiniteHilbertTransform
 import LinearResponse
@@ -28,15 +28,12 @@ end
 # Model Potential
 const modelname = "PlummerE"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
-ψ(r::Float64)::Float64   = OrbitalElements.ψPlummer(r,bc,M,G)
-dψ(r::Float64)::Float64  = OrbitalElements.dψPlummer(r,bc,M,G)
-d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψPlummer(r,bc,M,G)
-Ω₀ = OrbitalElements.Ω₀Plummer(bc,M,G)
+model = OrbitalElements.PlummerPotential()
 
 @testset "PotentialTest" begin
-    @test ψ(1.0) ≈ -0.707106 atol=0.000001
-    @test dψ(1.0) ≈ 0.3535533 atol=0.000001
-    @test d2ψ(1.0) ≈ -0.17677669 atol=0.000001
+    @test ψ(model,1.0) ≈ -0.707106 atol=0.000001
+    @test dψ(model,1.0) ≈ 0.3535533 atol=0.000001
+    @test d2ψ(model,1.0) ≈ -0.17677669 atol=0.000001
 end
 
 # Model Distribution Function
@@ -84,7 +81,7 @@ OVERWRITE = false
 VMAPN     = 1
 ADAPTIVEKW= false
 
-OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,
+OEparams = OrbitalElements.OrbitalParameters(Ω₀=OrbitalElements.Ω₀(model),
                                              EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
@@ -105,7 +102,7 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,
 # 2. Run the G function calculation
 # 3. Compute the matrix coefficients
 println("Time to evaluate RunLinearResponse:")
-@time LinearResponse.RunLinearResponse(ψ,dψ,d2ψ,ndFdJ,FHT,basis,Parameters)
+@time LinearResponse.RunLinearResponse(model,ndFdJ,FHT,basis,Parameters)
 
 # construct a grid of frequencies to probe
 tabω = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
