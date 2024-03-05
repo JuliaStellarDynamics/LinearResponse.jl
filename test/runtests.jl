@@ -4,13 +4,13 @@ for the radially-biased Plummer model: compute linear response theory
 TEST against known values
 """
 
-using OrbitalElements
-import AstroBasis
-import FiniteHilbertTransform
-import LinearResponse
+using AstroBasis
+using FiniteHilbertTransform
 using HDF5
-
+using LinearResponse
 using Test
+using OrbitalElements
+
 
 # Basis
 G  = 1.

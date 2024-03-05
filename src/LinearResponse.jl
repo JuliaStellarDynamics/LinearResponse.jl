@@ -1,19 +1,16 @@
 module LinearResponse
 
 # bring in the external dependencies
-import OrbitalElements
-import AstroBasis
-import FiniteHilbertTransform
+using AstroBasis
+using FiniteHilbertTransform
 using HDF5
+using LinearAlgebra # Access to Symmetric
+using OrbitalElements
 
 # Default values
 const defaultΩ₀ = 1.
 const defaultrmin = 1.0e-6
 const defaultrmax = 1.0e4
-
-# Access to Symmetric
-using LinearAlgebra
-
 
 # structure to hold all parameters
 include("Utils/ParameterStructure.jl")

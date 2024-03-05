@@ -44,6 +44,7 @@ Kw = 20    # number of allocations is insensitive to this (also time, largely)?
 
 # Define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHT(Ku)
+#FHT = FiniteHilbertTransform.ChebyshevFHT(Ku)
 
 lharmonic = lmax
 n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
@@ -113,10 +114,14 @@ startingomg = 0.0 + 0.05im
 @time bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
 println("The zero-crossing frequency is $bestomg.")
 
-# for the minimum, go back and compute the mode shape
-EV,EM = LinearResponse.ComputeModeTables(bestomg,FHT,Parameters)
+if isfinite(bestomg)
+        # for the minimum, go back and compute the mode shape
+        EV,EM = LinearResponse.ComputeModeTables(bestomg,FHT,Parameters)
 
-modeRmin = 0.01
-modeRmax = 15.0
-nmode = 100
-ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)
+        modeRmin = 0.01
+        modeRmax = 15.0
+        nmode = 100
+        ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)
+else
+        println("runExamplePlummer.jl: no mode found.")
+end

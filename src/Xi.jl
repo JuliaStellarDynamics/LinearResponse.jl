@@ -59,7 +59,7 @@ function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
         for np = 1:nradial
             for nq = np:nradial
                 # get the contribution
-                FiniteHilbertTransform.GetaXi!(FHT,view(tabGXi,nq,np,:),restab,warntab)
+                restab,warn = FiniteHilbertTransform.GetaXi!(FHT,view(tabGXi,nq,np,:),restab,warntab)
 
                 for k=1:Ku
                     # Warning if to many Inf or Nan values

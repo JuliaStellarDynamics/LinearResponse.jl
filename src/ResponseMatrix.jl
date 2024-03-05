@@ -19,7 +19,6 @@ computes the response matrix M(ω) for a given COMPLEX frequency ω in physical 
 
 @IMPROVE: The shape of the array could maybe be improved
 
-See LinearTheory.jl for a similar version
 """
 function tabM!(ω::ComplexF64,
                tabM::AbstractMatrix{ComplexF64},
