@@ -24,12 +24,12 @@ const bc, M = 1.,1. # G is defined above: must agree with basis!
 model = OrbitalElements.PlummerPotential()
 
 # Model Distribution Function
-dfname = "roi0.95"
+dfname = "roi10.05"
 
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,
                ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.95)
+               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=10.05)
 
     return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
 
@@ -99,39 +99,66 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,
 # call the function to compute decomposition coefficients
 @time LinearResponse.RunAXi(FHT,Parameters)
 
+# reload as an array
 MMat, tabaMcoef, tabωminωmax = LinearResponse.PrepareM(Parameters)
 
-# construct a grid of frequencies to probe
-tabω = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
-@time tabRMreal, tabRMimag = LinearResponse.RunMatrices(tabω,FHT,Parameters)
-@time tabdet = LinearResponse.RunDeterminant(tabω,FHT,Parameters)
+# call the M matrix for each of the times and the basis elements
+NBasisElements = nradial
+GridTimesSize = 300
+DeltaT = 1.0
 
 
-tabOmega = collect(range(Omegamin,Omegamax,length=nOmega))
-tabEta = collect(range(Etamin,Etamax,length=nEta))
-    
-epsilon = abs.(reshape(tabdet,nEta,nOmega))
+# calculate M matrix with times
+MMat = [zeros(Complex{Float64}, NBasisElements,NBasisElements) for _ in 1:GridTimesSize]
 
-# Plot
-contour(tabOmega,tabEta,log10.(epsilon), levels=10, color=:black, #levels=[-2.0, -1.5, -1.0, -0.5, -0.25, 0.0], 
-        xlabel="Re[ω]", ylabel="Im[ω]", xlims=(Omegamin,Omegamax), ylims=(Etamin,Etamax),
-        clims=(-2, 0), aspect_ratio=:equal, legend=false)
-savefig("ROIdeterminant.png")
-
-
-# find a pole by using gradient descent
-startingomg = 0.0 + 0.05im
-@time bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
-println("The zero-crossing frequency is $bestomg.")
-
-if isfinite(bestomg)
-        # for the minimum, go back and compute the mode shape
-        EV,EM = LinearResponse.ComputeModeTables(bestomg,FHT,Parameters)
-
-        modeRmin = 0.01
-        modeRmax = 15.0
-        nmode = 100
-        ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)
-else
-        println("runExamplePlummer.jl: no mode found.")
+# the first matrix needs to be zero (as per Simon)
+# loop through times
+for t=2:GridTimesSize
+    #MMat[t] = ones(Complex{Float64}, NBasisElements,NBasisElements)
+    LinearResponse.tabM!((t-1)*DeltaT,MMat[t],tabaMcoef,tabωminωmax,FHT,Parameters)
 end
+
+# define the storage for the inverse
+inverse = [zeros(Complex{Float64}, NBasisElements,NBasisElements) for _ in 1:GridTimesSize]
+
+# invert the list of M matrices
+LinearResponse.inverseIMinusM!(MMat,inverse,DeltaT,GridTimesSize,NBasisElements)
+
+# define the basic perturber
+onesPerturber = [exp(-(DeltaT * i)^2/40) .* ones(Complex{Float64}, NBasisElements) for i=1:GridTimesSize]
+
+# compute the response given the perturber
+response = [zeros(Complex{Float64}, NBasisElements) for _ in 1:GridTimesSize]
+LinearResponse.response!(inverse,onesPerturber,response,GridTimesSize,NBasisElements)
+
+# now, measure the growth rate of a single element of the response matrix
+# response[time][basiselement]
+BasisElement = 1 # select the basis element
+
+
+timevals = 1:GridTimesSize
+colors = cgrad(:GnBu_5,rev=true)
+
+for BasisElement=1:NBasisElements
+    timerun = zeros(GridTimesSize)
+    for t=1:GridTimesSize
+        timerun[t] = abs(response[t][BasisElement]) # @ATTENTION, is this real or imaginary? Or neither? absolute value?
+    end
+    if BasisElement==1
+        plot(timevals,log.(timerun),linecolor=colors[BasisElement],label="p=$BasisElement")
+    else        
+        plot!(timevals,log.(timerun),linecolor=colors[BasisElement],label="p=$BasisElement")
+    end        
+    # let's do finite difference to be simple, of some fairly late time
+    DerivTime = 290
+    finitediffslope = (log(timerun[DerivTime+1])-log(timerun[DerivTime-1]))/(2*DeltaT)
+    println("Finite difference derivative for basis element $BasisElement at t=$DerivTime is γ=$finitediffslope")
+
+end
+
+# Add labels and title
+xlabel!("time")
+ylabel!("log amplitude")
+savefig("ROItimedependent.png")
+
+

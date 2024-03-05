@@ -45,4 +45,6 @@ include("ModeComputation/FindPole.jl")
 # the isochrone mode is a specific case that we have pre-defined
 include("Isochrone/WMatIsochrone.jl")
 
+include("TimeResponse.jl")
+
 end # module

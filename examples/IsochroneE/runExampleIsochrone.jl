@@ -13,41 +13,55 @@ using Plots
 
 # Basis
 G  = 1.
-rb = 3.0
+rb = 2.0
 lmax,nradial = 2,5 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 
+
 # Model Potential
-const modelname = "PlummerE"
+const modelname = "IsochroneE"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
-model = OrbitalElements.PlummerPotential()
+model = OrbitalElements.IsochronePotential()
 
-# Model Distribution Function
-dfname = "roi0.95"
 
-function ndFdJ(n1::Int64,n2::Int64,
-               E::Float64,L::Float64,
-               ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.95)
+rmin = 0.0
+rmax = Inf
 
-    return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
+
+dfname = "roi1.0"
+
+function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
+
+    Q = OrbitalElements.isochroneQROI(E,L,Ra,bc,M,astronomicalG)
+
+    # If Q is outside of the [0,1]--range, we set the function to 0.0
+    # ATTENTION, this is a lazy implementation -- it would have been much better to restrict the integration domain
+    if (!(0.0 <= Q <= 1.0)) # If Q is outside of the [0,1]-range, we set the function to 0
+        return 0.0 # Outside of the physically allowed orbital domain
+    end
+
+    dFdQ = OrbitalElements.isochroneSahadDFdQ(Q,Ra,bc,M,astronomicalG) # Value of dF/dQ
+    dQdE, dQdL = OrbitalElements.isochronedQdEROI(E,L,Ra,bc,M,astronomicalG), OrbitalElements.isochronedQdLROI(E,L,Ra,bc,M,astronomicalG) # Values of dQ/dE, dQ/dL
+    #####
+    res = dFdQ*(dQdE*ndotOmega + n2*dQdL) # Value of n.dF/dJ
+
+    return res
 
 end
 
 
 # Linear Response integration parameters
-Ku = 12    # number of Legendre integration sample points
-Kv = 20    # number of allocations is directly proportional to this
+Ku = 50    # number of Legendre integration sample points
+Kv = 30    # number of allocations is directly proportional to this
 Kw = 20    # number of allocations is insensitive to this (also time, largely)?
 
 
 # Define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHT(Ku)
-#FHT = FiniteHilbertTransform.ChebyshevFHT(Ku)
 
 lharmonic = lmax
-n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
+n1max = 1 
 
 # output directories
 wmatdir  = "./"
@@ -99,7 +113,7 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,
 # call the function to compute decomposition coefficients
 @time LinearResponse.RunAXi(FHT,Parameters)
 
-MMat, tabaMcoef, tabωminωmax = LinearResponse.PrepareM(Parameters)
+#MMat, tabaMcoef, tabωminωmax = LinearResponse.PrepareM(Parameters)
 
 # construct a grid of frequencies to probe
 tabω = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
@@ -120,7 +134,7 @@ savefig("ROIdeterminant.png")
 
 
 # find a pole by using gradient descent
-startingomg = 0.0 + 0.05im
+startingomg = 0.0 + 0.01im
 @time bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
 println("The zero-crossing frequency is $bestomg.")
 

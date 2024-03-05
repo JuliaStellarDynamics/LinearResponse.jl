@@ -1,45 +1,29 @@
 """
 an example input file for running all steps in estimating the Linear Response for a given model
 
-Must include:
--ψ
--dψ
--d2ψ
--basis
--ndim
--nradial
--ndFdJ
-
-
 """
 
 
-import OrbitalElements
-import AstroBasis
-import FiniteHilbertTransform
-import LinearResponse
+using OrbitalElements
+using AstroBasis
+using FiniteHilbertTransform
+using LinearResponse
 using HDF5
 
+using Plots
 
-#####
+
 # Basis
-#####
 G  = 1.
-rb = 5.0
-lmax,nradial = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
-
-# CB73Basis([name, dimension, lmax, nradial, G, rb, filename])
+rb = 3.0
+lmax,nradial = 2,5 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 
 # Model Potential
-modelname = "IsochroneE"
-
-bc, M = 1.,1.
-ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
-dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
-d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
-Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
+const modelname = "IsochroneE"
+const bc, M = 1.,1. # G is defined above: must agree with basis!
+model = OrbitalElements.IsochronePotential()
 
 
 rmin = 0.0
