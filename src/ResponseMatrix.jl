@@ -48,7 +48,7 @@ function tabM!(ω::ComplexF64,
     fill!(tabM,0.0 + 0.0*im)
 
     # Rescale to get dimensionless frequency
-    ωnodim = ω/params.Orbitalparams.Ω₀
+    ωnodim = ω/params.Ω₀
 
     # loop over the resonances: no threading here because we parallelise over frequencies
     for nres = 1:nbResVec
@@ -60,7 +60,7 @@ function tabM!(ω::ComplexF64,
         ωmin, ωmax = tabωminωmax[1,nres], tabωminωmax[2,nres]
 
         # get the rescaled frequency
-        ϖ = OrbitalElements.Getϖ(ωnodim,ωmin,ωmax)
+        ϖ = OrbitalElements.rescaled_ϖ(ωnodim,ωmin,ωmax)
 
         # get the integration values
         FiniteHilbertTransform.GettabD!(ϖ,FHT)

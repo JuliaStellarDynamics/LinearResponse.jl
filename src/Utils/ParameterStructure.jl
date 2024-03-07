@@ -9,6 +9,9 @@ struct LinearParameters
     # Orbital Elements parameters
     Orbitalparams::OrbitalElements.OrbitalParameters
 
+    # frequency scale
+    Ω₀::Float64
+
     # Basis parameters
     # dimension and nradial are repeated (for allocation issues - intensively called)
     dimension::Int64
@@ -51,7 +54,7 @@ end
     LinearParameters(basis;Orbitalparams,Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,modelname,dfname,wmatdir,gfuncdir,modedir,OVERWRITE,lharmonic,n1max,VERBOSE)
 """
 function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
-                          Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),
+                          Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),Ω₀::Float64=1.0,
                           Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
                           VMAPN::Int64=1,ADAPTIVEKW::Bool=false,KuTruncation::Int64=10000,
                           modelname::String="model",dfname::String="df",
@@ -69,7 +72,7 @@ function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
     # Resonance vectors
     nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,dimension)
 
-    return LinearParameters(Orbitalparams,dimension,nradial,Basisparams,
+    return LinearParameters(Orbitalparams,Ω₀,dimension,nradial,Basisparams,
                             Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,
                             modelname,dfname,
                             wmatdir,gfuncdir,axidir,modedir,OVERWRITE,

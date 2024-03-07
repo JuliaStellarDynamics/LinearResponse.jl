@@ -12,7 +12,7 @@ function to compute G(u)
 """
 function MakeGu(ndFdJ::Function,
                 n1::Int64,n2::Int64,
-                Wdata::WMatdataType,
+                Wdata::FourierTransformedBasisData,
                 tabu::Vector{Float64},
                 params::LinearParameters)
 
@@ -44,7 +44,7 @@ function MakeGu(ndFdJ::Function,
     δvp = 1.0/params.Kv
 
     # remove dimensionality from Ω mapping
-    dimensionl = (1.0/params.Orbitalparams.Ω₀)
+    dimensionl = (1.0/Wdata.Ω₀)
 
     # Integration step volume
     δvol = δvp * dimensionl
@@ -80,7 +80,8 @@ function MakeGu(ndFdJ::Function,
             
             # (u,v) -> (α,β).
             # Renormalized. (2/(ωmax-ωmin) * |∂(α,β)/∂(u,v)|)
-            RenormalizedJacαβ = OrbitalElements.RenormalizedJacUVToαβ(n1,n2,uval,vval)
+            resonance = OrbitalElements.Resonance(n1,n2,Wdata.ωmin,Wdata.ωmax)
+            RenormalizedJacαβ = (2/(Wdata.ωmax-Wdata.ωmin))*OrbitalElements.uv_to_αβ_jacobian(uval,vval,resonance)
 
             # (α,β) -> (E,L): this is the most expensive function here,
             # so we have pre-tabulated it
@@ -163,7 +164,7 @@ function RunGfunc(ndFdJ::Function,
         # Check if enough basis element in this file (throw error if not)
         (params.nradial <= read(file,"LinearParameters/nradial")) || error("Not enough basis element in WMat file for ($n1,$n2) resonance.")
         # Construct the Wdata structure for the file
-        Wdata      = WMatdataType(read(file,"omgmin"),read(file,"omgmax"),read(file,"tabvminmax"),                  # Mapping parameters
+        Wdata      = FourierTransformedBasisData(read(file,"omgmin"),read(file,"omgmax"),read(file,"Ω₀"),read(file,"tabvminmax"),                  # Mapping parameters
                                   read(file,"wmat"),                                                                # Basis FT
                                   read(file,"UVmat"),read(file,"Omgmat"),read(file,"AEmat"),read(file,"ELmat"),     # Mappings
                                   read(file,"jELABmat"))                                                            # Jacobians

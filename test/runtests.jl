@@ -31,9 +31,9 @@ const bc, M = 1.,1. # G is defined above: must agree with basis!
 model = OrbitalElements.PlummerPotential()
 
 @testset "PotentialTest" begin
-    @test ψ(model,1.0) ≈ -0.707106 atol=0.000001
-    @test dψ(model,1.0) ≈ 0.3535533 atol=0.000001
-    @test d2ψ(model,1.0) ≈ -0.17677669 atol=0.000001
+    @test ψ(1.0,model) ≈ -0.707106 atol=0.000001
+    @test dψ(1.0,model) ≈ 0.3535533 atol=0.000001
+    @test d2ψ(1.0,model) ≈ -0.17677669 atol=0.000001
 end
 
 # Model Distribution Function
@@ -81,14 +81,13 @@ OVERWRITE = false
 VMAPN     = 1
 ADAPTIVEKW= false
 
-OEparams = OrbitalElements.OrbitalParameters(Ω₀=OrbitalElements.Ω₀(model),
-                                             EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+OEparams = OrbitalElements.OrbitalParameters(EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
                                              ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=OrbitalElements.frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
                                              modelname=modelname,dfname=dfname,
                                              wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
                                              lharmonic=lharmonic,n1max=n1max,

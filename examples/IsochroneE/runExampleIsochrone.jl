@@ -20,10 +20,9 @@ basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 
 # Model Potential
-const modelname = "IsochroneE"
+const modelname = "IsochroneE2"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
-model = OrbitalElements.IsochronePotential()
-
+model = OrbitalElements.NumericalIsochrone()
 
 rmin = 0.0
 rmax = Inf
@@ -31,7 +30,7 @@ rmax = Inf
 
 dfname = "roi1.0"
 
-function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
+function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.0)
 
     Q = OrbitalElements.isochroneQROI(E,L,Ra,bc,M,astronomicalG)
 
@@ -79,18 +78,17 @@ Etamax   = 0.1
 
 
 VERBOSE   = 2
-OVERWRITE = false
+OVERWRITE = true
 VMAPN     = 1
 ADAPTIVEKW= false
 
-OEparams = OrbitalElements.OrbitalParameters(Ω₀=OrbitalElements.Ω₀(model),
-                                             EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+OEparams = OrbitalElements.OrbitalParameters(EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
                                              ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=OrbitalElements.frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
                                              modelname=modelname,dfname=dfname,
                                              wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
                                              lharmonic=lharmonic,n1max=n1max,
@@ -130,7 +128,7 @@ epsilon = abs.(reshape(tabdet,nEta,nOmega))
 contour(tabOmega,tabEta,log10.(epsilon), levels=10, color=:black, #levels=[-2.0, -1.5, -1.0, -0.5, -0.25, 0.0], 
         xlabel="Re[ω]", ylabel="Im[ω]", xlims=(Omegamin,Omegamax), ylims=(Etamin,Etamax),
         clims=(-2, 0), aspect_ratio=:equal, legend=false)
-savefig("ROIdeterminant.png")
+savefig("ROIdeterminant2.png")
 
 
 # find a pole by using gradient descent
@@ -147,5 +145,5 @@ if isfinite(bestomg)
         nmode = 100
         ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)
 else
-        println("runExamplePlummer.jl: no mode found.")
+        println("runExampleIsochrone.jl: no mode found.")
 end

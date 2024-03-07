@@ -36,7 +36,7 @@ function GoStep(omgval::ComplexF64,
     # curpos = [real(detXival);imag(detXival)]
     # increment = jacobian \ (-curpos)
 
-    increment1, increment2 = OrbitalElements.inverse2Dlinear(dXirir,dXiupr,dXirii,dXiupi,-real(detXival),-imag(detXival))
+    increment1, increment2 = OrbitalElements._inverse_2d(dXirir,dXiupr,dXirii,dXiupi,-real(detXival),-imag(detXival))
 
     # omgval += increment[1] + increment[2]*1im
     omgval += increment1 + increment2*1im

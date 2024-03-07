@@ -8,23 +8,24 @@
 """
 structure to store Fourier Transform values of basis elements
 """
-struct BasisFTtype{BT<:AstroBasis.AbstractAstroBasis}
+struct FourierTransformedBasis{BT<:AstroBasis.AbstractAstroBasis}
     basis::BT
     UFT::Array{Float64}
 end
 
 function BasisFTcreate(basis::BT) where {BT<:AstroBasis.AbstractAstroBasis}
 
-    return BasisFTtype(basis,zeros(Float64,basis.nradial))
+    return FourierTransformedBasis(basis,zeros(Float64,basis.nradial))
 end
 
 
 """
 structure to store the W matrix computation results
 """
-struct WMatdataType
+struct FourierTransformedBasisData
     ωmin::Float64
     ωmax::Float64
+    Ω₀::Float64
     tabvminmax::Array{Float64,2}
 
     tabW::Array{Float64,3}
@@ -43,13 +44,13 @@ function WMatdataCreate(model::OrbitalElements.Potential,
                         params::LinearParameters)
 
     # compute the frequency scaling factors for this resonance
-    ωmin, ωmax = OrbitalElements.Findωminωmax(n1,n2,model,params.Orbitalparams)
+    ωmin, ωmax = OrbitalElements.frequency_extrema(n1,n2,model,params.Orbitalparams)
 
     # Useful parameters
     nradial = params.nradial
     Ku, Kv = params.Ku, params.Kv
 
-    return WMatdataType(ωmin,ωmax,zeros(Float64,2,Ku),
+    return FourierTransformedBasisData(ωmin,ωmax,OrbitalElements.frequency_scale(model),zeros(Float64,2,Ku),
                         zeros(Float64,nradial,Kv,Ku),
                         zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
                         zeros(Float64,Kv,Ku))
@@ -104,10 +105,10 @@ function Wintegrand(model::OrbitalElements.Potential,
 
 
     # Current location of the radius, r=r(w)
-    rval = OrbitalElements.ru(w,a,e)
+    rval = OrbitalElements.radius_from_anomaly(w,a,e)
 
     # Current value of the radial frequency integrand (almost dθ/dw)
-    gval = OrbitalElements.ΘAE(model,w,a,e,params.Orbitalparams)
+    gval = OrbitalElements.Θ(w,a,e,model,params.Orbitalparams)
 
 
     # collect the basis elements (in place!)
@@ -141,7 +142,7 @@ function WBasisFT(model::OrbitalElements.Potential,
     dw = -(2.0)/(Kwp)
 
     # need angular momentum
-    Lval = OrbitalElements.LFromAE(model,a,e,params.Orbitalparams)
+    _,Lval = OrbitalElements.EL_from_ae(a,e,model,params.Orbitalparams)
 
     # Initialise the state vectors: w, θ1, (θ2-psi)
     # Reverse integration, starting at apocenter
@@ -259,7 +260,7 @@ function WBasisFT(model::OrbitalElements.Potential,
                   a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
-                  basisFT::BasisFTtype,
+                  basisFT::FourierTransformedBasis,
                   params::LinearParameters)
 
     # Basis FT
@@ -272,11 +273,11 @@ without Ω1, Ω2
 function WBasisFT(model::OrbitalElements.Potential,
                   a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
-                  basisFT::BasisFTtype,
+                  basisFT::FourierTransformedBasis,
                   params::LinearParameters)
 
     # Frequencies
-    Ω1, Ω2 = OrbitalElements.ComputeFrequenciesAE(model,a,e,params.Orbitalparams)
+    Ω1, Ω2 = OrbitalElements.frequencies_from_ae(a,e,model,params.Orbitalparams)
 
     # Basis FT
 
@@ -296,13 +297,13 @@ end
 function MakeWmatUV(model::OrbitalElements.Potential,
                     n1::Int64,n2::Int64,
                     tabu::Vector{Float64},
-                    basisFT::BasisFTtype,
+                    basisFT::FourierTransformedBasis,
                     params::LinearParameters)
 
     @assert length(tabu) == params.Ku "LinearResponse.WMat.MakeWmatUV: tabu length is not Ku."
 
     Orbitalparams = params.Orbitalparams
-    Ω₀ = Orbitalparams.Ω₀
+    Ω₀ = OrbitalElements.frequency_scale(model)
 
     # allocate the results matrices
     Wdata = WMatdataCreate(model,n1,n2,params)
@@ -317,7 +318,8 @@ function MakeWmatUV(model::OrbitalElements.Potential,
         (params.VERBOSE > 2) && println("LinearResponse.WMat.MakeWMat: on step $kuval of $Ku: u=$uval.")
 
         # get the corresponding v boundary values
-        vmin,vmax = OrbitalElements.FindVminVmax(uval,n1,n2,model,ωmin,ωmax,Orbitalparams)
+        resonance = OrbitalElements.Resonance(n1,n2,model,Orbitalparams)
+        vmin,vmax = OrbitalElements.v_boundaries(uval,resonance,model,Orbitalparams)
 
         # saving them
         Wdata.tabvminmax[1,kuval], Wdata.tabvminmax[2,kuval] = vmin, vmax
@@ -336,11 +338,11 @@ function MakeWmatUV(model::OrbitalElements.Potential,
             # (u,v) -> (a,e)
             ####
             # (u,v) -> (α,β)
-            α,β = OrbitalElements.αβFromUV(uval,vval,n1,n2,ωmin,ωmax)
+            α,β = OrbitalElements.αβ_from_uv(uval,vval,resonance)
             # (α,β) -> (Ω1,Ω2)
-            Ω₁, Ω₂ = OrbitalElements.FrequenciesFromαβ(α,β,Ω₀)
+            Ω₁, Ω₂ = OrbitalElements.frequencies_from_αβ(α,β,Ω₀)
             # (Ω1,Ω2) -> (a,e)
-            a,e = OrbitalElements.ComputeAEFromFrequencies(model,Ω₁,Ω₂,Orbitalparams)
+            a,e = OrbitalElements.ae_from_frequencies(Ω₁,Ω₂,model,Orbitalparams)
 
             (params.VERBOSE > 2) && print("v=$kvval,o1=$Ω1,o2=$Ω2;")
 
@@ -351,10 +353,10 @@ function MakeWmatUV(model::OrbitalElements.Potential,
             # save (a,e) values for later
             Wdata.tabAE[1,kvval,kuval], Wdata.tabAE[2,kvval,kuval] = a, e
             # save (E,L) values for later
-            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.ELFromAE(model,a,e,Orbitalparams)
+            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.EL_from_ae(a,e,model,Orbitalparams)
 
             # compute the Jacobian of the (α,β) ↦ (E,L) mapping here. a little more expensive, but savings in the long run
-            Wdata.tabJ[kvval,kuval] = OrbitalElements.JacαβToELAE(model,a,e,Orbitalparams)
+            Wdata.tabJ[kvval,kuval] = OrbitalElements.ae_to_EL_jacobian(a,e,model,Orbitalparams)/OrbitalElements.ae_to_αβ_jacobian(a,e,model,Orbitalparams)
 
             # Compute W(u,v) for every basis element using RK4 scheme
             WBasisFT(model,a,e,Ω₁,Ω₂,n1,n2,basisFT,params)
@@ -427,6 +429,7 @@ function RunWmat(model::OrbitalElements.Potential,
             # Mappings parameters
             write(file, "omgmin",Wdata.ωmin)
             write(file, "omgmax",Wdata.ωmax)
+            write(file,"Ω₀",Wdata.Ω₀)
             write(file, "tabvminmax",Wdata.tabvminmax)
             # Mappings
             write(file, "UVmat",Wdata.tabUV)

@@ -217,7 +217,7 @@ function WBasisFTIsochrone(a::Float64,e::Float64,
                   Ω1::Float64,Ω2::Float64,
                   n1::Int64,n2::Int64,
                   bc::Float64,M::Float64,G::Float64,
-                  basisFT::BasisFTtype,
+                  basisFT::FourierTransformedBasis,
                   params::LinearParameters)
 
     # Basis FT
@@ -230,7 +230,7 @@ without Ω1, Ω2
 function WBasisFTIsochrone(a::Float64,e::Float64,
                   n1::Int64,n2::Int64,
                   bc::Float64,M::Float64,G::Float64,
-                  basisFT::BasisFTtype,
+                  basisFT::FourierTransformedBasis,
                   params::LinearParameters)
 
     # Frequencies
@@ -242,7 +242,7 @@ end
 
 
 """
-    MakeWmatUVIsochrone(n1::Int64, n2::Int64, tabu::Vector{Float64}, basisFT::BasisFTtype, bc::Float64, M::Float64, G::Float64, params::LinearParameters)
+    MakeWmatUVIsochrone(n1::Int64, n2::Int64, tabu::Vector{Float64}, basisFT::FourierTransformedBasis, bc::Float64, M::Float64, G::Float64, params::LinearParameters)
 
 Construct the matrix `Wdata` based on the given parameters for an isochrone potential.
 
@@ -250,7 +250,7 @@ Construct the matrix `Wdata` based on the given parameters for an isochrone pote
 - `n1::Int64`: Integer representing some parameter.
 - `n2::Int64`: Integer representing some parameter.
 - `tabu::Vector{Float64}`: Vector of `Float64` representing values of `u`.
-- `basisFT::BasisFTtype`: Type representing some basis Fourier transform.
+- `basisFT::FourierTransformedBasis`: Type representing some basis Fourier transform.
 - `bc::Float64`: Float representing some parameter.
 - `M::Float64`: Float representing mass.
 - `G::Float64`: Float representing gravitational constant.
@@ -265,7 +265,7 @@ Construct the matrix `Wdata` based on the given parameters for an isochrone pote
 """
 function MakeWmatUVIsochrone(n1::Int64,n2::Int64,
                              tabu::Vector{Float64},
-                             basisFT::BasisFTtype,
+                             basisFT::FourierTransformedBasis,
                              bc::Float64,M::Float64,G::Float64,
                              params::LinearParameters)
 

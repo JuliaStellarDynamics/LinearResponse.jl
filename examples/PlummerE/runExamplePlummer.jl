@@ -24,12 +24,12 @@ const bc, M = 1.,1. # G is defined above: must agree with basis!
 model = OrbitalElements.PlummerPotential()
 
 # Model Distribution Function
-dfname = "roi0.95"
+dfname = "roi0.75"
 
 function ndFdJ(n1::Int64,n2::Int64,
                E::Float64,L::Float64,
                ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.95)
+               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.75)
 
     return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
 
@@ -69,14 +69,17 @@ OVERWRITE = false
 VMAPN     = 1
 ADAPTIVEKW= false
 
-OEparams = OrbitalElements.OrbitalParameters(Ω₀=OrbitalElements.Ω₀(model),
+RMIN = 0.0
+RMAX = Inf
+
+OEparams = OrbitalElements.OrbitalParameters(rmin=RMIN,rmax=RMAX,
                                              EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
                                              ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
                                              modelname=modelname,dfname=dfname,
                                              wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
                                              lharmonic=lharmonic,n1max=n1max,
@@ -100,6 +103,7 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,
 @time LinearResponse.RunAXi(FHT,Parameters)
 
 MMat, tabaMcoef, tabωminωmax = LinearResponse.PrepareM(Parameters)
+
 
 # construct a grid of frequencies to probe
 tabω = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
