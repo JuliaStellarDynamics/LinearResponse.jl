@@ -14,11 +14,12 @@ Must include:
 """
 
 
-import OrbitalElements
-import AstroBasis
-import FiniteHilbertTransform
-import CallAResponse
+using OrbitalElements
+using AstroBasis
+using FiniteHilbertTransform
+using LinearResponse
 using HDF5
+
 
 
 ##############################
@@ -28,20 +29,18 @@ const G  = 1.
 
 # Clutton-Brock (1972) basis
 const basisname = "CluttonBrock"
-const rb = 10.0
-const lmax,nmax = 2,20 # Usually lmax corresponds to the considered harmonics lharmonic
-const basis = AstroBasis.CB72BasisCreate(lmax=lmax,nmax=nmax,G=G,rb=rb) 
+const rb = 5.
+const lmax,nradial = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
+const basis = AstroBasis.CB72Basis(lmax=lmax,nradial=nradial,G=G,rb=rb) 
 
 ##############################
 # Model Potential
 ##############################
 const modelname = "Mestel"
 
-const R0, V0 = 20., 1.
-const ψ(r::Float64)   = OrbitalElements.ψMestel(r,R0,V0)
-const dψ(r::Float64)  = OrbitalElements.dψMestel(r,R0,V0)
-const d2ψ(r::Float64) = OrbitalElements.d2ψMestel(r,R0,V0)
-const Ω₀ = OrbitalElements.Ω₀Mestel(R0,V0)
+const R0, V0 = 1.,1.#20., 1.
+#model = OrbitalElements.MestelPotential(R0=R0,V0=V0)
+model = OrbitalElements.TaperedMestel(R0=R0,V0=V0)
 
 ##############################
 # Outputs directories
@@ -60,7 +59,7 @@ const CDF = OrbitalElements.NormConstMestelDF(G,R0,V0,qDF)
 
 const Rin, Rout, Rmax = 1., 11.5, 20.   # Tapering radii
 const ξDF = 1.0                         # Self-gravity fraction
-const μDF, νDF = 5, 4                   # Tapering exponants
+const μDF, νDF = 5, 8                  # Tapering exponants
 
 const dfname = "Zang_q_"*string(qDF)*"_xi_"*string(ξDF)*"_mu_"*string(μDF)*"_nu_"*string(νDF)
 
@@ -73,43 +72,44 @@ const ndFdJ(n1::Int64,n2::Int64,
 #####
 # Parameters
 #####
+# OrbitalElements parameters
+const EDGE = 0.01
+const TOLECC = 0.01
 # Radii for frequency truncations
-const rmin = 0.1
-const rmax = 100.
+const rmin = 0.2
+const rmax = 20.0
 
-const Orbitalparams = OrbitalElements.OrbitalParameters(;Ω₀=Ω₀,rmin=rmin,rmax=rmax)
+const Orbitalparams = OrbitalElements.OrbitalParameters(;rmin=rmin,rmax=rmax,EDGE=EDGE,TOLECC=TOLECC)
 
 
 const Ku = 200           # number of u integration sample points
-const FHT = FiniteHilbertTransform.LegendreFHTcreate(Ku)
+const FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
-const Kv = 201    # number of allocations is directly proportional to this
-const Kw = 202    # number of allocations is insensitive to this (also time, largely?
+const Kv = 200    # number of allocations is directly proportional to this
+const Kw = 200    # number of allocations is insensitive to this (also time, largely?
+
+const VMAPN = 2
+const KuTruncation=1000
 
 const lharmonic = 2
-const n1max = 1  # maximum number of radial resonances to consider
+const n1max = 4  # maximum number of radial resonances to consider
 
 
 ####
-const nradial = basis.nmax
-const KuTruncation=10000
 
-const VMAPN = 2
 const VERBOSE = 1
 const OVERWRITE = false
 
 ####
 
 
-const ADAPTIVEKW = true
+const ADAPTIVEKW = false
 
-params = LinearResponse.LinearParameters(;Orbitalparams=Orbitalparams,
-                                                Ku=Ku,Kv=Kv,Kw=Kw,
-                                                modelname=modelname,dfname=dfname,
-                                                wmatdir=wmatdir,gfuncdir=gfuncdir,axidir=axidir,modedir=modedir,
-                                                lharmonic=lharmonic,n1max=n1max,nradial=nradial,
-                                                KuTruncation=KuTruncation,
-                                                VMAPN=VMAPN,
-                                                VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
-                                                ndim=basis.dimension,
-                                                nmax=basis.nmax,rbasis=basis.rb,ADAPTIVEKW=ADAPTIVEKW)
+params = LinearResponse.LinearParameters(basis;Orbitalparams=Orbitalparams,Ω₀=frequency_scale(model),
+                                         Ku=Ku,Kv=Kv,Kw=Kw,
+                                         VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW,KuTruncation=KuTruncation,
+                                         modelname=modelname,dfname=dfname,
+                                         wmatdir=wmatdir,gfuncdir=gfuncdir,axidir=axidir,modedir=modedir,
+                                         OVERWRITE=OVERWRITE,
+                                         lharmonic=lharmonic,n1max=n1max,
+                                         VERBOSE=VERBOSE)

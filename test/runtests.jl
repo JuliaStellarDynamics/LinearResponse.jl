@@ -26,7 +26,7 @@ end
 
 
 # Model Potential
-const modelname = "PlummerE"
+const modelname = "Plummer"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
 model = OrbitalElements.PlummerPotential()
 

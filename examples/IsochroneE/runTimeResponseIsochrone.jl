@@ -1,5 +1,5 @@
 """
-for the radially-biased Plummer model: compute linear response theory
+for the radially-biased Isochrone model: compute linear response theory
 """
 
 using OrbitalElements
@@ -13,41 +13,54 @@ using Plots
 
 # Basis
 G  = 1.
-rb = 3.0
+rb = 2.0
 lmax,nradial = 2,5 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 
+
 # Model Potential
-const modelname = "PlummerE"
+const modelname = "IsochroneE"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
-model = OrbitalElements.PlummerPotential()
+model = OrbitalElements.NumericalIsochrone()
 
-# Model Distribution Function
-dfname = "roi0.75"
+rmin = 0.0
+rmax = Inf
 
-function ndFdJ(n1::Int64,n2::Int64,
-               E::Float64,L::Float64,
-               ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.75)
 
-    return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
+dfname = "roi1.0"
+
+function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.0)
+
+    Q = OrbitalElements.isochroneQROI(E,L,Ra,bc,M,astronomicalG)
+
+    # If Q is outside of the [0,1]--range, we set the function to 0.0
+    # ATTENTION, this is a lazy implementation -- it would have been much better to restrict the integration domain
+    if (!(0.0 <= Q <= 1.0)) # If Q is outside of the [0,1]-range, we set the function to 0
+        return 0.0 # Outside of the physically allowed orbital domain
+    end
+
+    dFdQ = OrbitalElements.isochroneSahadDFdQ(Q,Ra,bc,M,astronomicalG) # Value of dF/dQ
+    dQdE, dQdL = OrbitalElements.isochronedQdEROI(E,L,Ra,bc,M,astronomicalG), OrbitalElements.isochronedQdLROI(E,L,Ra,bc,M,astronomicalG) # Values of dQ/dE, dQ/dL
+    #####
+    res = dFdQ*(dQdE*ndotOmega + n2*dQdL) # Value of n.dF/dJ
+
+    return res
 
 end
 
 
 # Linear Response integration parameters
-Ku = 12    # number of Legendre integration sample points
-Kv = 20    # number of allocations is directly proportional to this
+Ku = 50    # number of Legendre integration sample points
+Kv = 30    # number of allocations is directly proportional to this
 Kw = 20    # number of allocations is insensitive to this (also time, largely)?
 
 
 # Define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHT(Ku)
-#FHT = FiniteHilbertTransform.ChebyshevFHT(Ku)
 
 lharmonic = lmax
-n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
+n1max = 1 
 
 # output directories
 wmatdir  = "./"
@@ -115,7 +128,14 @@ MMat = [zeros(Complex{Float64}, NBasisElements,NBasisElements) for _ in 1:GridTi
 for t=2:GridTimesSize
     #MMat[t] = ones(Complex{Float64}, NBasisElements,NBasisElements)
     LinearResponse.tabM!((t-1)*DeltaT,MMat[t],tabaMcoef,tabωminωmax,FHT,Parameters)
+    MMat[t] = real.(MMat[t])
 end
+
+println("Check reality")
+println(MMat[290][1,1])
+println(MMat[290][1,2])
+println(MMat[290][1,3])
+println(MMat[290][1,5])
 
 # define the storage for the inverse
 inverse = [zeros(Complex{Float64}, NBasisElements,NBasisElements) for _ in 1:GridTimesSize]
@@ -130,23 +150,27 @@ onesPerturber = [exp(-(DeltaT * i)^2/40) .* ones(Complex{Float64}, NBasisElement
 response = [zeros(Complex{Float64}, NBasisElements) for _ in 1:GridTimesSize]
 LinearResponse.response!(inverse,onesPerturber,response,GridTimesSize,NBasisElements)
 
+
+
 # now, measure the growth rate of a single element of the response matrix
 # response[time][basiselement]
 BasisElement = 1 # select the basis element
 
 
 timevals = 1:GridTimesSize
-colors = cgrad(:GnBu,NBasisElements,rev=true)
+colors = cgrad(:GnBu_5,rev=true)
 
 for BasisElement=1:NBasisElements
     timerun = zeros(GridTimesSize)
     for t=1:GridTimesSize
-        timerun[t] = abs(response[t][BasisElement]) # @ATTENTION, is this real or imaginary? Or neither? absolute value?
+        timerun[t] = abs(real(response[t][BasisElement])) # @ATTENTION, is this real or imaginary? Or neither? absolute value?
     end
     if BasisElement==1
         plot(timevals,log.(timerun),linecolor=colors[BasisElement],label="p=$BasisElement")
+        #plot(timevals,(timerun),linecolor=colors[BasisElement],label="p=$BasisElement")
     else        
         plot!(timevals,log.(timerun),linecolor=colors[BasisElement],label="p=$BasisElement")
+        #plot!(timevals,(timerun),linecolor=colors[BasisElement],label="p=$BasisElement")
     end        
     # let's do finite difference to be simple, of some fairly late time
     DerivTime = 590

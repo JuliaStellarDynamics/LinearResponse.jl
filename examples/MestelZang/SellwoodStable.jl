@@ -45,10 +45,13 @@ const basis = AstroBasis.CB72Basis(lmax=lmax,nradial=nradial,G=G,rb=rb)
 const modelname = "Mestelv1"
 
 const R0, V0 = 20., 1.
-const ψ(r::Float64)   = OrbitalElements.ψMestel(r,R0,V0)
-const dψ(r::Float64)  = OrbitalElements.dψMestel(r,R0,V0)
-const d2ψ(r::Float64) = OrbitalElements.d2ψMestel(r,R0,V0)
-const Ω₀ = OrbitalElements.Ω₀Mestel(R0,V0)
+#const ψ(r::Float64)   = OrbitalElements.ψMestel(r,R0,V0)
+#const dψ(r::Float64)  = OrbitalElements.dψMestel(r,R0,V0)
+#const d2ψ(r::Float64) = OrbitalElements.d2ψMestel(r,R0,V0)
+#const Ω₀ = OrbitalElements.Ω₀Mestel(R0,V0)
+model = OrbitalElements.MestelPotential(R0,V0)
+println(OrbitalElements.Ω₀(model))
+
 
 ##############################
 # Outputs directories
@@ -86,14 +89,14 @@ const TOLECC = 0.01
 const rmin = 0.1
 const rmax = 100.0
 
-const Orbitalparams = OrbitalElements.OrbitalParameters(;Ω₀=Ω₀,rmin=rmin,rmax=rmax,EDGE=EDGE,TOLECC=TOLECC)
+const Orbitalparams = OrbitalElements.OrbitalParameters(;Ω₀=OrbitalElements.Ω₀(model),rmin=rmin,rmax=rmax,EDGE=EDGE,TOLECC=TOLECC)
 
 
-const Ku = 200           # number of u integration sample points
+const Ku = 100           # number of u integration sample points
 const FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
-const Kv = 201    # number of allocations is directly proportional to this
-const Kw = 202    # number of allocations is insensitive to this (also time, largely?
+const Kv = 101    # number of allocations is directly proportional to this
+const Kw = 102    # number of allocations is insensitive to this (also time, largely?
 
 const VMAPN = 2
 const KuTruncation=1000

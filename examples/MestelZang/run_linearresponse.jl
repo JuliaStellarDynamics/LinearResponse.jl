@@ -8,10 +8,12 @@ all steps combined into one: could pause and restart if this was too much.
 import LinearResponse
 
 inputfile = "SellwoodStable.jl"
+inputfile = "MestelUnstable.jl"
+
 include(inputfile)
 
 # call the function to construct W matrices
-LinearResponse.RunWmat(ψ,dψ,d2ψ,FHT,basis,params)
+LinearResponse.RunWmat(model,FHT,basis,params)
 
 # call the function to compute G(u) functions
 LinearResponse.RunGfunc(ndFdJ,FHT,params)
@@ -30,7 +32,7 @@ LinearResponse.RunAXi(FHT,params)
 
 # Mode Finding
 Ωguess = 1.0
-ηguess = 0.0
+ηguess = 0.3
 ωguess = Ωguess + im*ηguess
 ωMode = LinearResponse.FindPole(ωguess,FHT,params)
 println("ωMode = ",ωMode)

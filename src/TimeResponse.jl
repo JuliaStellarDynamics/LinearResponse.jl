@@ -145,7 +145,7 @@ function tabM!(t::Float64,
     fill!(tabM,0.0 + 0.0*im)
 
     # Rescale to get dimensionless frequency
-    Ω₀ = params.Orbitalparams.Ω₀
+    Ω₀ = params.Ω₀
     tnodim = Ω₀*t
 
     # loop over the resonances: no threading here because we parallelise over frequencies
