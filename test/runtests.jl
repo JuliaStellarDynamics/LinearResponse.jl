@@ -28,7 +28,7 @@ end
 # Model Potential
 const modelname = "Plummer"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
-model = OrbitalElements.PlummerPotential()
+model = OrbitalElements.NumericalPlummer()
 
 @testset "PotentialTest" begin
     @test ψ(1.0,model) ≈ -0.707106 atol=0.000001

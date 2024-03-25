@@ -92,24 +92,26 @@ end
 ########################################################################
 
 """
-    Wintegrand(w,a,e,L,Ω1,Ω2,ψ,dψ,d2ψ,basis,params)
+    Wintegrand(model, w, a, e, L, Ω1, Ω2, basis, params)
 
 Integrand computation/update for FT of basis elements
 """
-function Wintegrand(model::OrbitalElements.Potential,
-                    w::Float64,
-                    a::Float64,e::Float64,L::Float64,
-                    Ω1::Float64,Ω2::Float64,
-                    basis::AstroBasis.AbstractAstroBasis,
-                    params::LinearParameters)::Tuple{Float64,Float64}
-
-
+function Wintegrand(
+    model::Potential,
+    w::Float64,
+    a::Float64,
+    e::Float64,
+    L::Float64,
+    Ω1::Float64,
+    Ω2::Float64,
+    basis::AstroBasis.AbstractAstroBasis,
+    params::LinearParameters
+)::Tuple{Float64,Float64}
     # Current location of the radius, r=r(w)
-    rval = OrbitalElements.radius_from_anomaly(w,a,e)
+    rval = OrbitalElements.radius_from_anomaly(w, a, e, model, params.Orbitalparams)
 
     # Current value of the radial frequency integrand (almost dθ/dw)
-    gval = OrbitalElements.Θ(w,a,e,model,params.Orbitalparams)
-
+    gval = OrbitalElements.Θ(w, a, e, model, params.Orbitalparams)
 
     # collect the basis elements (in place!)
     AstroBasis.tabUl!(basis,params.lharmonic,rval)
