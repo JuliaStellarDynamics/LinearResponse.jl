@@ -41,10 +41,4 @@ include("ModeComputation/Matrices.jl")
 include("ModeComputation/Mode.jl")
 include("ModeComputation/FindPole.jl")
 
-# include code to compute isochrone-specific quantities:
-# the isochrone mode is a specific case that we have pre-defined
-include("Isochrone/WMatIsochrone.jl")
-
-include("TimeResponse.jl")
-
 end # module

@@ -60,7 +60,7 @@ function MakeGu(ndFdJ::Function,
 
             # vp -> v
             vp = δvp*(kvval-0.5)
-            vval = vFromvp(vp,vmin,vmax,params.VMAPN)
+            vval = v_from_vp(vp, vmin, vmax, n=params.VMAPN)
 
             ####
             # (u,v) -> (a,e)
@@ -76,12 +76,12 @@ function MakeGu(ndFdJ::Function,
             # compute Jacobians
             #####
             # vp -> v
-            Jacv = DvDvp(vp,vmin,vmax,params.VMAPN)
+            _, Jacv = v_from_vp_derivative(vp, vmin, vmax, n=params.VMAPN)
             
             # (u,v) -> (α,β).
             # Renormalized. (2/(ωmax-ωmin) * |∂(α,β)/∂(u,v)|)
-            resonance = OrbitalElements.Resonance(n1,n2,Wdata.ωmin,Wdata.ωmax)
-            RenormalizedJacαβ = (2/(Wdata.ωmax-Wdata.ωmin))*OrbitalElements.uv_to_αβ_jacobian(uval,vval,resonance)
+            resonance = Resonance(n1,n2,Wdata.ωmin,Wdata.ωmax)
+            RenormalizedJacαβ = (2/(Wdata.ωmax-Wdata.ωmin)) * uv_to_αβ_jacobian(uval,vval,resonance)
 
             # (α,β) -> (E,L): this is the most expensive function here,
             # so we have pre-tabulated it

@@ -1,24 +1,230 @@
 
 ########################################################################
 #
+# Fourier Transform over angles for a given orbit
+#
+########################################################################
+"""
+    angle_fouriertransform!(
+        result::Vector{Float64},
+        fun::Function,
+        a::Float64,
+        e::Float64,
+        n1::Int64,
+        n2::Int64,
+        model::Potential,
+        params::LinearParameters;
+        L::Float64=0.0,
+        Ω1::Float64=0.0,
+        Ω2::Float64=0.0
+    )
+
+Perform the angle Fourier transform of a given function `fun` using the specified parameters.
+The result is stored in the `result` vector.
+
+Assuming the function is of the form `fun(r)`, the Fourier transform is given by:  
+    `result = ∫[0,π] fun(r) * cos(n1*θ1 + n2*(θ2-ϕ)) dθ1`
+as `r` is an even function of `θ1` alone.
+
+# Arguments
+- `result::Vector{Float64}`: The vector to store the result of the Fourier transform.
+- `fun::Function`: The function to be transformed. Has to be a function of radius only.
+- `a::Float64`: Semi-major axis.
+- `e::Float64`: Eccentricity.
+- `n1::Int64`: Fourier mode for the first angle.
+- `n2::Int64`: Fourier mode for the second angle.
+- `model::Potential`: The potential model.
+- `params::LinearParameters`: Additional parameters for the transformation.
+
+# Optional Arguments
+- `L::Float64=0.0`: Angular momentum. If not provided, it will be calculated 
+from `a`, `e`, `model`, and `params`.
+- `Ω1::Float64=0.0`: Radial frequency. If not provided, it will be calculated 
+from `a`, `e`, `model`, and `params`.
+- `Ω2::Float64=0.0`: Azimuthal frequency. If not provided, it will be calculated 
+from `a`, `e`, `model`, and `params`.
+"""
+function angle_fouriertransform!(
+    result::Vector{Float64},
+    fun::F0,
+    a::Float64,
+    e::Float64,
+    n1::Int64,
+    n2::Int64,
+    model::Potential,
+    params::LinearParameters;
+    L::Float64=0.0,
+    Ω1::Float64=0.0,
+    Ω2::Float64=0.0
+) where {F0<:Function}
+    output_length = length(fun(0.0))
+    @assert length(result) == output_length "Result array length does not 
+        match the function's output length."
+
+    if L == 0.0
+        # need angular momentum
+        _, L = EL_from_ae(a, e, model, params)
+    end
+    if Ω1 == 0.0 || Ω2 == 0.0
+        # need frequencies
+        Ω1, Ω2 = frequencies_from_ae(a, e, model, params)
+    end
+
+    # Integration step
+    Kwp = (params.ADAPTIVEKW) ? ceil(Int64,params.Kw/(0.1+(1-e))) : params.Kw
+    Orbitalparams = params.Orbitalparams
+
+    # Caution : Reverse integration (lower error at apocenter than pericenter)
+    # -> Result to multiply by -1
+    dw = -2/Kwp
+
+    # Initialise the state vectors: w, θ1, (θ2-psi)
+    # @WARNING: in this function θ2 really stands for (θ2-psi) which is a function 
+    # of the anomaly `w`.
+    # Reverse integration, starting at apocenter
+    w, θ1, θ2 = 1.0, pi, 0.0
+
+    # Initialize integrand
+    dθ1dw, dθ2dw = angles_gradient(w, a, e, model, Orbitalparams, L=L, Ω1=Ω1, Ω2=Ω2)
+    integrand = fun(radius_from_anomaly(w, a, e, model, Orbitalparams))
+
+    # Initialize container
+    fill!(result,0.0)
+
+    # start the integration loop now that we are initialised
+    # at each step, we are performing an RK4-like calculation
+    for step in 1:Kwp
+
+        ####
+        # RK4 Step 1
+        ####
+        # compute the first prefactor
+        pref1 = (1/6) * dw * (1/pi) * dθ1dw * cos(n1*θ1 + n2*θ2)
+
+        # Add contribution to the result
+        result .+= pref1 .* integrand
+
+        # update velocities at end of step 1
+        dθ1_1 = dw * dθ1dw
+        dθ2_1 = dw * dθ2dw
+
+        ####
+        # RK4 Step 2
+        ####
+        # Update the time by half a timestep
+        w += 0.5*dw
+
+        # Update integrand
+        dθ1dw, dθ2dw = angles_gradient(w, a, e, model, Orbitalparams, L=L, Ω1=Ω1, Ω2=Ω2)
+        integrand = fun(radius_from_anomaly(w, a, e, model, Orbitalparams))
+
+        # common prefactor for all the increments
+        # depends on the updated (θ1+0.5*dθ1_1,θ2+0.5*dθ2_1)
+        # the factor 1/3 comes from RK4
+        pref2 = (1/3) * dw * (1/pi) * dθ1dw * cos(n1*(θ1+0.5*dθ1_1) + n2*(θ2+0.5*dθ2_1))
+
+        # update velocities at end of step 2
+        dθ1_2 = dw*dθ1dw
+        dθ2_2 = dw*dθ2dw
+
+        ####
+        # RK4 step 3
+        ####
+        # The time, u, is not updated for this step
+        # For this step, no need to re-compute the basis elements, as r has not been updated
+        # Common prefactor for all the increments
+        # Depends on the updated (θ1+0.5*dθ1_2,θ2+0.5*dθ2_2)
+        # the factor 1/3 comes from RK4
+        pref3 = (1/3) * dw * (1/pi) * dθ1dw * cos(n1*(θ1+0.5*dθ1_2) + n2*(θ2+0.5*dθ2_2))
+
+        # Add contribution of steps 2 and 3 together
+        result .+= (pref2 + pref3) .* integrand
+
+        dθ1_3 = dθ1_2 # Does not need to be updated
+        dθ2_3 = dθ2_2 # Does not need to be updated
+
+        ####
+        # RK4 step 4
+        ####
+        w += 0.5*dw # Updating the time by half a timestep: we are now at the next u value
+
+        # Update integrand
+        dθ1dw, dθ2dw = angles_gradient(w, a, e, model, Orbitalparams, L=L, Ω1=Ω1, Ω2=Ω2)
+        integrand = fun(radius_from_anomaly(w, a, e, model, Orbitalparams))
+
+        # Common prefactor for all the increments
+        # Depends on the updated (θ1+dθ1_3,θ2+dθ2_3)
+        # The factor (1/6) comes from RK4
+        pref4 = (1/6) * dw * (1/pi) * dθ1dw * cos(n1*(θ1+dθ1_3) + n2*(θ2+dθ2_3))
+
+        # Loop over the radial indices to sum basis contributions
+        result .+= pref4 .* integrand
+
+        dθ1_4 = dw*dθ1dw # Current velocity for θ1
+        dθ2_4 = dw*dθ2dw # Current velocity for θ2
+
+        # Update the positions using RK4-like sum (Simpson's 1/3 rule)
+        θ1 += (dθ1_1 + 2*dθ1_2 + 2*dθ1_3 + dθ1_4)/6
+        θ2 += (dθ2_1 + 2*dθ2_2 + 2*dθ2_3 + dθ2_4)/6
+
+        # clean or check nans?
+
+    end # RK4 integration
+
+    # -1 factor (reverse integration)
+    result .*= -1
+
+    return result
+end
+
+function angle_fouriertransform(
+    fun::F0,
+    a::Float64,
+    e::Float64,
+    n1::Int64,
+    n2::Int64,
+    model::Potential,
+    params::LinearParameters;
+    L::Float64=0.0,
+    Ω1::Float64=0.0,
+    Ω2::Float64=0.0
+) where {F0<:Function}
+    result = zeros(Float64,length(fun(0.0)))
+    return angle_fouriertransform!(
+        result, fun, a, e, n1, n2, model, params, L=L, Ω1=Ω1, Ω2=Ω2
+    )
+end
+
+"""
+for a basis element, compute the Fourier transform over the angles.
+"""
+function angle_fouriertransform(
+    basis::AstroBasis.AbstractAstroBasis,
+    a::Float64,
+    e::Float64,
+    n1::Int64,
+    n2::Int64,
+    model::Potential,
+    params::LinearParameters;
+    L::Float64=0.0,
+    Ω1::Float64=0.0,
+    Ω2::Float64=0.0
+)
+    function basisft_integrand(r::Float64)
+        # collect the basis elements (in place!)
+        AstroBasis.tabUl!(basis, params.lharmonic, r)
+        return basis.tabUl
+    end
+    return angle_fouriertransform(
+        basisft_integrand, a, e, n1, n2, model, params, L=L, Ω1=Ω1, Ω2=Ω2
+    )
+end
+
+########################################################################
+#
 # Data structure
 #
 ########################################################################
-
-"""
-structure to store Fourier Transform values of basis elements
-"""
-struct FourierTransformedBasis{BT<:AstroBasis.AbstractAstroBasis}
-    basis::BT
-    UFT::Array{Float64}
-end
-
-function BasisFTcreate(basis::BT) where {BT<:AstroBasis.AbstractAstroBasis}
-
-    return FourierTransformedBasis(basis,zeros(Float64,basis.nradial))
-end
-
-
 """
 structure to store the W matrix computation results
 """
@@ -44,248 +250,17 @@ function WMatdataCreate(model::OrbitalElements.Potential,
                         params::LinearParameters)
 
     # compute the frequency scaling factors for this resonance
-    ωmin, ωmax = OrbitalElements.frequency_extrema(n1,n2,model,params.Orbitalparams)
+    ωmin, ωmax = frequency_extrema(n1,n2,model,params.Orbitalparams)
 
     # Useful parameters
     nradial = params.nradial
     Ku, Kv = params.Ku, params.Kv
 
-    return FourierTransformedBasisData(ωmin,ωmax,OrbitalElements.frequency_scale(model),zeros(Float64,2,Ku),
+    return FourierTransformedBasisData(ωmin,ωmax,frequency_scale(model),zeros(Float64,2,Ku),
                         zeros(Float64,nradial,Kv,Ku),
                         zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku),zeros(Float64,2,Kv,Ku), # Orbital mappings
                         zeros(Float64,Kv,Ku))
 end
-
-
-########################################################################
-#
-# Mapping functions
-#
-########################################################################
-
-"""
-@TO DESCRIBE
-"""
-function vFromvp(vp::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
-    return (vmax-vmin)*(vp^n)+vmin
-end
-
-"""
-@TO DESCRIBE
-"""
-function DvDvp(vp::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
-    return n*(vmax-vmin)*(vp^(n-1))
-end
-
-"""
-@TO DESCRIBE
-"""
-function vpFromv(v::Float64,vmin::Float64,vmax::Float64,n::Int64=2)::Float64
-    return ((v-vmin)/(vmax-vmin))^(1/n)
-end
-
-
-########################################################################
-#
-# Fourier Transform at one location
-#
-########################################################################
-
-"""
-    Wintegrand(model, w, a, e, L, Ω1, Ω2, basis, params)
-
-Integrand computation/update for FT of basis elements
-"""
-function Wintegrand(
-    model::Potential,
-    w::Float64,
-    a::Float64,
-    e::Float64,
-    L::Float64,
-    Ω1::Float64,
-    Ω2::Float64,
-    basis::AstroBasis.AbstractAstroBasis,
-    params::LinearParameters
-)::Tuple{Float64,Float64}
-    # Current location of the radius, r=r(w)
-    rval = OrbitalElements.radius_from_anomaly(w, a, e, model, params.Orbitalparams)
-
-    # Current value of the radial frequency integrand (almost dθ/dw)
-    gval = OrbitalElements.Θ(w, a, e, model, params.Orbitalparams)
-
-    # collect the basis elements (in place!)
-    AstroBasis.tabUl!(basis,params.lharmonic,rval)
-
-    # the velocity for integration (dθ1dw, dθ2dw)
-    return Ω1*gval, (Ω2 - L/(rval^(2)))*gval
-end
-
-"""
-    WBasisFT(a,e,Ω1,Ω2,n1,n2,)
-
-Fourier Transform of basis elements using RK4 scheme
-result stored in place
-"""
-function WBasisFT(model::OrbitalElements.Potential,
-                  a::Float64,e::Float64,
-                  Ω1::Float64,Ω2::Float64,
-                  n1::Int64,n2::Int64,
-                  basis::AstroBasis.AbstractAstroBasis,
-                  restab::Vector{Float64},
-                  params::LinearParameters)
-
-    @assert length(restab) == basis.nradial "LinearResponse.WBasisFT: FT array not of the same size as the basis"
-
-    # Integration step
-    Kwp = (params.ADAPTIVEKW) ? ceil(Int64,params.Kw/(0.1+(1-e))) : params.Kw
-
-    # Caution : Reverse integration (lower error at apocenter than pericenter)
-    # -> Result to multiply by -1
-    dw = -(2.0)/(Kwp)
-
-    # need angular momentum
-    _,Lval = OrbitalElements.EL_from_ae(a,e,model,params.Orbitalparams)
-
-    # Initialise the state vectors: w, θ1, (θ2-psi)
-    # Reverse integration, starting at apocenter
-    w, θ1, θ2 = 1.0, pi, 0.0
-
-    # Initialize integrand
-    dθ1dw, dθ2dw = Wintegrand(model,w,a,e,Lval,Ω1,Ω2,basis,params)
-
-    # Initialize container
-    fill!(restab,0.0)
-
-    # start the integration loop now that we are initialised
-    # at each step, we are performing an RK4-like calculation
-    for istep=1:Kwp
-
-        ####
-        # RK4 Step 1
-        ####
-        # compute the first prefactor
-        pref1 = (1.0/6.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*θ1 + n2*θ2)
-
-        # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nradial
-            @inbounds restab[np] += pref1*basis.tabUl[np]
-        end
-
-        # update velocities at end of step 1
-        dθ1_1 = dw*dθ1dw
-        dθ2_1 = dw*dθ2dw
-
-        ####
-        # RK4 Step 2
-        ####
-        # Update the time by half a timestep
-        w += 0.5*dw
-
-        # Update integrand
-
-        dθ1dw, dθ2dw = Wintegrand(model,w,a,e,Lval,Ω1,Ω2,basis,params)
-
-        # common prefactor for all the increments
-        # depends on the updated (θ1+0.5*dθ1_1,θ2+0.5*dθ2_1)
-        # the factor (1.0/3.0) comes from RK4
-        pref2 = (1.0/3.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*(θ1+0.5*dθ1_1) + n2*(θ2+0.5*dθ2_1))
-
-        # update velocities at end of step 2
-        dθ1_2 = dw*dθ1dw
-        dθ2_2 = dw*dθ2dw
-
-        ####
-        # RK4 step 3
-        ####
-        # The time, u, is not updated for this step
-        # For this step, no need to re-compute the basis elements, as r has not been updated
-        # Common prefactor for all the increments
-        # Depends on the updated (θ1+0.5*dθ1_2,θ2+0.5*dθ2_2)
-        # the factor (1.0/3.0) comes from RK4
-        pref3 = (1.0/3.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*(θ1+0.5*dθ1_2) + n2*(θ2+0.5*dθ2_2))
-
-        # Loop over the radial indices to sum basis contributions
-        # Contribution of steps 2 and 3 together
-        for np=1:basis.nradial
-            @inbounds restab[np] += (pref2+pref3)*basis.tabUl[np]
-        end
-
-        dθ1_3 = dθ1_2 # Does not need to be updated
-        dθ2_3 = dθ2_2 # Does not need to be updated
-
-        ####
-        # RK4 step 4
-        ####
-        w += 0.5*dw # Updating the time by half a timestep: we are now at the next u value
-
-        # Update integrand
-
-        dθ1dw, dθ2dw = Wintegrand(model,w,a,e,Lval,Ω1,Ω2,basis,params)
-
-        # Common prefactor for all the increments
-        # Depends on the updated (θ1+dθ1_3,θ2+dθ2_3)
-        # The factor (1.0/6.0) comes from RK4
-        pref4 = (1.0/6.0)*dw*(1.0/(pi))*dθ1dw*cos(n1*(θ1+dθ1_3) + n2*(θ2+dθ2_3))
-
-        # Loop over the radial indices to sum basis contributions
-        for np=1:basis.nradial
-            @inbounds restab[np] += pref4*basis.tabUl[np]
-        end
-
-        dθ1_4 = dw*dθ1dw # Current velocity for θ1
-        dθ2_4 = dw*dθ2dw # Current velocity for θ2
-
-        # Update the positions using RK4-like sum (Simpson's 1/3 rule)
-        θ1 += (dθ1_1 + 2.0*dθ1_2 + 2.0*dθ1_3 + dθ1_4)/(6.0)
-        θ2 += (dθ2_1 + 2.0*dθ2_2 + 2.0*dθ2_3 + dθ2_4)/(6.0)
-
-        # clean or check nans?
-
-    end # RK4 integration
-
-    # check the state of θ1,θ2:
-    #println("(a,e)=",a," ",e," T1=",θ1," T2=",θ2)
-
-    # -1 factor (reverse integration)
-    for np=1:basis.nradial
-        @inbounds restab[np] *= -1.0
-    end
-
-    return nothing
-end
-
-
-"""
-with basisFT struct
-"""
-function WBasisFT(model::OrbitalElements.Potential,
-                  a::Float64,e::Float64,
-                  Ω1::Float64,Ω2::Float64,
-                  n1::Int64,n2::Int64,
-                  basisFT::FourierTransformedBasis,
-                  params::LinearParameters)
-
-    # Basis FT
-    WBasisFT(model,a,e,Ω1,Ω2,n1,n2,basisFT.basis,basisFT.UFT,params)
-end
-
-"""
-without Ω1, Ω2
-"""
-function WBasisFT(model::OrbitalElements.Potential,
-                  a::Float64,e::Float64,
-                  n1::Int64,n2::Int64,
-                  basisFT::FourierTransformedBasis,
-                  params::LinearParameters)
-
-    # Frequencies
-    Ω1, Ω2 = OrbitalElements.frequencies_from_ae(a,e,model,params.Orbitalparams)
-
-    # Basis FT
-
-    WBasisFT(model,a,e,Ω1,Ω2,n1,n2,basisFT.basis,basisFT.UFT,params)
-end
-
 
 ########################################################################
 #
@@ -299,17 +274,16 @@ end
 function MakeWmatUV(model::OrbitalElements.Potential,
                     n1::Int64,n2::Int64,
                     tabu::Vector{Float64},
-                    basisFT::FourierTransformedBasis,
+                    basis::AstroBasis.AbstractAstroBasis,
                     params::LinearParameters)
 
     @assert length(tabu) == params.Ku "LinearResponse.WMat.MakeWmatUV: tabu length is not Ku."
 
     Orbitalparams = params.Orbitalparams
-    Ω₀ = OrbitalElements.frequency_scale(model)
+    Ω₀ = frequency_scale(model)
 
     # allocate the results matrices
     Wdata = WMatdataCreate(model,n1,n2,params)
-    ωmin, ωmax = Wdata.ωmin, Wdata.ωmax
 
     # start the loop
     for kuval = 1:params.Ku
@@ -320,8 +294,8 @@ function MakeWmatUV(model::OrbitalElements.Potential,
         (params.VERBOSE > 2) && println("LinearResponse.WMat.MakeWMat: on step $kuval of $Ku: u=$uval.")
 
         # get the corresponding v boundary values
-        resonance = OrbitalElements.Resonance(n1,n2,model,Orbitalparams)
-        vmin,vmax = OrbitalElements.v_boundaries(uval,resonance,model,Orbitalparams)
+        resonance = Resonance(n1,n2,model,Orbitalparams)
+        vmin,vmax = v_boundaries(uval,resonance,model,Orbitalparams)
 
         # saving them
         Wdata.tabvminmax[1,kuval], Wdata.tabvminmax[2,kuval] = vmin, vmax
@@ -334,17 +308,17 @@ function MakeWmatUV(model::OrbitalElements.Potential,
 
             # get the current v value
             vp   = δvp*(kvval-0.5)
-            vval = vFromvp(vp,vmin,vmax,params.VMAPN)
+            vval = v_from_vp(vp, vmin, vmax, n=params.VMAPN)
 
             ####
             # (u,v) -> (a,e)
             ####
             # (u,v) -> (α,β)
-            α,β = OrbitalElements.αβ_from_uv(uval,vval,resonance)
+            α,β = αβ_from_uv(uval,vval,resonance)
             # (α,β) -> (Ω1,Ω2)
-            Ω₁, Ω₂ = OrbitalElements.frequencies_from_αβ(α,β,Ω₀)
+            Ω₁, Ω₂ = frequencies_from_αβ(α,β,Ω₀)
             # (Ω1,Ω2) -> (a,e)
-            a,e = OrbitalElements.ae_from_frequencies(Ω₁,Ω₂,model,Orbitalparams)
+            a,e = ae_from_frequencies(Ω₁,Ω₂,model,Orbitalparams)
 
             (params.VERBOSE > 2) && print("v=$kvval,o1=$Ω1,o2=$Ω2;")
 
@@ -355,16 +329,19 @@ function MakeWmatUV(model::OrbitalElements.Potential,
             # save (a,e) values for later
             Wdata.tabAE[1,kvval,kuval], Wdata.tabAE[2,kvval,kuval] = a, e
             # save (E,L) values for later
-            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = OrbitalElements.EL_from_ae(a,e,model,Orbitalparams)
+            E, L = EL_from_ae(a,e,model,Orbitalparams)
+            Wdata.tabEL[1,kvval,kuval], Wdata.tabEL[2,kvval,kuval] = E, L
 
             # compute the Jacobian of the (α,β) ↦ (E,L) mapping here. a little more expensive, but savings in the long run
-            Wdata.tabJ[kvval,kuval] = OrbitalElements.ae_to_EL_jacobian(a,e,model,Orbitalparams)/OrbitalElements.ae_to_αβ_jacobian(a,e,model,Orbitalparams)
+            Wdata.tabJ[kvval,kuval] = ae_to_EL_jacobian(a,e,model,Orbitalparams)/ae_to_αβ_jacobian(a,e,model,Orbitalparams)
 
             # Compute W(u,v) for every basis element using RK4 scheme
-            WBasisFT(model,a,e,Ω₁,Ω₂,n1,n2,basisFT,params)
+            basisft = angle_fouriertransform(
+                basis, a, e, n1, n2, model, params, L=L, Ω1=Ω₁, Ω2=Ω₂
+            )
 
-            for np = 1:basisFT.basis.nradial
-                Wdata.tabW[np,kvval,kuval] = basisFT.UFT[np]
+            for np = 1:basis.nradial
+                Wdata.tabW[np,kvval,kuval] = basisft[np]
             end
         end
     end
@@ -395,8 +372,7 @@ function RunWmat(model::OrbitalElements.Potential,
     CheckFHTCompatibility(FHT,params)
 
     # FT bases prep.
-    basisFT = BasisFTcreate(basis)
-    basesFT = [deepcopy(basisFT) for k=1:Threads.nthreads()]
+    bases = [deepcopy(basis) for k=1:Threads.nthreads()]
 
     # print the length of the list of resonance vectors
     (params.VERBOSE > 0) && println("LinearResponse.WMat.RunWmat: Number of resonances to compute: $(params.nbResVec)")
@@ -418,11 +394,11 @@ function RunWmat(model::OrbitalElements.Potential,
         if (params.VERBOSE > 1) && (k == 1)
             @time Wdata = MakeWmatUV(model,
                                      n1,n2,FHT.tabu,
-                                     basesFT[k],params)
+                                     bases[k],params)
         else
             Wdata = MakeWmatUV(model,
                                n1,n2,FHT.tabu,
-                               basesFT[k],params)
+                               bases[k],params)
         end
 
         # now save: we are saving not only W(u,v), but also a(u,v) and e(u,v).
