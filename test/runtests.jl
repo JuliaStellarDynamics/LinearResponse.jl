@@ -5,6 +5,7 @@ TEST against known values
 """
 
 using AstroBasis
+using DistributionFunctions
 using FiniteHilbertTransform
 using HDF5
 using LinearResponse
@@ -38,16 +39,7 @@ end
 
 # Model Distribution Function
 dfname = "roi0.75"
-
-function ndFdJ(n1::Int64,n2::Int64,
-               E::Float64,L::Float64,
-               ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.75)
-
-    return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
-
-end
-
+distributionfunction = OsipkovMerrittPlummer(0.75,model)
 
 # Linear Response integration parameters
 Ku = 12    # number of Legendre integration sample points
@@ -101,7 +93,7 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=
 # 2. Run the G function calculation
 # 3. Compute the matrix coefficients
 println("Time to evaluate RunLinearResponse:")
-@time LinearResponse.RunLinearResponse(model,ndFdJ,FHT,basis,Parameters)
+@time LinearResponse.RunLinearResponse(model,distributionfunction,FHT,basis,Parameters)
 
 # construct a grid of frequencies to probe
 tabω = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
