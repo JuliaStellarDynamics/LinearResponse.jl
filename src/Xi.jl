@@ -140,16 +140,16 @@ end
 run the full linear response (Basis FT, G(u) computation and coefficient decomposition)
 """
 function RunLinearResponse(model::OrbitalElements.Potential,
-                            ndFdJ::F0,
+                            distributionfunction::DistributionFunction,
                             FHT::FiniteHilbertTransform.AbstractFHT,
                             basis::AstroBasis.AbstractAstroBasis,
-                            params::LinearParameters) where {F0 <: Function}
+                            params::LinearParameters)
     
     # call the function to construct W matrices
     RunWmat(model,FHT,basis,params)
 
     # call the function to compute G(u) functions
-    RunGfunc(ndFdJ,FHT,params)
+    RunGfunc(distributionfunction,FHT,params)
 
     # call the function to compute decomposition coefficients
     RunAXi(FHT,params)

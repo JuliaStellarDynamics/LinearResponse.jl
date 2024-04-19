@@ -3,11 +3,12 @@ the input file for computing the Fiducial isotropic calculation in the isochrone
 """
 
 
-import OrbitalElements
-import AstroBasis
-import FiniteHilbertTransform
-import LinearResponse
+using AstroBasis
+using DistributionFunctions
+using FiniteHilbertTransform
 using HDF5
+using LinearResponse
+using OrbitalElements
 
 
 # Basis
@@ -19,35 +20,30 @@ lmax,nradial = 1,100
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 # Model Potential
-modelname = "IsochroneE"
-bc, M = 1.,1.
-ψ(r::Float64)::Float64   = OrbitalElements.ψIsochrone(r,bc,M,G)
-dψ(r::Float64)::Float64  = OrbitalElements.dψIsochrone(r,bc,M,G)
-d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψIsochrone(r,bc,M,G)
-Ω₀ = OrbitalElements.Ω₀Isochrone(bc,M,G)
+const modelname = "IsochroneE2"
+const bc, M = 1.,1. # G is defined above: must agree with basis!
+model = OrbitalElements.NumericalIsochrone()
+
+rmin = 0.0
+rmax = Inf
 
 
-# define the distribution function and give it a name
 dfname = "isotropic"
+distributionfunction = IsotropicIsochrone(model)
 
-function ndFdJ(n1::Int64,n2::Int64,E::Float64,L::Float64,ndotOmega::Float64;bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=1.)
-    dFdE = OrbitalElements.isochroneisotropicdDFdE(E,bc,M,astronomicalG)
-    res = ndotOmega*dFdE
-    return res
-end
 
 
 # integration parameters
-Ku = 200
-Kv = 200
-Kw = 200
+Ku = 20
+Kv = 20
+Kw = 20
 
 # define the helper for the Finite Hilbert Transform
 FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 
 lharmonic = 1
-n1max = 10  # maximum number of radial resonances to consider
+n1max = 4  # maximum number of radial resonances to consider
 
 # output directories
 wmatdir  = "wmat/"
@@ -70,18 +66,16 @@ ADAPTIVEKW= false
 KUTRUNCATION=10000
 
 # use almost entirely default parameters
-OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,
-                                             EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+OEparams = OrbitalElements.OrbitalParameters(EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
                                              ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=OrbitalElements.frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
                                              modelname=modelname,dfname=dfname,
                                              wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
                                              lharmonic=lharmonic,n1max=n1max,
-                                             KuTruncation=KUTRUNCATION,
                                              VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
                                              VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW)
 

@@ -10,7 +10,7 @@
 
 function to compute G(u)
 """
-function MakeGu(ndFdJ::Function,
+function MakeGu(distributionfunction::DistributionFunction,
                 n1::Int64,n2::Int64,
                 Wdata::FourierTransformedBasisData,
                 tabu::Vector{Float64},
@@ -93,7 +93,8 @@ function MakeGu(ndFdJ::Function,
             # get the resonance vector
             ndotΩ = n1*Ω1 + n2*Ω2
             # compute dF/dJ: call out for value
-            valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotΩ)
+            #valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotΩ)
+            valndFdJ = ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
 
             # Common part of the integrand (to every np,nq)
             # True volume element (including Jacobians and normalization factors 
@@ -138,7 +139,7 @@ end
 
 @TO DESCRIBE
 """
-function RunGfunc(ndFdJ::Function,
+function RunGfunc(distributionfunction::DistributionFunction,
                   FHT::FiniteHilbertTransform.AbstractFHT,
                   params::LinearParameters)
 
@@ -171,7 +172,7 @@ function RunGfunc(ndFdJ::Function,
         close(file)
 
         # G(u) computation for this resonance number
-        tabGXi = MakeGu(ndFdJ,n1,n2,Wdata,FHT.tabu,params)
+        tabGXi = MakeGu(distributionfunction,n1,n2,Wdata,FHT.tabu,params)
 
         # Saving in file
         h5open(outputfilename, "w") do file

@@ -6,10 +6,10 @@ for the isotropic Plummer model: compute linear response theory
 inputfile = "ModelParamPlummerISOFiducial.jl"
 include(inputfile)
 
-import LinearResponse
+using LinearResponse
 using HDF5
 
-LinearResponse.RunLinearResponse(ψ,dψ,d2ψ,ndFdJ,FHT,basis,Parameters)
+LinearResponse.RunLinearResponse(model,distributionfunction,FHT,basis,Parameters)
 
 # construct a grid of frequencies to probe
 tabomega = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)

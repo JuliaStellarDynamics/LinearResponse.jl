@@ -16,6 +16,7 @@ Must include:
 
 using OrbitalElements
 using AstroBasis
+using DistributionFunctions
 using FiniteHilbertTransform
 using LinearResponse
 using HDF5
@@ -53,21 +54,28 @@ const modedir = "xifunc/"
 ##############################
 # Model DF
 ##############################
-const qDF = 6
-const σDF = OrbitalElements.σMestelDF(R0,V0,qDF)
-const CDF = OrbitalElements.NormConstMestelDF(G,R0,V0,qDF)
 
+const qDF = 6
 const Rin, Rout, Rmax = 1., 11.5, 20.   # Tapering radii
 const ξDF = 1.0                         # Self-gravity fraction
-const μDF, νDF = 5, 8                  # Tapering exponants
+const μDF, νDF = 2, 2                  # Tapering exponants
+
+# is this meant to be truncated or not truncated?
+distributionfunction = TruncatedZangDisc(model,qDF,νDF,Rin,μDF,Rout,Rmax,ξDF,G)
+
+const σDF = σMestelDF(distributionfunction)
+const CDF = NormConstMestelDF(distributionfunction)
 
 const dfname = "Zang_q_"*string(qDF)*"_xi_"*string(ξDF)*"_mu_"*string(μDF)*"_nu_"*string(νDF)
 
+
+"""
 const DF(E::Float64,L::Float64) = ξDF * OrbitalElements.ZangDF(E,L,R0,Rin,Rout,Rmax,V0,CDF,qDF,σDF,μDF,νDF)
 
 const ndFdJ(n1::Int64,n2::Int64,
             E::Float64,L::Float64,
             ndotΩ::Float64)   = ξDF * OrbitalElements.ZangndDFdJ(n1,n2,E,L,ndotΩ,R0,Rin,Rout,Rmax,V0,CDF,qDF,σDF,μDF,νDF)
+"""
 
 #####
 # Parameters
@@ -92,7 +100,7 @@ const VMAPN = 2
 const KuTruncation=1000
 
 const lharmonic = 2
-const n1max = 4  # maximum number of radial resonances to consider
+const n1max = 2  # maximum number of radial resonances to consider
 
 
 ####

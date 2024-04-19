@@ -2,12 +2,12 @@
 for the radially-biased Plummer model: compute linear response theory
 """
 
-using OrbitalElements
 using AstroBasis
+using DistributionFunctions
 using FiniteHilbertTransform
-using LinearResponse
 using HDF5
-
+using LinearResponse
+using OrbitalElements
 using Plots
 
 
@@ -21,19 +21,11 @@ basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 # Model Potential
 const modelname = "PlummerE"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
-model = OrbitalElements.PlummerPotential()
+model = OrbitalElements.NumericalPlummer()
 
 # Model Distribution Function
 dfname = "roi0.75"
-
-function ndFdJ(n1::Int64,n2::Int64,
-               E::Float64,L::Float64,
-               ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.75)
-
-    return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
-
-end
+distributionfunction = OsipkovMerrittPlummer(0.75,model)
 
 
 # Linear Response integration parameters
@@ -97,7 +89,7 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=
 @time LinearResponse.RunWmat(model,FHT,basis,Parameters)
 
 # call the function to compute G(u) functions
-@time LinearResponse.RunGfunc(ndFdJ,FHT,Parameters)
+@time LinearResponse.RunGfunc(distributionfunction,FHT,Parameters)
 
 # call the function to compute decomposition coefficients
 @time LinearResponse.RunAXi(FHT,Parameters)

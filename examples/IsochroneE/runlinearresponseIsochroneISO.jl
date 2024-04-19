@@ -10,7 +10,7 @@ import LinearResponse
 using HDF5
 
 # combine all steps into one wrapper:
-LinearResponse.RunLinearResponse(ψ,dψ,d2ψ,ndFdJ,FHT,basis,Parameters)
+LinearResponse.RunLinearResponse(model,distributionfunction,FHT,basis,Parameters)
 
 # construct a grid of frequencies to probe
 tabomega = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)

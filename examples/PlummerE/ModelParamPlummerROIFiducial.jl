@@ -25,15 +25,8 @@ d2ψ(r::Float64)::Float64 = OrbitalElements.d2ψPlummer(r,bc,M,G)
 
 # Model Distribution Function
 dfname = "roi0.75"
+distributionfunction = OsipkovMerrittPlummer(0.75,model)
 
-function ndFdJ(n1::Int64,n2::Int64,
-               E::Float64,L::Float64,
-               ndotOmega::Float64;
-               bc::Float64=1.,M::Float64=1.,astronomicalG::Float64=1.,Ra::Float64=0.75)
-
-    return OrbitalElements.plummer_ROI_ndFdJ(n1,n2,E,L,ndotOmega,bc,M,astronomicalG,Ra)
-
-end
 
 
 # Linear Response integration parameters

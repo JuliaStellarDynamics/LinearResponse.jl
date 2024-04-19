@@ -2,6 +2,7 @@ module LinearResponse
 
 # bring in the external dependencies
 using AstroBasis
+using DistributionFunctions
 using FiniteHilbertTransform
 using HDF5
 using LinearAlgebra # Access to Symmetric
