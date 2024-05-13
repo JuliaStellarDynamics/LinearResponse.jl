@@ -13,3 +13,4 @@ OrbitalElements = "a3b07092-bde3-4843-b84f-c597d614ec7b"
 
 [compat]
 julia = "1.6.7"
+OrbitalElements = "1"
