@@ -10,7 +10,7 @@ VERBOSE flag rules
 
 
 """
-    RunAXi(FHT,params)
+    compute_response_coefficients(FHT,params)
 
 function to make the decomposition coefficients "a" of the response matrix M
 
@@ -18,7 +18,7 @@ these values do not depend on the frequency being evaluated: which makes them go
 
 is this struggling from having to pass around a gigantic array? what if we did more splitting?
 """
-function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
+function compute_response_coefficients(FHT::FiniteHilbertTransform.AbstractFHT,
                 params::LinearParameters)
 
     # check the directories + FHT values against the Parameters
@@ -45,12 +45,12 @@ function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
 
         n1, n2 = tabResVec[1,nres], tabResVec[2,nres]
 
-        (params.VERBOSE > 0) && println("LinearResponse.Xi.RunAXi: Starting on ($n1,$n2).")
+        (params.VERBOSE > 0) && println("LinearResponse.Xi.compute_response_coefficients: Starting on ($n1,$n2).")
 
         outputfilename = AxiFilename(n1,n2,params)
         # Check if the file already exist / has enough basis elements / overwritting imposed
         # false if no computation needed, then continue
-        CheckFileNradial(outputfilename,params,"LinearResponse.Xi.RunAXi: ($n1,$n2) resonance") || continue
+        CheckFileNradial(outputfilename,params,"LinearResponse.Xi.compute_response_coefficients: ($n1,$n2) resonance") || continue
 
         # Read G(u) from the GFunc file for this resonance
         gfuncfilename  = GFuncFilename(n1,n2,params)
@@ -63,7 +63,7 @@ function RunAXi(FHT::FiniteHilbertTransform.AbstractFHT,
 
                 for k=1:Ku
                     # Warning if to many Inf or Nan values
-                    #(warntab[k] > 3) && println("LinearResponse.Xi.RunAXi: NaN/Inf (warnflag=$(warntab[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(restab[k]).")
+                    #(warntab[k] > 3) && println("LinearResponse.Xi.compute_response_coefficients: NaN/Inf (warnflag=$(warntab[k])) values for (n1,n2)=($n1,$n2), (np,nq)=($np,$nq), and k=$k: $(restab[k]).")
 
                     # populate the symmetric matrix
                     tabaMcoef[k,nq,np] = restab[k] # Element (np,nq)
@@ -152,5 +152,5 @@ function RunLinearResponse(model::OrbitalElements.Potential,
     RunGfunc(distributionfunction,FHT,params)
 
     # call the function to compute decomposition coefficients
-    RunAXi(FHT,params)
+    compute_response_coefficients(FHT,params)
 end

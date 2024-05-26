@@ -39,7 +39,7 @@ end
 
 # Model Distribution Function
 dfname = "roi0.75"
-distributionfunction = OsipkovMerrittPlummer(0.75,model)
+distributionfunction = OsipkovMerrittPlummerEL(0.75,model)
 
 # Linear Response integration parameters
 Ku = 12    # number of Legendre integration sample points

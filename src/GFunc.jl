@@ -5,6 +5,29 @@
 #
 ########################################################################
 
+
+"""
+    ndFdJ(EL::Tuple{Float64,Float64},ΩΩ::Tuple{Float64,Float64},res::Resonance, distributionfunction::DistributionFunction)
+
+Distribution function derivative for `distributionfunction` for a given `E`,`L`.
+
+    TODO: make frequencies an optional input
+"""
+function ndFdJ(EL::Tuple{Float64,Float64},ΩΩ::Tuple{Float64,Float64},resonance::Resonance, df::EnergyAngularMomentumDistributionFunction)
+
+        DFDEval = DFDE(EL,df)
+        DFDLval = DFDL(EL,df)
+        Ω1,Ω2   = ΩΩ
+        n1,n2   = resonance.number[1],resonance.number[2]
+        ndotΩ   = n1*Ω1 + n2*Ω2
+
+        return DFDEval * ndotΩ + DFDLval * n2
+
+    end
+
+
+
+
 """
     MakeGu(ndFdJ,n1,n2,Wdata,tabu[,params])
 

@@ -10,18 +10,38 @@ VERBOSE flag rules
 
 
 """
-    detXi(IMat,tabM[,ξ])
+    permitivity_determinant(identity_matrix, tabM; ξ=1.0) -> ComplexF64
 
-determinant of the susceptibility matrix I - ξ*M(ω) 
-for known M(ω) and active fraction ξ (default 1).
+Calculate the determinant of the permitivity matrix `I - ξ*M(ω)`.
+
+# Arguments
+- `identity_matrix::AbstractMatrix{ComplexF64}`: The identity matrix.
+- `tabM::AbstractMatrix{ComplexF64}`: The matrix `M(ω)` representing the frequency-dependent response.
+- `ξ::Float64=1.0`: The active fraction, defaulting to 1.
+
+# Returns
+- `ComplexF64`: The determinant of the susceptibility matrix `I - ξ*M(ω)`.
+
+# Details
+This function computes the determinant of the matrix `I - ξ*M(ω)`, assuming the resulting matrix is symmetric. The function uses Julia's `Symmetric` type to inform the determinant computation that the matrix is symmetric, which can optimize the computation. The result is the real portion of the determinant.
+
+# Examples
+```julia
+identity_matrix = [1 + 0im 0 + 0im; 0 + 0im 1 + 0im]
+tabM = [0.5 + 0.1im 0.2 + 0.2im; 0.2 + 0.2im 0.3 + 0.1im]
+ξ = 0.9
+
+det_value = permitivity_determinant(identity_matrix, tabM, ξ=ξ)
+println(det_value)
+# Output: ComplexF64 value representing the determinant of I - ξ*M(ω)
 """
-function detXi(IMat::AbstractMatrix{ComplexF64},
+function permitivity_determinant(identity_matrix::AbstractMatrix{ComplexF64},
                tabM::AbstractMatrix{ComplexF64};
                ξ::Float64=1.0)::ComplexF64
 
     # Computing the determinant of (I-M).
     # ATTENTION, we tell julia that the matrix is symmetric
-    val = det(Symmetric(IMat-ξ*tabM))
+    val = det(Symmetric(identity_matrix-ξ*tabM))
 
     # only save the real portion
     return val # Output
@@ -38,12 +58,12 @@ function RunDeterminant(ωlist::Array{ComplexF64},
 
     # Preparinng computations of the response matrices
     tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(),FHT,params)
-    IMatlist = makeIMat(params.nradial,Threads.nthreads())
+    identity_matrixlist = make_identity_matrix(params.nradial,Threads.nthreads())
 
     # how many omega values are we computing?
     nω = length(ωlist)
     # allocate containers for determinant and min eigenvalue
-    tabdetXi = zeros(ComplexF64,nω)
+    tabpermitivity_determinant = zeros(ComplexF64,nω)
 
     (params.VERBOSE > 0) && println("LinearResponse.Determinant.RunDeterminant: computing $nω frequency values.")
 
@@ -58,7 +78,7 @@ function RunDeterminant(ωlist::Array{ComplexF64},
             tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],params)
         end
 
-        tabdetXi[i] = detXi(IMatlist[k],tabMlist[k],ξ=ξ)
+        tabpermitivity_determinant[i] = permitivity_determinant(identity_matrixlist[k],tabMlist[k],ξ=ξ)
     end
 
     h5open(DetFilename(params,ξ=ξ), "w") do file
@@ -68,11 +88,11 @@ function RunDeterminant(ωlist::Array{ComplexF64},
         write(file,"omega",real(ωlist))
         write(file,"eta",imag(ωlist))
         # Results
-        write(file,"det",tabdetXi)
+        write(file,"det",tabpermitivity_determinant)
         # Parameters
         WriteParameters(file,params)
     end
-    return tabdetXi
+    return tabpermitivity_determinant
 end
 
 
@@ -91,7 +111,7 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
     # Preparinng computations of the response matrices
     MMat, tabaMcoef, tabωminωmax = PrepareM(params)
-    IMat = makeIMat(params.nradial)
+    identity_matrix = make_identity_matrix(params.nradial)
 
     omgval = Ωguess + im*ηguess
     domega = 1.e-4
@@ -109,11 +129,11 @@ function FindZeroCrossing(Ωguess::Float64,ηguess::Float64,
 
         tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
-        centralvalue = detXi(IMat,MMat,ξ=ξ)
+        centralvalue = permitivity_determinant(identity_matrix,MMat,ξ=ξ)
 
         tabM!(omgvaloff,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
-        offsetvalue = detXi(IMat,MMat,ξ=ξ)
+        offsetvalue = permitivity_determinant(identity_matrix,MMat,ξ=ξ)
 
         # ignore the imaginary part
         derivative = real(offsetvalue - centralvalue)/domega

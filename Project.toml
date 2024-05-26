@@ -13,6 +13,7 @@ DistributionFunctions = "c869f47d-2815-40f9-b874-25ebe83f43af"
 
 [compat]
 julia = "1.6.7"
+OrbitalElements = "2"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

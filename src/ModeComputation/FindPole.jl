@@ -2,7 +2,7 @@
 
 
 function GoStep(omgval::ComplexF64,
-                IMat::Array{ComplexF64,2},MMat::Array{ComplexF64,2},
+                identity_matrix::Array{ComplexF64,2},MMat::Array{ComplexF64,2},
                 FHT::FiniteHilbertTransform.AbstractFHT,
                 tabaMcoef::Array{Float64,4},
                 tabωminωmax::Matrix{Float64},
@@ -14,7 +14,7 @@ function GoStep(omgval::ComplexF64,
     tabM!(omgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
 
     # compute the determinant of I-M
-    detXival = detXi(IMat,MMat,ξ=ξ)
+    permitivity_determinant_val = permitivity_determinant(identity_matrix,MMat,ξ=ξ)
     # if this value is bad, should immediately break
 
     # now compute a Jacobian via finite differences
@@ -22,35 +22,35 @@ function GoStep(omgval::ComplexF64,
     upomgval = omgval + DSIZE*1im
 
     tabM!(riomgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
-    detXivalri = detXi(IMat,MMat,ξ=ξ)
+    permitivity_determinant_valri = permitivity_determinant(identity_matrix,MMat,ξ=ξ)
 
     tabM!(upomgval,MMat,tabaMcoef,tabωminωmax,FHT,params)
-    detXivalup = detXi(IMat,MMat,ξ=ξ)
+    permitivity_determinant_valup = permitivity_determinant(identity_matrix,MMat,ξ=ξ)
 
-    dXirir = real(detXivalri-detXival)/DSIZE
-    dXirii = imag(detXivalri-detXival)/DSIZE
-    dXiupr = real(detXivalup-detXival)/DSIZE
-    dXiupi = imag(detXivalup-detXival)/DSIZE
+    dXirir = real(permitivity_determinant_valri-permitivity_determinant_val)/DSIZE
+    dXirii = imag(permitivity_determinant_valri-permitivity_determinant_val)/DSIZE
+    dXiupr = real(permitivity_determinant_valup-permitivity_determinant_val)/DSIZE
+    dXiupi = imag(permitivity_determinant_valup-permitivity_determinant_val)/DSIZE
 
     # jacobian = [dXirir dXiupr ; dXirii dXiupi]
-    # curpos = [real(detXival);imag(detXival)]
+    # curpos = [real(permitivity_determinant_val);imag(permitivity_determinant_val)]
     # increment = jacobian \ (-curpos)
 
-    increment1, increment2 = OrbitalElements._inverse_2d(dXirir,dXiupr,dXirii,dXiupi,-real(detXival),-imag(detXival))
+    increment1, increment2 = OrbitalElements._inverse_2d(dXirir,dXiupr,dXirii,dXiupi,-real(permitivity_determinant_val),-imag(permitivity_determinant_val))
 
     # omgval += increment[1] + increment[2]*1im
     omgval += increment1 + increment2*1im
     if params.VERBOSE > 0
-        println("detXi=$detXival")
+        println("permitivity_determinant=$permitivity_determinant_val")
         println("omega=$omgval")
     end
 
-    return omgval,detXival
+    return omgval,permitivity_determinant_val
 end
 
 
 function FindDeterminantZero(startingomg::ComplexF64,
-                             IMat::Array{ComplexF64,2},MMat::Array{ComplexF64,2},
+                             identity_matrix::Array{ComplexF64,2},MMat::Array{ComplexF64,2},
                              FHT::FiniteHilbertTransform.AbstractFHT,
                              tabaMcoef::Array{Float64,4},
                              tabωminωmax::Matrix{Float64},
@@ -61,15 +61,15 @@ function FindDeterminantZero(startingomg::ComplexF64,
                              NSEARCH::Int64=100)
 
     # initial values
-    detXival = 1.0
+    permitivity_determinant_val = 1.0
     omgval = startingomg
     stepnum = 0
 
-    while abs(detXival) > TOL
+    while abs(permitivity_determinant_val) > TOL
 
-        omgval,detXival = GoStep(omgval,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,ξ=ξ,DSIZE=DSIZE)
+        omgval,permitivity_determinant_val = GoStep(omgval,identity_matrix,MMat,FHT,tabaMcoef,tabωminωmax,params,ξ=ξ,DSIZE=DSIZE)
 
-        if abs(detXival) > 1.0
+        if abs(permitivity_determinant_val) > 1.0
             break
         end
 
@@ -82,8 +82,8 @@ function FindDeterminantZero(startingomg::ComplexF64,
     end
 
     # what happens when this goes wrong?
-    if abs(detXival) < TOL
-        return omgval,detXival
+    if abs(permitivity_determinant_val) < TOL
+        return omgval,permitivity_determinant_val
     end
 
     return NaN,NaN
@@ -99,9 +99,9 @@ function FindPole(startingomg::ComplexF64,
 
     # Preparinng computations of the response matrices
     MMat, tabaMcoef, tabωminωmax = PrepareM(params)
-    IMat = makeIMat(params.nradial)
+    identity_matrix = make_identity_matrix(params.nradial)
 
-    bestomg,detval = FindDeterminantZero(startingomg,IMat,MMat,FHT,tabaMcoef,tabωminωmax,params,ξ=ξ,TOL=TOL,DSIZE=DSIZE)
+    bestomg,detval = FindDeterminantZero(startingomg,identity_matrix,MMat,FHT,tabaMcoef,tabωminωmax,params,ξ=ξ,TOL=TOL,DSIZE=DSIZE)
 
     (params.VERBOSE >= 0) && println("Best O for n1max=$(params.n1max),nradial=$(params.nradial) == $bestomg")
 

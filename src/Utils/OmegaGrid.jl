@@ -6,13 +6,13 @@ make an identity matrix
 
 @IMPROVE: where should this live?
 """
-function makeIMat(nradial::Int64)
-    IMat = zeros(ComplexF64,nradial,nradial) # Static container for the identity matrix
+function make_identity_matrix(nradial::Int64)
+    identity_matrix = zeros(ComplexF64,nradial,nradial) # Static container for the identity matrix
     ##########
     for np=1:nradial # Loop over the radial elements to fill in the identity matrix
-        IMat[np,np] = 1.0 + 0.0im # Creating the identity matrix
+        identity_matrix[np,np] = 1.0 + 0.0im # Creating the identity matrix
     end
-    return IMat
+    return identity_matrix
 end
 
 """
@@ -20,10 +20,10 @@ make multiple identity matrices
 
 @IMPROVE: where should this live?
 """
-function makeIMat(nradial::Int64,nthreads::Int64)
-    IMat = makeIMat(nradial)
-    IMatlist = [deepcopy(IMat) for k=1:nthreads]
-    return IMatlist
+function make_identity_matrix(nradial::Int64,nthreads::Int64)
+    identity_matrix = make_identity_matrix(nradial)
+    identity_matrixlist = [deepcopy(identity_matrix) for k=1:nthreads]
+    return identity_matrixlist
 end
 
 """
