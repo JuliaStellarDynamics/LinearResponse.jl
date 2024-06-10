@@ -7,16 +7,17 @@
 
 
 """
-    ndFdJ(EL::Tuple{Float64,Float64},ΩΩ::Tuple{Float64,Float64},res::Resonance, distributionfunction::DistributionFunction)
+    _ndFdJ(EL::Tuple{Float64,Float64},ΩΩ::Tuple{Float64,Float64},res::Resonance, distributionfunction::DistributionFunction)
 
 Distribution function derivative for `distributionfunction` for a given `E`,`L`.
 
     TODO: make frequencies an optional input
 """
-function ndFdJ(EL::Tuple{Float64,Float64},ΩΩ::Tuple{Float64,Float64},resonance::Resonance, df::EnergyAngularMomentumDistributionFunction)
+function _ndFdJ(EL::Tuple{Float64,Float64},ΩΩ::Tuple{Float64,Float64},resonance::Resonance, df::EnergyAngularMomentumDF)
 
-        DFDEval = DFDE(EL,df)
-        DFDLval = DFDL(EL,df)
+        DFDEval,DFDLval = gradient(EL,df)
+
+        # still allow these to be an optional argument
         Ω1,Ω2   = ΩΩ
         n1,n2   = resonance.number[1],resonance.number[2]
         ndotΩ   = n1*Ω1 + n2*Ω2
@@ -117,7 +118,7 @@ function MakeGu(distributionfunction::DistributionFunction,
             ndotΩ = n1*Ω1 + n2*Ω2
             # compute dF/dJ: call out for value
             #valndFdJ  = ndFdJ(n1,n2,Eval,Lval,ndotΩ)
-            valndFdJ = ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
+            valndFdJ = _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
 
             # Common part of the integrand (to every np,nq)
             # True volume element (including Jacobians and normalization factors 

@@ -12,8 +12,10 @@ OrbitalElements = "a3b07092-bde3-4843-b84f-c597d614ec7b"
 DistributionFunctions = "c869f47d-2815-40f9-b874-25ebe83f43af"
 
 [compat]
-julia = "1.6.7"
-OrbitalElements = "2"
+julia = ">= 1.6"
+OrbitalElements = "2"  # Any version from 2.0.0 up
+AstroBasis = ">= 0.3.0"  # Any version from 0.3.0 up
+
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

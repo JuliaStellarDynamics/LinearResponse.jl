@@ -63,7 +63,7 @@ function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
                           VERBOSE::Int64=0)
 
     # Basis parameters
-    Basisparams = AstroBasis.GetParameters(basis)
+    Basisparams = AstroBasis.getparameters(basis)
 
     # Basis parameters
     dimension = Basisparams["dimension"]

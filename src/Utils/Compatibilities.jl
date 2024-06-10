@@ -65,9 +65,20 @@ function CheckBasisCompatibility(basis::AstroBasis.AbstractAstroBasis,
 
     compat = true
     for (key,value) in params.Basisparams
-        if value != getfield(basis,Symbol(key))
-            compat = false
-            break
+
+        # special case of dimension
+        if key == "dimension"
+            if value != dimension(basis)
+                compat = false
+                break
+            end
+        else
+
+            if value != getfield(basis,Symbol(key))
+                compat = false
+                break
+            end
+
         end
     end
     @assert compat "Incompatible basis and parameters."
