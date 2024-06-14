@@ -61,18 +61,18 @@ function angle_fouriertransform!(
     @assert length(result) == output_length "Result array length does not 
         match the function's output length."
 
-    if L == 0.0
-        # need angular momentum
-        _, L = EL_from_ae(a, e, model, params)
-    end
-    if Ω1 == 0.0 || Ω2 == 0.0
-        # need frequencies
-        Ω1, Ω2 = frequencies_from_ae(a, e, model, params)
-    end
-
     # Integration step
     Kwp = (params.ADAPTIVEKW) ? ceil(Int64,params.Kw/(0.1+(1-e))) : params.Kw
     Orbitalparams = params.Orbitalparams
+    
+    if L == 0.0
+        # need angular momentum
+        _, L = EL_from_ae(a, e, model, Orbitalparams)
+    end
+    if Ω1 == 0.0 || Ω2 == 0.0
+        # need frequencies
+        Ω1, Ω2 = frequencies_from_ae(a, e, model, Orbitalparams)
+    end
 
     # Caution : Reverse integration (lower error at apocenter than pericenter)
     # -> Result to multiply by -1
