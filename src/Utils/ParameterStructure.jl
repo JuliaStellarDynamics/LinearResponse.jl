@@ -4,7 +4,7 @@ TODO:
 
 """
 
-struct LinearParameters
+mutable struct LinearParameters
 
     # Orbital Elements parameters
     Orbitalparams::OrbitalElements.OrbitalParameters

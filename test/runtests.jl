@@ -79,7 +79,8 @@ OEparams = OrbitalElements.OrbitalParameters(EDGE=OrbitalElements.DEFAULT_EDGE,T
                                              ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=OrbitalElements.frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
+#Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=OrbitalElements.frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=15.,Ku=Ku,Kv=Kv,Kw=Kw,
                                              modelname=modelname,dfname=dfname,
                                              wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
                                              lharmonic=lharmonic,n1max=n1max,

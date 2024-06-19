@@ -144,6 +144,17 @@ function RunLinearResponse(model::OrbitalElements.Potential,
                             FHT::FiniteHilbertTransform.AbstractFHT,
                             basis::AstroBasis.AbstractAstroBasis,
                             params::LinearParameters)
+
+    # Check model against provided parameters
+    #OrbitalElements.frequency_scale(model)
+
+    # Check if frequency scale is set by the model already
+    Ω₀tmp = frequency_scale(model)
+
+    if Ω₀tmp != params.Ω₀ 
+        params.Ω₀ = Ω₀tmp
+        println("Overriding Ω₀ with model-set value.")
+    end
     
     # call the function to construct W matrices
     RunWmat(model,FHT,basis,params)
