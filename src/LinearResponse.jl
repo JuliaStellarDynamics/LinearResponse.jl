@@ -7,6 +7,7 @@ using FiniteHilbertTransform
 using HDF5
 using LinearAlgebra # Access to Symmetric
 using OrbitalElements
+using WignerD
 
 # Default values
 const defaultΩ₀ = 1.
@@ -23,6 +24,7 @@ include("Utils/CMatrix.jl")
 include("Utils/IO.jl")
 include("Utils/Compatibilities.jl")
 include("Utils/OmegaGrid.jl")
+include("Utils/WignerRotation.jl")
 
 # code to compute the Fourier transform basis functions
 include("WMat.jl")
