@@ -63,7 +63,7 @@ function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
     Basisparams = AstroBasis.GetParameters(basis)
 
     # Basis parameters
-    dimension = Basisparams["dimension"]
+    dimension = AstroBasis.dimension(basis)#Basisparams["dimension"]
     nradial = Basisparams["nradial"]
 
     # Resonance vectors
