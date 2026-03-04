@@ -19,6 +19,7 @@ include("Utils/ParameterStructure.jl")
 
 
 # helper functions for constructing basis list, resonance list, prefactors (3d), writing utilities, and frequency tables
+include("Utils/Multithreading.jl")
 include("Utils/Resonances.jl")
 include("Utils/CMatrix.jl")
 include("Utils/IO.jl")

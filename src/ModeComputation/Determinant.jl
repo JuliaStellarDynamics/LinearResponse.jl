@@ -67,10 +67,13 @@ function RunDeterminant(ωlist::Array{ComplexF64},
 
     (params.VERBOSE > 0) && println("LinearResponse.Determinant.RunDeterminant: computing $nω frequency values.")
 
-    # loop through all frequencies
-    Threads.@threads for i = 1:nω
+    pos_threadid = get_pos_threadid()
 
-        k = Threads.threadid()
+    # loop through all frequencies
+    Threads.@threads :static for i = 1:nω
+
+        tid = Threads.threadid()
+        k = pos_threadid[tid]
 
         if (i==2) && (params.VERBOSE>0) # skip the first in case there is compile time built in
             @time tabM!(ωlist[i],tabMlist[k],tabaMcoef,tabωminωmax,FHTlist[k],params)
