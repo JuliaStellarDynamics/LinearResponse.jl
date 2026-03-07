@@ -24,7 +24,7 @@ jobs:
               Pkg.add(url="https://github.com/JuliaStellarDynamics/DistributionFunctions.jl.git")
               Pkg.add(url="https://github.com/JuliaStellarDynamics/FiniteHilbertTransform.jl.git")
               Pkg.add(url="https://github.com/JuliaStellarDynamics/AstroBasis.jl.git")
-              Pkg.add(url="https://github.com/JuliaStellarDynamics/LinearResponse.jl.git")'
+              Pkg.add(url="https://github.com/JuliaStellarDynamics/LinearResponse.jl.git", rev="v0.11.0")'
             ls
             julia --project=lr -e '
               using Pkg
