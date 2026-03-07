@@ -379,10 +379,10 @@ function RunWmat(model::OrbitalElements.Potential,
     (params.VERBOSE > 0) && println("LinearResponse.WMat.RunWmat: Number of resonances to compute: $(params.nbResVec)")
 
     Threads.@threads :static for i = 1:params.nbResVec
-        tid = Threads.threadid() # threadid is dodgy : MASTER is 1 and SLAVE are 2, 3, ..., nbthreads+1. BUT IF SERIAL, threadid is only 2...
+        tid = Threads.threadid() # obtain Julia thread id; mapping to per-thread basis index is done via pos_threadid
         k = pos_threadid[tid]
 
-        # basis_local = take!(chnl)
+
         n1,n2 = params.tabResVec[1,i],params.tabResVec[2,i]
 
         (params.VERBOSE > 0) && println("LinearResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")

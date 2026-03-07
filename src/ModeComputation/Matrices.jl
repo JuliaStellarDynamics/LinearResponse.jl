@@ -70,7 +70,7 @@ function RunMatrices(ωlist::Array{ComplexF64},
 
     pos_threadid = get_pos_threadid()
 
-    # Loop through all frequencies using multithreading with dynamic scheduling
+    # Loop through all frequencies using multithreading with static scheduling
     Threads.@threads :static for i = 1:nω
         tid = Threads.threadid()
         k = pos_threadid[tid]
