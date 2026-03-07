@@ -41,7 +41,7 @@ FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 lharmonic = lmax
 n1max = 10  # maximum number of radial resonances to consider
-n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
+#n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
 
 # output directories
 wmatdir  = "wmat/"
