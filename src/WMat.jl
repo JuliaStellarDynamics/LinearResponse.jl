@@ -373,12 +373,16 @@ function RunWmat(model::OrbitalElements.Potential,
 
     # FT bases prep.
     bases = [deepcopy(basis) for k=1:Threads.nthreads()]
+    pos_threadid = get_pos_threadid()
 
     # print the length of the list of resonance vectors
     (params.VERBOSE > 0) && println("LinearResponse.WMat.RunWmat: Number of resonances to compute: $(params.nbResVec)")
 
-    Threads.@threads for i = 1:params.nbResVec
-        k = Threads.threadid()
+    Threads.@threads :static for i = 1:params.nbResVec
+        tid = Threads.threadid() # obtain Julia thread id; mapping to per-thread basis index is done via pos_threadid
+        k = pos_threadid[tid]
+
+
         n1,n2 = params.tabResVec[1,i],params.tabResVec[2,i]
 
         (params.VERBOSE > 0) && println("LinearResponse.WMat.RunWmat: Computing W for the ($n1,$n2) resonance.")

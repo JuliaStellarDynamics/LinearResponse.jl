@@ -68,9 +68,12 @@ function RunMatrices(ωlist::Array{ComplexF64},
 
     (params.VERBOSE > 0) && println("LinearResponse.Xi.RunMatrices: computing $nω frequency values.")
 
-    # Loop through all frequencies using multithreading with dynamic scheduling
-    Threads.@threads for i = 1:nω
-        k = Threads.threadid()
+    pos_threadid = get_pos_threadid()
+
+    # Loop through all frequencies using multithreading with static scheduling
+    Threads.@threads :static for i = 1:nω
+        tid = Threads.threadid()
+        k = pos_threadid[tid]
 
         try
             # Time the second frequency computation if verbosity is enabled
