@@ -30,7 +30,7 @@ jobs:
             ls
             julia --project=lr -e '
               using Pkg
-              Pkg.develop(PackageSpec(path="/home/runner/work/LinearResponse.jl/LinearResponse.jl"))'
+              Pkg.develop(PackageSpec(path="/home/runner/work/LinearResponse.jl/LinearResponse.jl/lr"))'
             julia --threads=1 --project=lr test/runtests.jl
 
 
