@@ -48,7 +48,7 @@ Kw = 20    # number of allocations is insensitive to this (also time, largely)?
 
 
 # Define the helper for the Finite Hilbert Transform
-FHT = LegendreFHT(Ku)
+FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 lharmonic = lmax
 n1max = 4  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
