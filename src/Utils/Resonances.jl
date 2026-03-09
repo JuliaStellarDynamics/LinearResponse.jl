@@ -172,7 +172,7 @@ ATTENTION, the (n1,n2) are determined for l=lharmonic
 """
 function MakeTabResVec2d(lharmonic::Int64,n1max::Int64,isEven::Bool=false)
     # calculate the number
-    nbResVec = GetNbResVec(lharmonic,n1max,2)
+    nbResVec = GetNbResVec(lharmonic,n1max,2,isEven)
 
     tabResVec = zeros(Int64,2,nbResVec)
     count = 1 # Initialisation of the counter
