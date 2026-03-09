@@ -118,9 +118,10 @@ end
 """
 # Function that returns the total number
 # of resonances bn=(n1,n2) to consider
-# for the harmonics lharmonic for discs
+# for the harmonics lharmonic for discs, 
+# assuming a L-integration over [0, inf).
 # There a few constraints to satisfy:
-# + n2 = lharmonic
+# + n2 = ±lharmonic for each value of n1
 # + |n1| <= n1max
 # + (n1,n2) = (0,0) does not contribute
 # ATTENTION, the (n1,n2) are determined for l=lharmonic
@@ -128,15 +129,17 @@ end
 function GetNbResVec2d(lharmonic::Int64,n1max::Int64)
     count = 0 # Initialisation of the counter
     #####
-    n2=lharmonic # 2d constraint
+    # In the the 2D, this package also integrates L over [0, inf).
+    # However, the response matrix should integrate L over (-inf, inf), since the L variable in the 2D case stands for Lz=R*vphi
+    # We can keep the integration of L over [0, inf), but at the cost of adding the contribution of n2=-lharmonic to the resonance summation, for each value of n1
     #####
-    if n2 != 0
-        for n1=-n1max:n1max # Loop over the index n2
-            count += 1 # Updating the counter
+    if lharmonic != 0
+        for n1=-n1max:n1max # Loop over the index n1
+            count += 2 # Updating the counter : For each n1, we have the contributions from n2=-lharmonic and n2=lharmonic
         end
     else
-        for n1=1:n1max # Loop over the index n2
-            count += 2 # Updating the counter (n1,n2) and (-n1,n2)
+        for n1=1:n1max # Loop over the index n1
+            count += 4 # Updating the counter (n1,lharmonic), (n1,-lharmonic), (-n1,lharmonic) and (-n1,-lharmonic)
         end
     end
     #####
@@ -159,25 +162,43 @@ function MakeTabResVec2d(lharmonic::Int64,n1max::Int64)
     tabResVec = zeros(Int64,2,nbResVec)
     count = 1 # Initialisation of the counter
     #####
-    n2=lharmonic # 2d constraint
+    # In the the 2D, this package also integrates L over [0, inf).
+    # However, the response matrix should integrate L over (-inf, inf), since the L variable in the 2D case stands for Lz=R*vphi
+    # We can keep the integration of L over [0, inf), but at the cost of adding the contribution of n2=-lharmonic to the resonance summation, for each value of n1
     #####
-    if n2 != 0
-        for n1=-n1max:n1max # Loop over the index n2
-            tabResVec[1,count], tabResVec[2,count] = n1, n2 # Adding the resonance (n1,n2)
+    if lharmonic != 0
+        for n1=-n1max:n1max # Loop over the index n1
+            tabResVec[1,count], tabResVec[2,count] = n1, lharmonic # Adding the resonance (n1,lharmonic)
+            #
+            count += 1 # Updating the counter
+            #
+            tabResVec[1,count], tabResVec[2,count] = n1, -lharmonic # Adding the resonance (n1,-lharmonic)
             #
             count += 1 # Updating the counter
         end
     else
-        for n1=1:n1max # Loop over the index n2
-            tabResVec[1,count], tabResVec[2,count] = n1, n2 # Adding the resonance (n1,n2)
+        for n1=1:n1max # Loop over the index n1
+            tabResVec[1,count], tabResVec[2,count] = n1, lharmonic # Adding the resonance (n1,lharmonic)
             #
             count += 1 # Updating the counter
             #
-            tabResVec[1,count], tabResVec[2,count] = -n1, n2 # Adding the resonance (n1,n2)
+            tabResVec[1,count], tabResVec[2,count] = n1, -lharmonic # Adding the resonance (n1,lharmonic)
+            #
+            count += 1 # Updating the counter
+            #
+            tabResVec[1,count], tabResVec[2,count] = -n1, lharmonic # Adding the resonance (-n1,lharmonic)
+            #
+            count += 1 # Updating the counter
+            #
+            tabResVec[1,count], tabResVec[2,count] = -n1, -lharmonic # Adding the resonance (-n1,-lharmonic)
             #
             count += 1 # Updating the counter
         end
     end
+
+    # For the case lmax=0, the resonance number appear twice, which is accurate
+    # Indeed, lmax=0 implied n2=0, and in that case the integration over (-inf, inf) is simply twice that over (0, inf)
+    # We might be able to optimize this, but the current form allows us not to change anything in the package 
 
     return nbResVec, tabResVec
 end
