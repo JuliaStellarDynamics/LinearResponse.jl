@@ -133,7 +133,7 @@ function MakeGu(distributionfunction::DistributionFunction,
 
             valndFdJ = 0.0
             if (params.dimension==2)
-                if ((distributionfunction.isOdd) && (n2=-lharmonic) ) # Is the thin-disc DF odd in Lz ?
+                if ((distributionfunction.isOdd) && (n2=-params.lharmonic) ) # Is the thin-disc DF odd in Lz ?
                     valndFdJ = _ndFdJConj((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
                 else
                     valndFdJ = _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
