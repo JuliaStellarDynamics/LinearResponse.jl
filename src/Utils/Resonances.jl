@@ -11,9 +11,9 @@ println(tabResVec)
 """
 
 
-function GetNbResVec(lharmonic::Int64,n1max::Int64,dimension::Int64=3,isEven::Bool=false)
+function GetNbResVec(lharmonic::Int64,n1max::Int64,dimension::Int64=3,isVanishing::Bool=true)
     if dimension == 2
-        return GetNbResVec2d(lharmonic,n1max,isEven)
+        return GetNbResVec2d(lharmonic,n1max,isVanishing)
     elseif dimension == 3
         return GetNbResVec3d(lharmonic,n1max)
     else
@@ -21,9 +21,9 @@ function GetNbResVec(lharmonic::Int64,n1max::Int64,dimension::Int64=3,isEven::Bo
     end
 end
 
-function MakeTabResVec(lharmonic::Int64,n1max::Int64,dimension::Int64=3,isEven::Bool=false)
+function MakeTabResVec(lharmonic::Int64,n1max::Int64,dimension::Int64=3,isVanishing::Bool=true)
     if dimension == 2
-        return MakeTabResVec2d(lharmonic,n1max,isEven)
+        return MakeTabResVec2d(lharmonic,n1max,isVanishing)
     elseif dimension == 3
         return MakeTabResVec3d(lharmonic,n1max)
     else
@@ -121,19 +121,19 @@ end
 # for the harmonics lharmonic for discs, 
 # assuming a L-integration over [0, inf).
 # There a few constraints to satisfy:
-# + n2 = ±lharmonic for each value of n1 if isEven=true
-# + n2 = +lharmonic for each value of n1 if isEven=false
+# + n2 = ±lharmonic for each value of n1 if isVanishing=false
+# + n2 = +lharmonic for each value of n1 if isVanishing=true
 # + |n1| <= n1max
 # + (n1,n2) = (0,0) does not contribute
 # ATTENTION, the (n1,n2) are determined for l=lharmonic
 """
-function GetNbResVec2d(lharmonic::Int64,n1max::Int64,isEven::Bool=false)
+function GetNbResVec2d(lharmonic::Int64,n1max::Int64,isVanishing::Bool=true)
     count = 0 # Initialisation of the counter
     #####
     # In the the 2D, this package also integrates L over [0, inf).
     # However, the response matrix should integrate L over (-inf, inf), since the L variable in the 2D case stands for Lz=R*vphi
 
-    # If the DF is even in L, then :
+    # If the DF is even or odd in L, then :
     # We can keep the integration of L over [0, inf), but at the cost of adding the contribution of n2=-lharmonic to the resonance summation, for each values of n1
 
     # If the DF vanishes smoothly at L=0, then:
@@ -142,18 +142,18 @@ function GetNbResVec2d(lharmonic::Int64,n1max::Int64,isEven::Bool=false)
     #####
     if lharmonic != 0
         for n1=-n1max:n1max # Loop over the index n1
-            if (isEven)
-                count += 2 # Updating the counter : For each n1, we have the contributions from n2=-lharmonic and n2=lharmonic
-            else
+            if (isVanishing)
                 count += 1 # Updating the counter : For each n1, we have the contributions from n2=lharmonic
+            else
+                count += 2 # Updating the counter : For each n1, we have the contributions from n2=-lharmonic and n2=lharmonic
             end
         end
     else
         for n1=1:n1max # Loop over the index n1
-            if (isEven)
-                count += 4 # Updating the counter (n1,lharmonic), (n1,-lharmonic), (-n1,lharmonic) and (-n1,-lharmonic)
-            else
+            if (isVanishing)
                 count += 2 # Updating the counter (n1,lharmonic), and (-n1,lharmonic)
+            else
+                count += 4 # Updating the counter (n1,lharmonic), (n1,-lharmonic), (-n1,lharmonic) and (-n1,-lharmonic)   
             end
         end
     end
@@ -170,9 +170,9 @@ Function that fills in the array of resonance vectors (n1,n2)
 ATTENTION, the (n1,n2) are determined for l=lharmonic
 @IMPROVE it would be best to use the same code as in get_nbResVec()
 """
-function MakeTabResVec2d(lharmonic::Int64,n1max::Int64,isEven::Bool=false)
+function MakeTabResVec2d(lharmonic::Int64,n1max::Int64,isVanishing::Bool=true)
     # calculate the number
-    nbResVec = GetNbResVec(lharmonic,n1max,2,isEven)
+    nbResVec = GetNbResVec(lharmonic,n1max,2,isVanishing)
 
     tabResVec = zeros(Int64,2,nbResVec)
     count = 1 # Initialisation of the counter
@@ -180,7 +180,7 @@ function MakeTabResVec2d(lharmonic::Int64,n1max::Int64,isEven::Bool=false)
     # In the the 2D, this package also integrates L over [0, inf).
     # However, the response matrix should integrate L over (-inf, inf), since the L variable in the 2D case stands for Lz=R*vphi
 
-    # If the DF is even in L, then :
+    # If the DF is even or odd in L, then :
     # We can keep the integration of L over [0, inf), but at the cost of adding the contribution of n2=-lharmonic to the resonance summation, for each values of n1
 
     # If the DF vanishes smoothly at L=0, then:
@@ -193,7 +193,7 @@ function MakeTabResVec2d(lharmonic::Int64,n1max::Int64,isEven::Bool=false)
             #
             count += 1 # Updating the counter
             #
-            if (isEven)
+            if (!isVanishing)
                 tabResVec[1,count], tabResVec[2,count] = n1, -lharmonic # Adding the resonance (n1,-lharmonic)
                 #
                 count += 1 # Updating the counter
@@ -209,7 +209,7 @@ function MakeTabResVec2d(lharmonic::Int64,n1max::Int64,isEven::Bool=false)
             #
             count += 1 # Updating the counter
             #
-            if (isEven)
+            if (!isVanishing)
                 tabResVec[1,count], tabResVec[2,count] = n1, -lharmonic # Adding the resonance (n1,-lharmonic)
                 #
                 count += 1 # Updating the counter

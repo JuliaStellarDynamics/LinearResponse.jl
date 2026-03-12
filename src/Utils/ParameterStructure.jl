@@ -51,11 +51,11 @@ mutable struct LinearParameters
 end
 
 """
-    LinearParameters(basis;Orbitalparams,isEven,Ω₀,Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,modelname,dfname,wmatdir,gfuncdir,modedir,OVERWRITE,lharmonic,n1max,VERBOSE)
+    LinearParameters(basis;Orbitalparams,isVanishing,Ω₀,Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,modelname,dfname,wmatdir,gfuncdir,modedir,OVERWRITE,lharmonic,n1max,VERBOSE)
 """
 function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
                           Orbitalparams::OrbitalElements.OrbitalParameters=OrbitalElements.OrbitalParameters(),
-                          isEven::Bool=false, # Relevant for thin disc DFs
+                          isVanishing::Bool=true, # Relevant for thin disc DFs
                           Ω₀::Float64=1.0,
                           Ku::Int64=200,Kv::Int64=200,Kw::Int64=200,
                           VMAPN::Int64=1,ADAPTIVEKW::Bool=false,KuTruncation::Int64=10000,
@@ -72,7 +72,7 @@ function LinearParameters(basis::AstroBasis.AbstractAstroBasis;
     nradial = Basisparams["nradial"]
 
     # Resonance vectors
-    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,dimension,isEven)
+    nbResVec, tabResVec = MakeTabResVec(lharmonic,n1max,dimension,isVanishing)
 
     return LinearParameters(Orbitalparams,Ω₀,dimension,nradial,Basisparams,
                             Ku,Kv,Kw,VMAPN,ADAPTIVEKW,KuTruncation,
