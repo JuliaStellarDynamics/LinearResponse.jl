@@ -20,7 +20,7 @@ LinearResponse.RunWmat(model,FHT,basis,params)
 LinearResponse.RunGfunc(distributionfunction,FHT,params)
 
 # call the function to compute Xi decomposition coefficients
-LinearResponse.RunAXi(FHT,params)
+LinearResponse.compute_response_coefficients(FHT,params)
 
 # # construct a grid of frequencies to probe
 nbω0 = 100                 # Number of ω0 for which the matrix is computed

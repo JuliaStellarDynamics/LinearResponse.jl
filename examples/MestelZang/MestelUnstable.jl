@@ -58,13 +58,13 @@ const modedir = "xifunc/"
 const qDF = 6
 const Rin, Rout, Rmax = 1., 11.5, 20.   # Tapering radii
 const ξDF = 1.0                         # Self-gravity fraction
-const μDF, νDF = 2, 2                  # Tapering exponants
+const μDF, νDF = 5, 4                  # Tapering exponants
 
 # is this meant to be truncated or not truncated?
-distributionfunction = TruncatedZangDisc(model,qDF,νDF,Rin,μDF,Rout,Rmax,ξDF,G)
+distributionfunction = TruncatedZangDisc(model,qDF,νDF,Rin,μDF,Rout,Rmax,G)
 
-const σDF = σMestelDF(distributionfunction)
-const CDF = NormConstMestelDF(distributionfunction)
+const σDF = DistributionFunctions.σMestelDistribution(distributionfunction)
+const CDF = DistributionFunctions.NormConstMestelDistribution(distributionfunction)
 
 const dfname = "Zang_q_"*string(qDF)*"_xi_"*string(ξDF)*"_mu_"*string(μDF)*"_nu_"*string(νDF)
 
@@ -100,7 +100,7 @@ const VMAPN = 2
 const KuTruncation=1000
 
 const lharmonic = 2
-const n1max = 2  # maximum number of radial resonances to consider
+const n1max = 10  # maximum number of radial resonances to consider
 
 
 ####
