@@ -11,10 +11,6 @@ using HDF5
 
 LinearResponse.RunLinearResponse(model,distributionfunction,FHT,basis,Parameters)
 
-# construct a grid of frequencies to probe
-tabomega = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
-tabRMreal, tabRMimag = LinearResponse.RunMatrices(tabomega,FHT,Parameters)
-
 # find a pole by using gradient descent
 startingomg = 0.05 + 0.01im
 bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
@@ -30,9 +26,10 @@ nmode = 100
 ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)
 
 
-
 MMat, tabaMcoef, tabωminωmax = LinearResponse.PrepareM(Parameters)
 
+# Mode of response matrix computation
+# Frequencies to probe
 nOmega   = 280
 Omegamin = -0.2
 Omegamax = 0.2

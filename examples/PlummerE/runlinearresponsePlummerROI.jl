@@ -16,10 +16,6 @@ using Plots
 # 3. Compute the matrix coefficients
 @time LinearResponse.RunLinearResponse(model,distributionfunction,FHT,basis,Parameters)
 
-# construct a grid of frequencies to probe
-#tabω = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)
-#@time tabRMreal, tabRMimag = LinearResponse.RunMatrices(tabω,FHT,Parameters)
-
 # find a pole by using gradient descent
 startingomg = 0.1 + 0.1im
 @time bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
@@ -37,6 +33,8 @@ ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(bas
 
 MMat, tabaMcoef, tabωminωmax = LinearResponse.PrepareM(Parameters)
 
+# Mode of response matrix computation
+# Frequencies to probe
 nOmega   = 280
 Omegamin = -0.2
 Omegamax = 0.2

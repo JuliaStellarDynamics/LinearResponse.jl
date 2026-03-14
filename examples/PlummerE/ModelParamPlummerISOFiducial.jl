@@ -44,15 +44,6 @@ FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 lharmonic = lmax
 n1max = 10  # maximum number of radial resonances to consider
 
-# Mode of response matrix computation
-# Frequencies to probe
-nOmega   = 40
-Omegamin = 0.0
-Omegamax = 0.1
-nEta     = 40
-Etamin   = -0.1
-Etamax   = 0.4
-
 # output directories
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
