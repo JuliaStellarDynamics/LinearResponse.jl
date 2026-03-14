@@ -7,13 +7,7 @@ import LinearResponse
 using HDF5
 
 # compute the Fourier-transformed basis elements
-LinearResponse.RunWmatIsochrone(FHT,bc,M,G,basis,Parameters)
-
-# compute the G(u) functions
-LinearResponse.RunGfunc(ndFdJ,FHT,Parameters)
-
-# compute the matrix response at each location in tabomega
-tabdet = LinearResponse.RunAXi(FHT,Parameters)
+LinearResponse.RunLinearResponse(model,distributionfunction,FHT,basis,Parameters)
 
 # find a pole by using gradient descent
 startingomg = 0.0 + 0.03im
