@@ -29,9 +29,10 @@ distributionfunction = OsipkovMerrittPlummer(0.75,model)
 
 
 # Linear Response integration parameters
-Ku = 12    # number of Legendre integration sample points
-Kv = 20    # number of allocations is directly proportional to this
-Kw = 20    # number of allocations is insensitive to this (also time, largely)?
+Ku = 150    # number of Legendre integration sample points
+Kv = 150    # number of allocations is directly proportional to this
+Kw = 150    # number of allocations is insensitive to this (also time, largely)?
+KuTruncation = 10000
 
 
 # Define the helper for the Finite Hilbert Transform
@@ -42,9 +43,13 @@ lharmonic = lmax
 n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
 
 # output directories
-wmatdir  = "./"
-gfuncdir = "./"
-modedir  = "./"
+wmatdir  = "wmat/"
+gfuncdir = "gfunc/"
+modedir  = "xifunc/"
+
+mkpath(wmatdir)
+mkpath(gfuncdir)
+mkpath(modedir)
 
 # Mode of response matrix computation
 # Frequencies to probe
@@ -92,7 +97,9 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=
 @time LinearResponse.RunGfunc(distributionfunction,FHT,Parameters)
 
 # call the function to compute decomposition coefficients
-@time LinearResponse.RunAXi(FHT,Parameters)
+# @time LinearResponse.RunAXi(FHT,Parameters)
+@time LinearResponse.compute_response_coefficients(FHT,Parameters)
+
 
 MMat, tabaMcoef, tabωminωmax = LinearResponse.PrepareM(Parameters)
 

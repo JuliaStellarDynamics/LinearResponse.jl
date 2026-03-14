@@ -14,7 +14,7 @@ using Plots
 # Basis
 G  = 1.
 rb = 3.0
-lmax,nradial = 1,25 # Usually lmax corresponds to the considered harmonics lharmonic
+lmax,nradial = 2,25 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 
@@ -41,12 +41,16 @@ FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 lharmonic = lmax
 n1max = 10  # maximum number of radial resonances to consider
-#n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
+# n1max = 1  # the Fiducial value is 10, but in the interest of a quick calculation, we limit ourselves to 1.
 
 # output directories
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
+
+mkpath(wmatdir)
+mkpath(gfuncdir)
+mkpath(modedir)
 
 
 VERBOSE   = 2

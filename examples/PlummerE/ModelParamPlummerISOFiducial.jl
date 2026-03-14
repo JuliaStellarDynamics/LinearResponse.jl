@@ -16,7 +16,7 @@ using Plots
 # Basis
 G  = 1.
 rb = 3.0
-lmax,nradial = 2,5 # Usually lmax corresponds to the considered harmonics lharmonic
+lmax,nradial = 1,5 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 
@@ -31,10 +31,10 @@ distributionfunction = OsipkovMerrittPlummer(1.e6,model)
 
 
 
-# integration parameters
-Ku = 20    # number of Legendre integration sample points
-Kv = 20    # number of allocations is directly proportional to this
-Kw = 20    # number of allocations is insensitive to this (also time, largely)?
+# Linear Response integration parameters
+Ku = 150    # number of Legendre integration sample points
+Kv = 150    # number of allocations is directly proportional to this
+Kw = 150    # number of allocations is insensitive to this (also time, largely)?
 KuTruncation = 10000
 
 # define the helper for the Finite Hilbert Transform
@@ -57,6 +57,10 @@ Etamax   = 0.4
 wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
+
+mkpath(wmatdir)
+mkpath(gfuncdir)
+mkpath(modedir)
 
 
 VERBOSE   = 2
