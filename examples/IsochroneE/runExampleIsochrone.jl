@@ -14,7 +14,7 @@ using Plots
 
 # Basis
 G  = 1.
-rb = 2.0
+rb = 3.0
 lmax,nradial = 2,5 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
@@ -25,18 +25,16 @@ const modelname = "IsochroneE2"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
 model = OrbitalElements.NumericalIsochrone()
 
-rmin = 0.0
-rmax = Inf
-
 
 dfname = "roi1.0"
-distributionfunction = OsipkovMerrittIsochrone(1.0,model)
+distributionfunction = OsipkovMerrittIsochroneEL(1.0,model)
 
 
 # Linear Response integration parameters
-Ku = 50    # number of Legendre integration sample points
-Kv = 30    # number of allocations is directly proportional to this
-Kw = 20    # number of allocations is insensitive to this (also time, largely)?
+Ku = 200    # number of Legendre integration sample points
+Kv = 200    # number of allocations is directly proportional to this
+Kw = 200    # number of allocations is insensitive to this (also time, largely)?
+KuTruncation = 10000
 
 
 # Define the helper for the Finite Hilbert Transform
@@ -46,9 +44,14 @@ lharmonic = lmax
 n1max = 1 
 
 # output directories
-wmatdir  = "./"
-gfuncdir = "./"
-modedir  = "./"
+wmatdir  = "wmat/"
+gfuncdir = "gfunc/"
+modedir  = "xifunc/"
+
+mkpath(wmatdir)
+mkpath(gfuncdir)
+mkpath(modedir)
+
 
 # Mode of response matrix computation
 # Frequencies to probe
@@ -65,13 +68,18 @@ OVERWRITE = true
 VMAPN     = 1
 ADAPTIVEKW= false
 
-OEparams = OrbitalElements.OrbitalParameters(EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+RMIN = 0.0
+RMAX = Inf
+
+
+OEparams = OrbitalElements.OrbitalParameters(rmin=RMIN,rmax=RMAX,
+                                             EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
                                              ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=OrbitalElements.frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
                                              modelname=modelname,dfname=dfname,
                                              wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
                                              lharmonic=lharmonic,n1max=n1max,
@@ -92,9 +100,8 @@ Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=
 @time LinearResponse.RunGfunc(distributionfunction,FHT,Parameters)
 
 # call the function to compute decomposition coefficients
-@time LinearResponse.RunAXi(FHT,Parameters)
-
-#MMat, tabaMcoef, tabωminωmax = LinearResponse.PrepareM(Parameters)
+# @time LinearResponse.RunAXi(FHT,Parameters)
+@time LinearResponse.compute_response_coefficients(FHT,Parameters)
 
 # construct a grid of frequencies to probe
 tabω = LinearResponse.gridomega(Omegamin,Omegamax,nOmega,Etamin,Etamax,nEta)

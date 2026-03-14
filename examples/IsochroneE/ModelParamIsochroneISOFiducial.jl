@@ -9,12 +9,13 @@ using FiniteHilbertTransform
 using HDF5
 using LinearResponse
 using OrbitalElements
+using Plots
 
 
 # Basis
 G  = 1.
 rb = 5.0
-lmax,nradial = 1,100
+lmax,nradial = 1,20#100
 
 # CB73Basis([name, dimension, lmax, nradial, G, rb, filename])
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
@@ -24,8 +25,8 @@ const modelname = "IsochroneE2"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
 model = OrbitalElements.NumericalIsochrone()
 
-rmin = 0.0
-rmax = Inf
+# rmin = 0.0
+# rmax = Inf
 
 
 dfname = "isotropic"
@@ -42,7 +43,7 @@ Kw = 20
 FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 
 
-lharmonic = 1
+lharmonic = lmax
 n1max = 4  # maximum number of radial resonances to consider
 
 # output directories
@@ -50,14 +51,10 @@ wmatdir  = "wmat/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
 
-# Mode of response matrix computation
-# Frequencies to probe
-nOmega   = 40
-Omegamin = 0.0
-Omegamax = 0.1
-nEta     = 40
-Etamin   = -0.1
-Etamax   = 0.4
+mkpath(wmatdir)
+mkpath(gfuncdir)
+mkpath(modedir)
+
 
 VERBOSE   = 1
 OVERWRITE = false
@@ -65,19 +62,21 @@ VMAPN     = 1
 ADAPTIVEKW= false
 KUTRUNCATION=10000
 
-# use almost entirely default parameters
-OEparams = OrbitalElements.OrbitalParameters(EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+RMIN = 0.0
+RMAX = Inf
+
+OEparams = OrbitalElements.OrbitalParameters(rmin=RMIN,rmax=RMAX,
+                                             EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
                                              ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=OrbitalElements.frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
                                              modelname=modelname,dfname=dfname,
                                              wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
                                              lharmonic=lharmonic,n1max=n1max,
                                              VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
                                              VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW)
-
 
 # WARNING : / at the end to check !
