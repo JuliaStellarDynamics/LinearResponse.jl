@@ -14,7 +14,7 @@ using Plots
 # Basis
 G  = 1.
 rb = 3.0
-lmax,nradial = 1,25 # Usually lmax corresponds to the considered harmonics lharmonic
+lmax,nradial = 2,25 # Usually lmax corresponds to the considered harmonics lharmonic
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 

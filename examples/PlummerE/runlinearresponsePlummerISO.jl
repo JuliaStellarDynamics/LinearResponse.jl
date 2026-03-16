@@ -18,13 +18,18 @@ tabRMreal, tabRMimag = LinearResponse.RunMatrices(tabomega,FHT,Parameters)
 # find a pole by using gradient descent
 startingomg = 0.05 + 0.01im
 bestomg,detval = LinearResponse.FindPole(startingomg,FHT,Parameters)
-println("The zero-crossing frequency is $bestomg.")
 
-# for the minimum, go back and compute the mode shape
-EV,EM = LinearResponse.ComputeModeTables(bestomg,FHT,Parameters)
+if isnan(real(bestomg)) || isnan(imag(bestomg))
+    println("Warning: bestomg is NaN. Linear response pole not found.")
+else
+    println("The zero-crossing frequency is $bestomg.")
+    
+    # for the minimum, go back and compute the mode shape
+    EV,EM = LinearResponse.ComputeModeTables(bestomg,FHT,Parameters)
 
+    modeRmin = 0.01
+    modeRmax = 15.0
+    nmode = 100
+    ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)
 
-modeRmin = 0.01
-modeRmax = 15.0
-nmode = 100
-ModeRadius,ModePotentialShape,ModeDensityShape = LinearResponse.GetModeShape(basis,modeRmin,modeRmax,nmode,EM,Parameters)
+end

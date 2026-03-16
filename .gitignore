@@ -16,6 +16,10 @@ examples/*/xifunc
 examples/*/figures
 examples/*/*.ipynb
 
+# some extra, specific research examples
+examples/PlummerE/runTimeResponsePlummer.jl
+examples/PlummerE/archive
+
 # log on cluster
 examples/*/log
 

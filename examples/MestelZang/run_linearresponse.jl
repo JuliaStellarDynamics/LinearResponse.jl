@@ -23,9 +23,9 @@ LinearResponse.RunGfunc(distributionfunction,FHT,params)
 LinearResponse.compute_response_coefficients(FHT,params)
 
 # # construct a grid of frequencies to probe
-nbω0 = 100                 # Number of ω0 for which the matrix is computed
+nbω0 = 10                 # Number of ω0 for which the matrix is computed
 ω0min, ω0max = 0., 2.5     # Minimum and maximum ω0
-nbη = 50                  # Number of η for which the matrix is computed
+nbη = 10                  # Number of η for which the matrix is computed
 ηmin, ηmax = -0.1, 0.6      # Minimum and maximum η
 # tabω = LinearResponse.gridomega(ω0min,ω0max,nbω0,ηmin,ηmax,nbη)
 # # compute the matrix response at each location
@@ -50,8 +50,8 @@ savefig("ROIdeterminant.png")
 
 
 # Mode Finding
-Ωguess = 1.0
-ηguess = 0.5
+Ωguess = 0.80
+ηguess = 0.12
 ωguess = Ωguess + im*ηguess
 ωMode = LinearResponse.FindPole(ωguess,FHT,params)
 println("ωMode = ",ωMode)
