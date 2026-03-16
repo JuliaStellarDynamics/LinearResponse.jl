@@ -4,12 +4,12 @@ an example input file for running all steps in estimating the Linear Response fo
 """
 
 
-using OrbitalElements
 using AstroBasis
+using DistributionFunctions
 using FiniteHilbertTransform
-using LinearResponse
 using HDF5
-
+using LinearResponse
+using OrbitalElements
 using Plots
 
 
@@ -23,14 +23,15 @@ basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 # Model Potential
 const modelname = "IsochroneE"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
-model = OrbitalElements.IsochronePotential()
+model = OrbitalElements.NumericalIsochrone()
 
 
 rmin = 0.0
 rmax = Inf
 
-
+ra = 1.0
 dfname = "roi1.0"
+distributionfunction = OsipkovMerrittIsochroneEL(ra,model)
 
 
 
@@ -61,7 +62,6 @@ Etamax   = 0.04
 
 # output directories
 wmatdir  = "wmat/"
-#gfuncdir = "/Volumes/External1/P23RegressionTests/"#gfunc/"
 gfuncdir = "gfunc/"
 modedir  = "xifunc/"
 
@@ -73,18 +73,16 @@ ELTOLECC  = 0.01
 VMAPN     = 1
 ADAPTIVEKW= false
 
-OEparams = OrbitalElements.OrbitalParameters(Ω₀=Ω₀,rmin=rmin,rmax=rmax,
-                                             EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
+OEparams = OrbitalElements.OrbitalParameters(EDGE=OrbitalElements.DEFAULT_EDGE,TOLECC=OrbitalElements.DEFAULT_TOLECC,TOLA=OrbitalElements.DEFAULT_TOLA,
                                              NINT=OrbitalElements.DEFAULT_NINT,
                                              da=OrbitalElements.DEFAULT_DA,de=OrbitalElements.DEFAULT_DE,
                                              ITERMAX=OrbitalElements.DEFAULT_ITERMAX,invε=OrbitalElements.DEFAULT_TOL)
 
 
-Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ku=Ku,Kv=Kv,Kw=Kw,
+Parameters = LinearResponse.LinearParameters(basis,Orbitalparams=OEparams,Ω₀=OrbitalElements.frequency_scale(model),Ku=Ku,Kv=Kv,Kw=Kw,
                                              modelname=modelname,dfname=dfname,
                                              wmatdir=wmatdir,gfuncdir=gfuncdir,modedir=modedir,axidir=modedir,
                                              lharmonic=lharmonic,n1max=n1max,
-                                             KuTruncation=KuTruncation,
                                              VERBOSE=VERBOSE,OVERWRITE=OVERWRITE,
                                              VMAPN=VMAPN,ADAPTIVEKW=ADAPTIVEKW)
 

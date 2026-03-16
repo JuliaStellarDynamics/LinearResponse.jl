@@ -20,6 +20,8 @@ examples/*/*.ipynb
 examples/PlummerE/runTimeResponsePlummer.jl
 examples/PlummerE/archive
 
+examples/IsochroneE/archive
+
 # log on cluster
 examples/*/log
 
