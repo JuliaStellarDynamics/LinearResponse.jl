@@ -20,7 +20,7 @@ lmax,nradial = 1,100
 basis = AstroBasis.CB73Basis(lmax=lmax, nradial=nradial,G=G,rb=rb)
 
 # Model Potential
-const modelname = "IsochroneE2"
+const modelname = "IsochroneE"
 const bc, M = 1.,1. # G is defined above: must agree with basis!
 model = OrbitalElements.NumericalIsochrone()
 
