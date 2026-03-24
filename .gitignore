@@ -21,6 +21,8 @@ examples/PlummerE/runTimeResponsePlummer.jl
 examples/PlummerE/archive
 
 examples/IsochroneE/archive
+examples/IsochroneA/archive
+examples/MestelZang/archive
 
 # log on cluster
 examples/*/log

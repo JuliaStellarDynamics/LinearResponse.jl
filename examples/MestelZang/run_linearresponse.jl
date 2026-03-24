@@ -14,13 +14,16 @@ inputfile = "MestelUnstable.jl"
 include(inputfile)
 
 # call the function to construct W matrices
-LinearResponse.RunWmat(model,FHT,basis,params)
+#LinearResponse.RunWmat(model,FHT,basis,params)
 
 # call the function to compute G(u) functions
-LinearResponse.RunGfunc(distributionfunction,FHT,params)
+#LinearResponse.RunGfunc(distributionfunction,FHT,params)
 
 # call the function to compute Xi decomposition coefficients
-LinearResponse.compute_response_coefficients(FHT,params)
+#LinearResponse.compute_response_coefficients(FHT,params)
+
+
+@time LinearResponse.RunLinearResponse(model,distributionfunction,FHT,basis,params)
 
 # # construct a grid of frequencies to probe
 nbω0 = 10                 # Number of ω0 for which the matrix is computed
@@ -50,8 +53,8 @@ savefig("ROIdeterminant.png")
 
 
 # Mode Finding
-Ωguess = 0.80
-ηguess = 0.12
+Ωguess = 0.878
+ηguess = 0.226
 ωguess = Ωguess + im*ηguess
 ωMode = LinearResponse.FindPole(ωguess,FHT,params)
 println("ωMode = ",ωMode)

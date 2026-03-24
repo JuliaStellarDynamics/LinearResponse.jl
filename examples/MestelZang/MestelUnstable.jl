@@ -31,7 +31,7 @@ const G  = 1.
 # Clutton-Brock (1972) basis
 const basisname = "CluttonBrock"
 const rb = 5.
-const lmax,nradial = 2,100 # Usually lmax corresponds to the considered harmonics lharmonic
+const lmax,nradial = 2,50 # Usually lmax corresponds to the considered harmonics lharmonic
 const basis = AstroBasis.CB72Basis(lmax=lmax,nradial=nradial,G=G,rb=rb) 
 
 ##############################
@@ -39,7 +39,8 @@ const basis = AstroBasis.CB72Basis(lmax=lmax,nradial=nradial,G=G,rb=rb)
 ##############################
 const modelname = "Mestel"
 
-const R0, V0 = 1.,1.#20., 1.
+# changing these does not trigger a recomputation?
+const R0, V0 = 1., 1.
 #model = OrbitalElements.MestelPotential(R0=R0,V0=V0)
 model = OrbitalElements.TaperedMestel(R0=R0,V0=V0)
 
@@ -58,7 +59,7 @@ const modedir = "xifunc/"
 const qDF = 6
 const Rin, Rout, Rmax = 1., 11.5, 20.   # Tapering radii
 const ξDF = 1.0                         # Self-gravity fraction
-const μDF, νDF = 5, 4                  # Tapering exponants
+const μDF, νDF = 5,4                  # Tapering exponents: outer taper, inner taper
 
 # is this meant to be truncated or not truncated?
 distributionfunction = TruncatedZangDisc(model,qDF,νDF,Rin,μDF,Rout,Rmax,G)
@@ -68,14 +69,6 @@ const CDF = DistributionFunctions.NormConstMestelDistribution(distributionfuncti
 
 const dfname = "Zang_q_"*string(qDF)*"_xi_"*string(ξDF)*"_mu_"*string(μDF)*"_nu_"*string(νDF)
 
-
-"""
-const DF(E::Float64,L::Float64) = ξDF * OrbitalElements.ZangDF(E,L,R0,Rin,Rout,Rmax,V0,CDF,qDF,σDF,μDF,νDF)
-
-const ndFdJ(n1::Int64,n2::Int64,
-            E::Float64,L::Float64,
-            ndotΩ::Float64)   = ξDF * OrbitalElements.ZangndDFdJ(n1,n2,E,L,ndotΩ,R0,Rin,Rout,Rmax,V0,CDF,qDF,σDF,μDF,νDF)
-"""
 
 #####
 # Parameters
@@ -100,7 +93,7 @@ const VMAPN = 2
 const KuTruncation=1000
 
 const lharmonic = 2
-const n1max = 10  # maximum number of radial resonances to consider
+const n1max = 1  # maximum number of radial resonances to consider
 
 
 ####
@@ -111,7 +104,7 @@ const OVERWRITE = false
 ####
 
 
-const ADAPTIVEKW = false
+const ADAPTIVEKW = true
 
 params = LinearResponse.LinearParameters(basis;Orbitalparams=Orbitalparams,Ω₀=frequency_scale(model),
                                          Ku=Ku,Kv=Kv,Kw=Kw,
