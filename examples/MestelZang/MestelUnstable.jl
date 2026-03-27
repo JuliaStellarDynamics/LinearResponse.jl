@@ -43,6 +43,7 @@ const modelname = "Mestel"
 const R0, V0 = 1., 1.
 #model = OrbitalElements.MestelPotential(R0=R0,V0=V0)
 model = OrbitalElements.TaperedMestel(R0=R0,V0=V0)
+# the frequency inversions appear to work here
 
 ##############################
 # Outputs directories
@@ -77,7 +78,7 @@ const dfname = "Zang_q_"*string(qDF)*"_xi_"*string(ξDF)*"_mu_"*string(μDF)*"_n
 const EDGE = 0.01
 const TOLECC = 0.01
 # Radii for frequency truncations
-const rmin = 0.2
+const rmin = 0.1
 const rmax = 20.0
 
 const Orbitalparams = OrbitalElements.OrbitalParameters(;rmin=rmin,rmax=rmax,EDGE=EDGE,TOLECC=TOLECC)
@@ -89,11 +90,11 @@ const FHT = FiniteHilbertTransform.LegendreFHT(Ku)
 const Kv = 200    # number of allocations is directly proportional to this
 const Kw = 200    # number of allocations is insensitive to this (also time, largely?
 
-const VMAPN = 2
+const VMAPN = 1
 const KuTruncation=1000
 
 const lharmonic = 2
-const n1max = 1  # maximum number of radial resonances to consider
+const n1max = 10  # maximum number of radial resonances to consider
 
 
 ####
@@ -104,7 +105,7 @@ const OVERWRITE = false
 ####
 
 
-const ADAPTIVEKW = true
+const ADAPTIVEKW = false
 
 params = LinearResponse.LinearParameters(basis;Orbitalparams=Orbitalparams,Ω₀=frequency_scale(model),
                                          Ku=Ku,Kv=Kv,Kw=Kw,

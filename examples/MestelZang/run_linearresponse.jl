@@ -56,7 +56,7 @@ savefig("ROIdeterminant.png")
 Ωguess = 0.878
 ηguess = 0.226
 ωguess = Ωguess + im*ηguess
-ωMode = LinearResponse.FindPole(ωguess,FHT,params)
+ωMode = LinearResponse.FindPole(ωguess,FHT,params,ξ=ξDF)
 println("ωMode = ",ωMode)
 
 # # Mode Shape
