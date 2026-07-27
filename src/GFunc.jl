@@ -26,20 +26,6 @@ function _ndFdJ(EL::Tuple{Float64,Float64},ΩΩ::Tuple{Float64,Float64},resonanc
 
     end
 
-# Used to compute the G function for thin-disk DFs that are odd in Lz (i.e. for rotational DFs)
-function _ndFdJConj(EL::Tuple{Float64,Float64},ΩΩ::Tuple{Float64,Float64},resonance::Resonance, df::EnergyAngularMomentumDF)
-
-        DFDEval,DFDLval = gradient(EL,df)
-
-        # still allow these to be an optional argument
-        Ω1,Ω2   = ΩΩ
-        n1,n2   = resonance.number[1],resonance.number[2]
-        ndotΩ   = n1*Ω1 + n2*Ω2
-
-        return DFDEval * ndotΩ - DFDLval * n2
-
-    end
-
 
 """
     MakeGu(ndFdJ,n1,n2,Wdata,tabu[,params])
@@ -134,7 +120,7 @@ function MakeGu(distributionfunction::DistributionFunction,
             valndFdJ = 0.0
             if (params.dimension==2)
                 if ((distributionfunction.isOdd) && (n2==-params.lharmonic) ) # Is the thin-disc DF odd in Lz ?
-                    valndFdJ = _ndFdJConj((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
+                    valndFdJ = -_ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
                 else
                     valndFdJ = _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
                 end
