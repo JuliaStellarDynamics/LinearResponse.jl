@@ -119,11 +119,19 @@ function MakeGu(distributionfunction::DistributionFunction,
 
             valndFdJ = 0.0
             if (params.dimension==2)
-                if ((distributionfunction.isOdd) && (n2==-params.lharmonic) ) # Is the thin-disc DF odd in Lz ?
-                    valndFdJ = -_ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
-                else
+                if (!(distributionfunction.isOdd)) # The DF vanishes smoothly at Lz=0 (e.g., Zang), or it is even w.r.t. Lz
                     valndFdJ = _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
-                end
+                else # The DF in odd
+                    if (params.lharmonic != 0) # ell != 0
+                        if (n2==-params.lharmonic) # n2 != ell
+                            valndFdJ = -_ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
+                        else # n2 = ell
+                            valndFdJ = _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
+                        end
+                    else
+                        valndFdJ = 0.0 # The total integral vanishes by symmetry. We set to 0.0 here.
+                    end
+                end  
             else
                 valndFdJ = _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
             end
