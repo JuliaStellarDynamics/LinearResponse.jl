@@ -119,8 +119,13 @@ function MakeGu(distributionfunction::DistributionFunction,
 
             valndFdJ = 0.0
             if (params.dimension==2)
+                isVanishing = distributionfunction.isVanishing
                 if (!(distributionfunction.isOdd)) # The DF vanishes smoothly at Lz=0 (e.g., Zang), or it is even w.r.t. Lz
-                    valndFdJ = _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
+                    if ((!isVanishing) && (params.lharmonic == 0)) # The DF is even w.r.t. Lz and lharmonic=0: additional prefactor of 2 in front
+                        valndFdJ = 2.0 * _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
+                    else # The DF is even w.r.t. Lz and lharmonic!=0 or the DF vanishes smoothly at Lz=0 (e.g., Zang)
+                        valndFdJ = _ndFdJ((Eval,Lval),(Ω1,Ω2),resonance,distributionfunction)
+                    end
                 else # The DF in odd
                     if (params.lharmonic != 0) # ell != 0
                         if (n2==-params.lharmonic) # n2 != ell

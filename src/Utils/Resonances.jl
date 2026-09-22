@@ -150,11 +150,7 @@ function GetNbResVec2d(lharmonic::Int64,n1max::Int64,isVanishing::Bool=true)
         end
     else
         for n1=1:n1max # Loop over the index n1
-            if (isVanishing)
-                count += 2 # Updating the counter (n1,lharmonic), and (-n1,lharmonic)
-            else
-                count += 4 # Updating the counter (n1,lharmonic), (n1,-lharmonic), (-n1,lharmonic) and (-n1,-lharmonic)   
-            end
+            count += 2 # Updating the counter (n1,lharmonic), and (-n1,lharmonic)
         end
     end
     #####
@@ -209,15 +205,6 @@ function MakeTabResVec2d(lharmonic::Int64,n1max::Int64,isVanishing::Bool=true)
             #
             count += 1 # Updating the counter
             #
-            if (!isVanishing)
-                tabResVec[1,count], tabResVec[2,count] = n1, -lharmonic # Adding the resonance (n1,-lharmonic)
-                #
-                count += 1 # Updating the counter
-                #
-                tabResVec[1,count], tabResVec[2,count] = -n1, -lharmonic # Adding the resonance (-n1,-lharmonic)
-                #
-                count += 1 # Updating the counter
-            end
         end
     end
 
