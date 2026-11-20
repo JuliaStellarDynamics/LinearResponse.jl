@@ -52,12 +52,7 @@ function RunMatrices(ωlist::Array{ComplexF64},
     end
 
     # Preparing computations of the response matrices
-    try
-        tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(), FHT, params)
-    catch e
-        println("Error preparing matrices: ", e)
-        return nothing
-    end
+    tabMlist, tabaMcoef, tabωminωmax, FHTlist = PrepareM(Threads.nthreads(), FHT, params)
 
     # Number of frequency values
     nω = length(ωlist)
@@ -74,42 +69,33 @@ function RunMatrices(ωlist::Array{ComplexF64},
     Threads.@threads :static for i = 1:nω
         tid = Threads.threadid()
         k = pos_threadid[tid]
+        
+        # Time the second frequency computation if verbosity is enabled
+        if (i == 2) && (params.VERBOSE > 0)
+            @time tabM!(ωlist[i], tabMlist[k], tabaMcoef, tabωminωmax, FHTlist[k], params)
+        else
+            tabM!(ωlist[i], tabMlist[k], tabaMcoef, tabωminωmax, FHTlist[k], params)
+        end
 
-        try
-            # Time the second frequency computation if verbosity is enabled
-            if (i == 2) && (params.VERBOSE > 0)
-                @time tabM!(ωlist[i], tabMlist[k], tabaMcoef, tabωminωmax, FHTlist[k], params)
-            else
-                tabM!(ωlist[i], tabMlist[k], tabaMcoef, tabωminωmax, FHTlist[k], params)
+        # Store real and imaginary parts of the matrix
+        for q = 1:nradial
+            for p = 1:nradial
+                tabRMreal[p, q, i] = real(tabMlist[k][p, q])
+                tabRMimag[p, q, i] = imag(tabMlist[k][p, q])
             end
-
-            # Store real and imaginary parts of the matrix
-            for q = 1:nradial
-                for p = 1:nradial
-                    tabRMreal[p, q, i] = real(tabMlist[k][p, q])
-                    tabRMimag[p, q, i] = imag(tabMlist[k][p, q])
-                end
-            end
-        catch e
-            # what kinds of diagnostics would be helpful here for failure modes?
-            (params.VERBOSE > 0) && println("Error in thread $k while processing frequency $i: ", e)
         end
     end
 
     # Save results to an HDF5 file
-    try
-        h5open(MatFilename(params), "w") do file
-            # ω grid
-            write(file, "omega", real(ωlist))
-            write(file, "eta", imag(ωlist))
-            # Matrices
-            write(file, "MatricesR", tabRMreal)
-            write(file, "MatricesI", tabRMimag)
-            # Parameters
-            WriteParameters(file, params)
-        end
-    catch e
-        println("Error writing to HDF5 file: ", e)
+    h5open(MatFilename(params), "w") do file
+        # ω grid
+        write(file, "omega", real(ωlist))
+        write(file, "eta", imag(ωlist))
+        # Matrices
+        write(file, "MatricesR", tabRMreal)
+        write(file, "MatricesI", tabRMimag)
+        # Parameters
+        WriteParameters(file, params)
     end
 
     return tabRMreal, tabRMimag
